@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   LayoutGrid, 
   BarChart3, 
-  Globe, 
   Users, 
   CreditCard, 
   PackageSearch, 
@@ -22,11 +21,11 @@ interface SidebarProps {
 const navItems: NavItem[] = [
   { id: 'dashboard', label: '全域概览', icon: LayoutGrid },
   { id: 'data', label: '数据智脑', icon: BarChart3 },
-  { id: 'market', label: '全球市场', icon: Globe },
+  // Market module removed
   { id: 'influencers', label: '达人矩阵', icon: Users },
   { id: 'finance', label: '资金账户', icon: CreditCard },
   { id: 'logistics', label: '物流追踪', icon: PackageSearch },
-  { id: 'replenish', label: '智能补货', icon: Layers },
+  { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务看板', icon: ListTodo },
 ];
 

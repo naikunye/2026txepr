@@ -1,301 +1,1103 @@
-import React, { useState } from 'react';
-import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload } from 'lucide-react';
 
-// Enhanced Data Structure matching the screenshot
+// --- World-Class ERP Data Model ---
+interface Variant {
+  id: string;
+  suffix: string;      // e.g., "-BLK"
+  variantName: string; // e.g., "Black Color"
+  quantity: number;    // e.g., 200
+}
+
 interface Product {
   id: string;
-  skuCode: string; // e.g., dsz-01-COPY
-  inboundId: string; // e.g., IB112251229RS
+  skuCode: string;
+  productName: string;
+  image: string; // Product Thumbnail URL
   
-  productName: string; // e.g., 登山杖
-  supplier: string; // e.g., 1688 or 老罗
+  variants?: Variant[]; // SUB-SKU Matrix
+
+  // 1. Sourcing & Supply Chain
+  supplier: {
+    name: string;
+    link: string;
+    moq: number; // Minimum Order Quantity
+    unitPriceRMB: number; // Ex-Factory Price
+    leadTime: number; // Days
+    paymentTerms: string; // e.g., "30% Deposit, 70% Ship"
+  };
+
+  // 2. Logistics & Compliance
+  logistics: {
+    inboundId: string; // Lingxing / FBA Inbound ID
+    trackingNo: string;
+    mode: 'air' | 'sea' | 'rail';
+    warehouseDest: string; // e.g., "ONT8", "LGB3"
+    unitRateRMB: number; // Rate per KG/CBM
+    dutyRate: number; // Tax Rate
+    hsCode: string; // Customs Code
+    status: 'Plan' | 'Shipped' | 'Customs' | 'Received';
+  };
+
+  // 3. Packing Specs
   packing: {
     pcsPerBox: number;
     boxCount: number;
+    boxWeightKg: number;
+    boxVolumeCbm: number;
   };
 
-  logistics: {
-    mode: 'air' | 'sea';
-    trackingNo: string;
-    weight: string;
-    tag: string; // e.g., 材积
+  // 4. TikTok Financials & Fulfillment
+  financials: {
+    sellingPriceUSD: number;
+    
+    // Platform Fees
+    referralFeeRate: number;
+    transactionFeeRate: number;
+    fixedTransactionFeeUSD: number;
+    affiliateRate: number;
+    
+    // Fulfillment & 3PL Costs
+    fulfillmentFeeUSD: number;     // FBA/FBT Shipping Fee (Tail-end)
+    outboundHandlingFeeUSD: number; // NEW: Overseas Warehouse Pick & Pack / Outbound
+    storageFeeUSD: number;          // NEW: Est. Monthly Storage Cost per unit
+    
+    // Marketing & Risk
+    adCostUSD: number; // CPA
+    targetRoas: number; // Strategic Goal
+    returnRate: number; // NEW: Est. Return Rate % (Cost allowance)
+    
+    miscCostUSD: number;
   };
 
+  // 5. Inventory Intelligence
   inventory: {
     current: number;
-    planned: number;
-  };
-
-  costRMB: {
-    purchase: number; // 采购
-    logistics: number; // 头程
-    total: number; // 硬成本
-  };
-
-  profitUSD: {
-    unit: number;
-    totalEst: number;
+    incoming: number;
+    dailyVelocity: number; 
+    safetyDays: number;
   };
 }
 
+// Mock Data
 const initialProducts: Product[] = [
   { 
     id: '1', 
-    skuCode: 'dsz-01-COPY', 
-    inboundId: 'IB112251229RS', 
-    productName: '登山杖', 
-    supplier: '1688', 
-    packing: { pcsPerBox: 20, boxCount: 7 },
-    logistics: { mode: 'air', trackingNo: '1ZHV25250412...', weight: '0.600kg', tag: '材积' },
-    inventory: { current: 60, planned: 60 },
-    costRMB: { purchase: 47.0, logistics: 36.0, total: 83.0 },
-    profitUSD: { unit: 11.12, totalEst: 667 }
+    skuCode: 'dsz-01-PRO', 
+    productName: '战术登山杖 Pro (碳纤维版)', 
+    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=60',
+    variants: [],
+    supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '30/70' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped' },
+    packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
+    financials: { 
+        sellingPriceUSD: 39.99, 
+        referralFeeRate: 0.08, 
+        transactionFeeRate: 0.029, 
+        fixedTransactionFeeUSD: 0.3, 
+        affiliateRate: 0.10, 
+        fulfillmentFeeUSD: 5.80, 
+        outboundHandlingFeeUSD: 1.50, // Added
+        storageFeeUSD: 0.20,          // Added
+        adCostUSD: 8.00, 
+        targetRoas: 3.5, 
+        returnRate: 0.05,             // Added (5% returns)
+        miscCostUSD: 0.50 
+    },
+    inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
   },
   { 
     id: '2', 
-    skuCode: 'k7500', 
-    inboundId: 'IB112251228RS', 
-    productName: 'K7500', 
-    supplier: '老罗', 
-    packing: { pcsPerBox: 24, boxCount: 5 },
-    logistics: { mode: 'air', trackingNo: '1ZHV25250412...', weight: '0.500kg', tag: '材积' },
-    inventory: { current: 990, planned: 990 },
-    costRMB: { purchase: 44.0, logistics: 30.0, total: 74.0 },
-    profitUSD: { unit: 5.60, totalEst: 5544 }
-  },
-  { 
-    id: '3', 
-    skuCode: 'k7500-COPY', 
-    inboundId: 'IB112251226RT', 
-    productName: 'K7500', 
-    supplier: '老罗', 
-    packing: { pcsPerBox: 24, boxCount: 3 },
-    logistics: { mode: 'air', trackingNo: '1ZB87V900405...', weight: '0.667kg', tag: '材积' },
-    inventory: { current: 528, planned: 528 },
-    costRMB: { purchase: 44.0, logistics: 40.0, total: 84.0 },
-    profitUSD: { unit: 4.21, totalEst: 2224 }
-  },
-  { 
-    id: '4', 
-    skuCode: 'MDQ', 
-    inboundId: 'IB112251226RS', 
-    productName: 'MDQ', 
-    supplier: '1688', 
-    packing: { pcsPerBox: 24, boxCount: 1 },
-    logistics: { mode: 'air', trackingNo: '1ZB87V900405...', weight: '0.500kg', tag: '材积' },
-    inventory: { current: 200, planned: 200 },
-    costRMB: { purchase: 6.0, logistics: 30.0, total: 36.0 },
-    profitUSD: { unit: 8.26, totalEst: 51 }
-  },
-  { 
-    id: '5', 
-    skuCode: 'k7500', 
-    inboundId: 'IB112251225RS', 
-    productName: 'K7500', 
-    supplier: '老罗', 
-    packing: { pcsPerBox: 24, boxCount: 4 },
-    logistics: { mode: 'sea', trackingNo: '1ZB87V900415...', weight: '0.667kg', tag: '材积' },
-    inventory: { current: 740, planned: 740 },
-    costRMB: { purchase: 44.0, logistics: 40.0, total: 84.0 },
-    profitUSD: { unit: 4.21, totalEst: 3117 }
-  },
-   { 
-    id: '6', 
-    skuCode: '15500-1', 
-    inboundId: 'IB112251219RS', 
-    productName: 'BM-15500133333', 
-    supplier: '1688', 
-    packing: { pcsPerBox: 24, boxCount: 2 },
-    logistics: { mode: 'air', trackingNo: '887304370399', weight: '0.500kg', tag: '材积' },
-    inventory: { current: 100, planned: 100 },
-    costRMB: { purchase: 45.0, logistics: 6.0, total: 51.0 },
-    profitUSD: { unit: 38.82, totalEst: 3082 }
+    skuCode: 'K7500-MECH', 
+    productName: 'K7500 机械键盘 (青轴)', 
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
+    variants: [],
+    supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
+    packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
+    financials: { 
+        sellingPriceUSD: 69.99, 
+        referralFeeRate: 0.08, 
+        transactionFeeRate: 0.029, 
+        fixedTransactionFeeUSD: 0.3, 
+        affiliateRate: 0.15, 
+        fulfillmentFeeUSD: 9.20, 
+        outboundHandlingFeeUSD: 2.00, // Added
+        storageFeeUSD: 0.50,          // Added
+        adCostUSD: 15.00, 
+        targetRoas: 4.0, 
+        returnRate: 0.08,             // Added
+        miscCostUSD: 1.00 
+    },
+    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
   }
 ];
 
 export const RestockModule: React.FC = () => {
-  const [products] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState<'supply' | 'logistics' | 'finance'>('finance'); // Modal tabs
+  const [exchangeRate, setExchangeRate] = useState(7.25);
+  
+  // File Import Ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Local state for variant creator
+  const [variantSuffix, setVariantSuffix] = useState('');
+  const [variantName, setVariantName] = useState('');
+  const [variantQty, setVariantQty] = useState('');
 
-  const filtered = products.filter(p => 
-    p.skuCode.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.productName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Helper for progress bar color
-  const getProgressColor = (current: number) => {
-    // Just a visual approximation from screenshot
-    return 'bg-cyber-cyan';
+  // --- Import / Export Handlers ---
+  const handleExportData = () => {
+    const dataStr = JSON.stringify(products, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `AERO_OS_DATA_BACKUP_${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
-         <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-black text-white tracking-wider">智能备货清单</h1>
-            <span className="px-2 py-1 text-[10px] font-bold border border-white/20 text-gray-300 rounded font-mono uppercase">Smart Restock</span>
-         </div>
-         
-         <div className="flex gap-4">
-            <div className="bg-[#111] border border-white/10 rounded-xl px-5 py-2 flex items-center gap-4">
-               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400">
-                  <Box size={16} />
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        if (Array.isArray(json)) {
+          // In a real app, use Zod or similar to validate schema structure
+          setProducts(json);
+          alert(`SYSTEM_RESTORE: Successfully imported ${json.length} SKUs.`);
+        } else {
+          alert("ERROR: Invalid Data Format. Expected an array of products.");
+        }
+      } catch (err) {
+        alert("ERROR: Failed to parse JSON file.");
+      }
+    };
+    reader.readAsText(file);
+    // Reset value so same file can be selected again if needed
+    event.target.value = '';
+  };
+
+  // --- Calculation Engine ---
+  const calculateEconomics = (p: Product) => {
+    // 1. Sourcing
+    const unitProductCostUSD = (p.supplier?.unitPriceRMB || 0) / exchangeRate;
+    
+    // 2. Logistics (First Leg)
+    const boxCount = p.packing?.boxCount || 0;
+    const boxWeight = p.packing?.boxWeightKg || 0;
+    const boxVol = p.packing?.boxVolumeCbm || 0;
+    const pcsPerBox = p.packing?.pcsPerBox || 1;
+
+    const totalWeight = boxCount * boxWeight;
+    const totalVolume = boxCount * boxVol;
+    const totalUnits = boxCount * pcsPerBox || 1; 
+
+    let totalFreightRMB = 0;
+    const mode = p.logistics?.mode || 'sea';
+    const rate = p.logistics?.unitRateRMB || 0;
+    
+    if (mode === 'air') {
+       totalFreightRMB = totalWeight * rate; 
+    } else {
+       totalFreightRMB = totalVolume * rate;
+    }
+    const unitFreightUSD = (totalFreightRMB / totalUnits) / exchangeRate;
+    const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
+    
+    // COGS (Landed)
+    const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
+
+    // 3. Platform Fees
+    const sellingPrice = p.financials?.sellingPriceUSD || 0;
+    const referralFeeUSD = sellingPrice * (p.financials?.referralFeeRate || 0);
+    const transactionFeeUSD = (sellingPrice * (p.financials?.transactionFeeRate || 0)) + (p.financials?.fixedTransactionFeeUSD || 0);
+    const affiliateFeeUSD = sellingPrice * (p.financials?.affiliateRate || 0);
+    
+    // 4. Fulfillment & Hidden Costs (Updated)
+    const fulfillmentTotalUSD = (p.financials?.fulfillmentFeeUSD || 0) + (p.financials?.outboundHandlingFeeUSD || 0);
+    const storageCostUSD = p.financials?.storageFeeUSD || 0;
+    const returnLossUSD = sellingPrice * (p.financials?.returnRate || 0); // Est. Loss from returns
+
+    const totalServiceFees = referralFeeUSD + transactionFeeUSD + affiliateFeeUSD;
+    const totalFulfillmentAndStorage = fulfillmentTotalUSD + storageCostUSD;
+    
+    // 5. Profitability
+    // Total Cost = COGS + Service Fees + Fulfillment + Storage + Return Allowance + Ads
+    const totalCost = landedCostUSD + totalServiceFees + totalFulfillmentAndStorage + returnLossUSD + (p.financials?.adCostUSD || 0);
+    
+    const netProfit = sellingPrice - totalCost;
+    const margin = sellingPrice > 0 ? (netProfit / sellingPrice) * 100 : 0;
+    const roi = landedCostUSD > 0 ? (netProfit / landedCostUSD) * 100 : 0; 
+    
+    // 6. Restock Logic
+    const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
+    const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
+    
+    const daysOfCover = inventory.dailyVelocity > 0 ? (inventory.current + inventory.incoming) / inventory.dailyVelocity : 999;
+    const needed = Math.max(0, (inventory.safetyDays - daysOfCover) * inventory.dailyVelocity);
+    const reorderQty = Math.max(needed, supplier.moq);
+    const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
+
+    // 7. Batch Totals
+    const totalFreightBatchUSD = unitFreightUSD * reorderQty;
+    const totalProfitBatchUSD = netProfit * reorderQty;
+
+    return {
+      unitProductCostUSD, unitFreightUSD, unitDutyUSD, landedCostUSD,
+      referralFeeUSD, transactionFeeUSD, affiliateFeeUSD, 
+      fulfillmentTotalUSD, storageCostUSD, returnLossUSD, // New Breakdown metrics
+      totalServiceFees,
+      netProfit, margin, roi,
+      daysOfCover, reorderQty, capitalRequiredRMB,
+      totalUnits, totalWeight, totalVolume,
+      totalFreightBatchUSD, totalProfitBatchUSD
+    };
+  };
+
+  const handleUpdate = (field: string, value: any) => {
+    if (!selectedProduct) return;
+    const updateNested = (obj: any, path: string[], val: any): any => {
+      const [head, ...tail] = path;
+      if (!tail.length) return { ...obj, [head]: val };
+      return { ...obj, [head]: updateNested(obj[head] || {}, tail, val) };
+    };
+    setSelectedProduct(updateNested(selectedProduct, field.split('.'), value));
+  };
+
+  // Quick Clone for Header (Full SPU Copy)
+  const handleSkuSplit = () => {
+    if (!selectedProduct) return;
+    const newSku = {
+      ...selectedProduct,
+      id: Date.now().toString(),
+      skuCode: `${selectedProduct.skuCode}-V2`,
+      productName: `${selectedProduct.productName} (Copy)`,
+      logistics: { ...selectedProduct.logistics, inboundId: '', trackingNo: '' },
+      variants: [] // Clone doesn't carry over specific variants by default
+    };
+    setProducts([...products, newSku]);
+    setSelectedProduct(newSku);
+    alert(`SKU 裂变成功！已生成新变体: ${newSku.skuCode}`);
+  };
+
+  // Add Variant (Sub-Item)
+  const handleAddVariant = () => {
+    if(!selectedProduct) return;
+    if(!variantSuffix || !variantName || !variantQty) {
+      alert("请填写完整的变体信息（后缀、名称、数量）");
+      return;
+    }
+    
+    const newVariant: Variant = {
+        id: Date.now().toString(),
+        suffix: variantSuffix,
+        variantName: variantName,
+        quantity: parseInt(variantQty) || 0
+    };
+
+    const updatedProduct = {
+        ...selectedProduct,
+        variants: [...(selectedProduct.variants || []), newVariant]
+    };
+    
+    setSelectedProduct(updatedProduct);
+    // Update main list as well
+    setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+
+    setVariantSuffix('');
+    setVariantName('');
+    setVariantQty('');
+  };
+
+  // Remove Variant
+  const handleRemoveVariant = (variantId: string) => {
+      if (!selectedProduct) return;
+      const updatedVariants = selectedProduct.variants?.filter(v => v.id !== variantId) || [];
+      const updatedProduct = { ...selectedProduct, variants: updatedVariants };
+      setSelectedProduct(updatedProduct);
+      setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  };
+
+  const renderDetailModal = () => {
+    if (!selectedProduct) return null;
+    const eco = calculateEconomics(selectedProduct);
+
+    const TabButton = ({ id, label, icon: Icon }: any) => (
+      <button 
+        onClick={() => setActiveTab(id)}
+        className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all flex-shrink-0 ${activeTab === id ? 'border-cyber-cyan text-cyber-cyan bg-cyber-cyan/5' : 'border-transparent text-gray-500 hover:text-white'}`}
+      >
+        <Icon size={16} /> {label}
+      </button>
+    );
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-200 p-0 lg:p-4">
+         <div className="w-full h-full lg:max-w-[95vw] lg:h-[95vh] bg-[#080808] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-lg">
+            
+            {/* 1. Header Toolbar */}
+            <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-[#0a0a0a] gap-4 shrink-0">
+               <div className="flex items-center gap-6 w-full lg:w-auto">
+                  {/* Product Thumbnail Upload */}
+                  <div 
+                    className="group relative w-16 h-16 bg-black border border-white/20 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan transition-colors shrink-0"
+                    onClick={() => {
+                        const url = prompt("请输入图片URL:", selectedProduct.image);
+                        if (url) handleUpdate('image', url);
+                    }}
+                  >
+                     {selectedProduct.image ? (
+                       <img src={selectedProduct.image} alt="Product" className="w-full h-full object-cover" />
+                     ) : (
+                       <ImageIcon size={24} className="text-gray-600 group-hover:text-cyber-cyan" />
+                     )}
+                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <UploadCloud size={20} className="text-white" />
+                     </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                     <h2 className="text-white font-bold text-xl leading-tight flex items-center gap-3">
+                        <span className="truncate">{selectedProduct.productName}</span>
+                        <button 
+                            className="text-gray-500 hover:text-white transition-colors shrink-0"
+                            onClick={() => {
+                                const newName = prompt("请输入新的产品名称:", selectedProduct.productName);
+                                if (newName) handleUpdate('productName', newName);
+                            }}
+                        >
+                            <Edit2 size={14}/>
+                        </button>
+                     </h2>
+                     <div className="text-gray-500 text-xs font-mono mt-2 flex gap-4 items-center flex-wrap">
+                        <span className="bg-white/10 px-2 py-0.5 rounded text-white border border-white/10">{selectedProduct.skuCode}</span>
+                        <span className="text-cyber-cyan border border-cyber-cyan/30 px-2 py-0.5 rounded flex items-center gap-1 bg-cyber-cyan/5">
+                           <Warehouse size={10} /> {selectedProduct.logistics?.warehouseDest || 'N/A'}
+                        </span>
+                     </div>
+                  </div>
+                  
+                  {/* Mobile Close Button */}
+                  <button onClick={() => setSelectedProduct(null)} className="lg:hidden text-gray-400 hover:text-white">
+                      <X size={24} />
+                  </button>
                </div>
-               <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-mono font-bold">SKU 总数</div>
-                  <div className="text-xl font-black text-white leading-none">12</div>
+               
+               <div className="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
+                   {/* SKU Split Button (Legacy / Quick) */}
+                   <button 
+                     onClick={handleSkuSplit}
+                     className="px-4 py-2 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-colors flex items-center gap-2 text-xs uppercase tracking-wider whitespace-nowrap"
+                   >
+                      <GitFork size={14} /> 快速复制
+                   </button>
+
+                   <div className="h-8 w-[1px] bg-white/10 mx-2 hidden lg:block"></div>
+
+                   <div className="flex items-center gap-2 px-4 py-2 bg-black border border-white/20 rounded whitespace-nowrap">
+                      <DollarSign size={14} className="text-gray-400"/>
+                      <span className="text-xs text-gray-500 font-mono">USD/RMB:</span>
+                      <input 
+                        type="number" 
+                        value={exchangeRate} 
+                        onChange={e => setExchangeRate(parseFloat(e.target.value))}
+                        className="w-16 bg-transparent text-white font-bold outline-none text-right font-mono"
+                      />
+                   </div>
+                   <button onClick={() => setSelectedProduct(null)} className="hidden lg:block px-6 py-2 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-colors text-sm font-bold whitespace-nowrap">ESC 关闭</button>
+                   <button className="px-6 py-2 bg-cyber-cyan text-black font-bold shadow-neon-cyan hover:bg-white transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+                      <Save size={16} /> 保存
+                   </button>
                </div>
             </div>
-            <div className="bg-[#111] border border-white/10 rounded-xl px-5 py-2 flex items-center gap-4">
-               <div className="text-emerald-500 font-bold text-lg">$</div>
-               <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-mono font-bold">库存存货总额 (RMB)</div>
-                  <div className="text-xl font-black text-white leading-none flex items-baseline gap-1">
-                     <span className="text-emerald-400">¥ 346,049</span>
+
+            {/* 2. Main Content Grid - Responsive Scroll Architecture */}
+            <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-12 bg-[#0c0c0c]">
+               
+               {/* LEFT PANEL: TABS & INPUTS */}
+               <div className="col-span-12 lg:col-span-8 flex flex-col border-r border-white/10 bg-[#0c0c0c] lg:h-full min-h-0">
+                  {/* Tabs */}
+                  <div className="flex border-b border-white/10 bg-black/50 sticky top-0 z-10 lg:static overflow-x-auto no-scrollbar">
+                     <TabButton id="supply" label="供应链 (Supply)" icon={Layers} />
+                     <TabButton id="logistics" label="物流与清关 (Logistics)" icon={Truck} />
+                     <TabButton id="finance" label="财务与定价 (Finance)" icon={DollarSign} />
+                  </div>
+
+                  {/* Scrollable Content Form */}
+                  <div className="p-8 lg:flex-1 lg:overflow-y-auto custom-scrollbar">
+                     
+                     {/* TAB: SUPPLY CHAIN */}
+                     {activeTab === 'supply' && (
+                       <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+                          
+                          {/* Section 1: Supplier */}
+                          <div className="tech-border p-6 bg-white/5">
+                             <h3 className="text-cyber-yellow font-bold text-sm uppercase mb-6 flex items-center gap-2">
+                                <Layers size={16}/> 供应商信息
+                             </h3>
+                             <div className="grid grid-cols-2 gap-6">
+                                <div className="col-span-2">
+                                   <label className="lbl">供应商全称</label>
+                                   <input value={selectedProduct.supplier?.name || ''} onChange={e => handleUpdate('supplier.name', e.target.value)} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">采购单价 (RMB)</label>
+                                   <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-cyber text-cyber-yellow border-cyber-yellow/30" />
+                                </div>
+                                <div>
+                                   <label className="lbl">起订量 (MOQ)</label>
+                                   <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">生产周期 (Lead Time Days)</label>
+                                   <input type="number" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">付款条款 (Payment Terms)</label>
+                                   <input value={selectedProduct.supplier?.paymentTerms || ''} onChange={e => handleUpdate('supplier.paymentTerms', e.target.value)} className="input-cyber" placeholder="e.g. 30% Deposit" />
+                                </div>
+                                <div className="col-span-2">
+                                   <label className="lbl">1688 / Supplier Link</label>
+                                   <input value={selectedProduct.supplier?.link || ''} onChange={e => handleUpdate('supplier.link', e.target.value)} className="input-cyber text-blue-400 cursor-pointer" />
+                                </div>
+                             </div>
+                          </div>
+                          
+                          {/* Section 2: Variant Generator (Modified for Sub-items) */}
+                          <div className="tech-border p-6 bg-cyber-purple/5 border-cyber-purple/30">
+                             <h3 className="text-cyber-purple font-bold text-sm uppercase mb-4 flex items-center gap-2">
+                                <Grid size={16}/> 多规格/SKU 矩阵 (SKU Matrix)
+                             </h3>
+                             <p className="text-gray-500 text-xs mb-4 font-mono">
+                                在当前 SPU 下添加新的规格变体（如颜色、尺寸）。变体将共享主商品的物流和供应商信息。
+                             </p>
+                             
+                             {/* Creator Inputs */}
+                             <div className="flex flex-col lg:flex-row items-end gap-4 mb-6">
+                                <div className="w-full lg:w-1/4">
+                                   <label className="lbl text-cyber-purple">SKU 后缀 (Suffix)</label>
+                                   <input 
+                                      value={variantSuffix}
+                                      onChange={e => setVariantSuffix(e.target.value)}
+                                      className="input-cyber border-cyber-purple/30 focus:border-cyber-purple focus:shadow-neon-pink" 
+                                      placeholder="e.g. -BLK" 
+                                   />
+                                </div>
+                                <div className="w-full lg:flex-1">
+                                   <label className="lbl text-cyber-purple">变体名称 (Variant Name)</label>
+                                   <input 
+                                      value={variantName}
+                                      onChange={e => setVariantName(e.target.value)}
+                                      className="input-cyber border-cyber-purple/30 focus:border-cyber-purple focus:shadow-neon-pink" 
+                                      placeholder="e.g. Classic Black (XL)" 
+                                   />
+                                </div>
+                                <div className="w-full lg:w-24">
+                                   <label className="lbl text-cyber-purple">Qty (数量)</label>
+                                   <input 
+                                      type="number"
+                                      value={variantQty}
+                                      onChange={e => setVariantQty(e.target.value)}
+                                      className="input-cyber border-cyber-purple/30 focus:border-cyber-purple focus:shadow-neon-pink text-center" 
+                                      placeholder="0" 
+                                   />
+                                </div>
+                                <button 
+                                   onClick={handleAddVariant}
+                                   className="w-full lg:w-auto px-6 py-2.5 bg-cyber-purple text-white font-bold text-sm hover:bg-white hover:text-black transition-all shadow-[0_0_15px_rgba(188,19,254,0.3)] flex items-center justify-center gap-2"
+                                >
+                                   <Plus size={16} /> 添加
+                                </button>
+                             </div>
+
+                             {/* Variants Table - Added max-h and overflow for internal scrolling */}
+                             {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
+                                <div className="border border-white/10 rounded overflow-hidden bg-black/20">
+                                   <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                      <table className="w-full text-sm text-left">
+                                         <thead className="bg-white/5 text-gray-400 font-mono text-xs uppercase sticky top-0 bg-[#151515] z-10 shadow-sm">
+                                            <tr>
+                                               <th className="p-3 font-medium">Full SKU Code</th>
+                                               <th className="p-3 font-medium">Variant Name</th>
+                                               <th className="p-3 font-medium text-right">Qty</th>
+                                               <th className="p-3 font-medium text-center">Action</th>
+                                            </tr>
+                                         </thead>
+                                         <tbody className="divide-y divide-white/5">
+                                            {selectedProduct.variants.map((v) => (
+                                               <tr key={v.id} className="hover:bg-white/5 transition-colors group">
+                                                  <td className="p-3 font-mono text-cyber-cyan font-bold">
+                                                     {selectedProduct.skuCode}{v.suffix.startsWith('-') ? '' : '-'}{v.suffix}
+                                                  </td>
+                                                  <td className="p-3 text-gray-300">
+                                                     {v.variantName}
+                                                  </td>
+                                                  <td className="p-3 font-mono text-white text-right">
+                                                     {v.quantity}
+                                                  </td>
+                                                  <td className="p-3 text-center">
+                                                     <button 
+                                                       onClick={() => handleRemoveVariant(v.id)}
+                                                       className="text-gray-600 hover:text-cyber-pink transition-colors p-1"
+                                                     >
+                                                        <Trash2 size={14} />
+                                                     </button>
+                                                  </td>
+                                               </tr>
+                                            ))}
+                                         </tbody>
+                                      </table>
+                                   </div>
+                                   <div className="bg-white/5 text-xs font-mono text-gray-500 p-3 flex justify-between border-t border-white/5">
+                                      <span>Total Variants: {selectedProduct.variants.length}</span>
+                                      <span className="text-white font-bold">Total Qty: {selectedProduct.variants.reduce((sum, v) => sum + v.quantity, 0)}</span>
+                                   </div>
+                                </div>
+                             ) : (
+                                <div className="text-center py-8 text-gray-600 text-xs font-mono border border-dashed border-gray-800 rounded">
+                                   No variants added. Start adding SKU variations above.
+                                </div>
+                             )}
+                          </div>
+
+                          {/* Section 3: Packing */}
+                          <div className="tech-border p-6 bg-white/5">
+                             <h3 className="text-gray-400 font-bold text-sm uppercase mb-6 flex items-center gap-2">
+                                <Box size={16}/> 装箱规格 (Packing Specs)
+                             </h3>
+                             <div className="grid grid-cols-4 gap-6">
+                                <div>
+                                   <label className="lbl">Pcs / Box</label>
+                                   <input type="number" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">Total Boxes</label>
+                                   <input type="number" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">Box Weight (KG)</label>
+                                   <input type="number" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">Box Vol (CBM)</label>
+                                   <input type="number" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                             </div>
+                             <div className="mt-4 p-3 bg-black border border-white/10 flex gap-6 text-xs font-mono text-gray-500">
+                                <span>Total Units: <span className="text-white">{eco.totalUnits}</span></span>
+                                <span>Total Weight: <span className="text-white">{eco.totalWeight.toFixed(2)} kg</span></span>
+                                <span>Total Vol: <span className="text-white">{eco.totalVolume.toFixed(3)} cbm</span></span>
+                             </div>
+                          </div>
+                       </div>
+                     )}
+
+                     {/* TAB: LOGISTICS */}
+                     {activeTab === 'logistics' && (
+                       <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+                          <div className="tech-border p-6 bg-white/5">
+                             <h3 className="text-cyber-cyan font-bold text-sm uppercase mb-6 flex items-center gap-2">
+                                <Truck size={16}/> 物流单证信息
+                             </h3>
+                             <div className="grid grid-cols-2 gap-6 mb-4">
+                                <div>
+                                   <label className="lbl flex items-center gap-2 text-cyber-cyan"><FileText size={10} /> 领星/平台入库单号 (Inbound ID)</label>
+                                   <input 
+                                     value={selectedProduct.logistics?.inboundId || ''} 
+                                     onChange={e => handleUpdate('logistics.inboundId', e.target.value)} 
+                                     className="input-cyber border-cyber-cyan/30 text-cyber-cyan font-bold"
+                                     placeholder="e.g. LX-20240101-001" 
+                                   />
+                                </div>
+                                <div>
+                                   <label className="lbl flex items-center gap-2"><Anchor size={10} /> 物流追踪号 (Tracking No)</label>
+                                   <input 
+                                     value={selectedProduct.logistics?.trackingNo || ''} 
+                                     onChange={e => handleUpdate('logistics.trackingNo', e.target.value)} 
+                                     className="input-cyber"
+                                     placeholder="e.g. 1Z999..." 
+                                   />
+                                </div>
+                                <div>
+                                   <label className="lbl">目的仓库 (Warehouse)</label>
+                                   <input value={selectedProduct.logistics?.warehouseDest || ''} onChange={e => handleUpdate('logistics.warehouseDest', e.target.value)} className="input-cyber" placeholder="e.g. ONT8" />
+                                </div>
+                                <div>
+                                   <label className="lbl">物流状态</label>
+                                   <select value={selectedProduct.logistics?.status || 'Plan'} onChange={e => handleUpdate('logistics.status', e.target.value)} className="input-cyber">
+                                      <option value="Plan">Plan (计划中)</option>
+                                      <option value="Shipped">Shipped (已发货)</option>
+                                      <option value="Customs">Customs (清关中)</option>
+                                      <option value="Received">Received (已入库)</option>
+                                   </select>
+                                </div>
+                             </div>
+                          </div>
+
+                          <div className="tech-border p-6 bg-white/5">
+                             <h3 className="text-gray-400 font-bold text-sm uppercase mb-6 flex items-center gap-2">
+                                <Plane size={16}/> 运输与清关成本
+                             </h3>
+                             <div className="grid grid-cols-3 gap-6">
+                                <div>
+                                   <label className="lbl">运输方式</label>
+                                   <select value={selectedProduct.logistics?.mode || 'sea'} onChange={e => handleUpdate('logistics.mode', e.target.value)} className="input-cyber">
+                                      <option value="air">✈️ 空运 (Air)</option>
+                                      <option value="sea">🚢 海运 (Sea)</option>
+                                      <option value="rail">🚆 铁路 (Rail)</option>
+                                   </select>
+                                </div>
+                                <div>
+                                   <label className="lbl">运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
+                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">HS Code (海关编码)</label>
+                                   <input value={selectedProduct.logistics?.hsCode || ''} onChange={e => handleUpdate('logistics.hsCode', e.target.value)} className="input-cyber" />
+                                </div>
+                                <div>
+                                   <label className="lbl">关税税率 (Duty %)</label>
+                                   <div className="relative">
+                                      <input type="number" value={((selectedProduct.logistics?.dutyRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('logistics.dutyRate', parseFloat(e.target.value)/100)} className="input-cyber pr-6" />
+                                      <span className="absolute right-2 top-2 text-xs text-gray-500">%</span>
+                                   </div>
+                                </div>
+                                <div>
+                                   <label className="lbl">杂费预估 (USD/Unit)</label>
+                                   <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-cyber" />
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                     )}
+
+                     {/* TAB: FINANCE */}
+                     {activeTab === 'finance' && (
+                       <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+                          <div className="tech-border p-6 bg-white/5">
+                             <h3 className="text-cyber-pink font-bold text-sm uppercase mb-6 flex items-center gap-2">
+                                <TrendingUp size={16}/> TikTok 销售定价与费率
+                             </h3>
+                             
+                             {/* Pricing Header */}
+                             <div className="mb-6">
+                                <label className="text-xs text-cyber-pink font-bold uppercase mb-2 block">TikTok 售价 (Selling Price)</label>
+                                <div className="relative">
+                                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xl">$</span>
+                                   <input 
+                                     type="number" 
+                                     value={selectedProduct.financials?.sellingPriceUSD || 0} 
+                                     onChange={e => handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} 
+                                     className="w-full bg-black border border-cyber-pink/50 text-3xl font-black text-white p-4 pl-10 outline-none focus:shadow-neon-pink focus:border-cyber-pink transition-all font-mono" 
+                                   />
+                                </div>
+                             </div>
+
+                             {/* Fee Groups Grid */}
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                
+                                {/* 1. Platform Fees */}
+                                <div className="space-y-4">
+                                   <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-2 mb-3">
+                                      平台佣金 (Platform Fees)
+                                   </h4>
+                                   <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                         <label className="lbl">平台佣金 (Referral %)</label>
+                                         <div className="relative">
+                                            <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="input-cyber pr-6" />
+                                            <span className="absolute right-2 top-2 text-xs text-gray-500">%</span>
+                                         </div>
+                                      </div>
+                                      <div>
+                                         <label className="lbl">达人佣金 (Affiliate %)</label>
+                                         <div className="relative">
+                                            <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(0)} onChange={e => handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="input-cyber pr-6" />
+                                            <span className="absolute right-2 top-2 text-xs text-gray-500">%</span>
+                                         </div>
+                                      </div>
+                                      <div className="col-span-2">
+                                         <label className="lbl">交易手续费 (Trans % + Fixed)</label>
+                                         <div className="flex gap-2">
+                                            <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="input-cyber w-1/2" placeholder="%" />
+                                            <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e => handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="input-cyber w-1/2" placeholder="$" />
+                                         </div>
+                                      </div>
+                                   </div>
+                                </div>
+
+                                {/* 2. Fulfillment & Risk (NEW) */}
+                                <div className="space-y-4">
+                                   <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-2 mb-3 flex justify-between">
+                                      履约与隐形成本 (Fulfillment & Risk)
+                                   </h4>
+                                   <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                         <label className="lbl">尾程配送 (Fulfillment)</label>
+                                         <div className="relative">
+                                            <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e => handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="input-cyber pl-6" />
+                                            <span className="absolute left-2 top-2 text-xs text-gray-500">$</span>
+                                         </div>
+                                      </div>
+                                      <div>
+                                         <label className="lbl text-cyber-yellow">海外仓出库/操作费</label>
+                                         <div className="relative">
+                                            <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e => handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="input-cyber pl-6 border-cyber-yellow/20" />
+                                            <span className="absolute left-2 top-2 text-xs text-gray-500">$</span>
+                                         </div>
+                                      </div>
+                                      <div>
+                                         <label className="lbl">预估月度仓储费</label>
+                                         <div className="relative">
+                                            <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e => handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="input-cyber pl-6" />
+                                            <span className="absolute left-2 top-2 text-xs text-gray-500">$</span>
+                                         </div>
+                                      </div>
+                                      <div>
+                                         <label className="lbl flex items-center gap-1 text-red-400"><ShieldAlert size={10}/> 退货/损耗预估 %</label>
+                                         <div className="relative">
+                                            <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e => handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="input-cyber pr-6 text-red-400 border-red-900/30" />
+                                            <span className="absolute right-2 top-2 text-xs text-gray-500">%</span>
+                                         </div>
+                                      </div>
+                                   </div>
+                                </div>
+                             </div>
+                             
+                             <div className="border-t border-white/5 pt-4 mt-6">
+                                <h4 className="text-cyber-purple font-bold text-xs uppercase mb-4">营销与广告 (Marketing)</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                   <div>
+                                      <label className="lbl text-cyber-purple">单次广告成本 (CPA/Ads)</label>
+                                      <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e => handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="input-cyber border-cyber-purple/30 text-cyber-purple font-bold" />
+                                   </div>
+                                   <div>
+                                      <label className="lbl">目标投产比 (Target ROAS)</label>
+                                      <input type="number" value={selectedProduct.financials?.targetRoas || 0} onChange={e => handleUpdate('financials.targetRoas', parseFloat(e.target.value))} className="input-cyber" />
+                                   </div>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                     )}
                   </div>
                </div>
+
+               {/* RIGHT PANEL: LIVE ANALYTICS (Fixed) */}
+               <div className="col-span-12 lg:col-span-4 bg-[#0F1218] p-6 flex flex-col border-l border-white/5 shadow-2xl lg:h-full lg:overflow-y-auto">
+                  
+                  <div className="mb-6">
+                     <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
+                        <Scale size={20} className="text-cyber-green"/> 利润瀑布 (Waterfall)
+                     </h3>
+
+                     <div className="space-y-3 font-mono text-sm relative">
+                        {/* Connecting Line */}
+                        <div className="absolute left-[7px] top-2 bottom-8 w-[1px] bg-gray-800"></div>
+
+                        {/* Revenue */}
+                        <div className="flex justify-between items-center py-2 border-b border-white/10 relative z-10 bg-[#0F1218]">
+                           <span className="text-gray-300 font-bold">销售价格 (Price)</span>
+                           <span className="text-white font-bold text-lg">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
+                        </div>
+
+                        {/* Deductions */}
+                        {[
+                          { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400' },
+                          { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400' },
+                          { l: '进口关税', v: eco.unitDutyUSD, c: 'text-gray-400' },
+                          { l: '平台费率', v: eco.totalServiceFees, c: 'text-red-400' },
+                          { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, // Includes outbound
+                          { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, // Storage + Returns
+                          { l: '广告支出', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-cyber-purple' },
+                        ].map((item, i) => (
+                          <div key={i} className="flex justify-between text-xs relative pl-4">
+                             <div className="absolute left-[5px] top-[6px] w-[5px] h-[5px] rounded-full bg-gray-700"></div>
+                             <span className={`${item.c} opacity-80`}>- {item.l}</span>
+                             <span className="text-gray-300">${item.v.toFixed(2)}</span>
+                          </div>
+                        ))}
+
+                        {/* Bottom Line */}
+                        <div className="mt-6 pt-4 border-t-2 border-white/10 bg-white/5 p-4 rounded-lg">
+                           <div className="flex justify-between items-center mb-1">
+                              <span className="text-white font-bold text-sm uppercase tracking-wider">Net Profit</span>
+                              <span className={`text-3xl font-black ${eco.netProfit > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                 ${eco.netProfit.toFixed(2)}
+                              </span>
+                           </div>
+                           <div className="flex justify-between gap-4 text-xs font-bold font-mono mt-2">
+                              <span className="bg-black/30 px-2 py-1 rounded text-gray-400">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
+                              <span className="bg-black/30 px-2 py-1 rounded text-gray-400">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Smart Actions */}
+                  <div className="bg-cyber-panel border border-cyber-cyan/30 p-5 rounded-lg mt-auto">
+                     <h4 className="text-cyber-cyan font-bold text-sm mb-4 flex items-center gap-2">
+                        <Calculator size={16}/> 智能备货建议
+                     </h4>
+                     
+                     <div className="grid grid-cols-2 gap-4 mb-4 text-xs font-mono">
+                        <div className="bg-black p-2 rounded">
+                           <div className="text-gray-500 mb-1">安全库存</div>
+                           <div className="text-white font-bold">{selectedProduct.inventory?.safetyDays || 0} 天</div>
+                        </div>
+                        <div className="bg-black p-2 rounded">
+                           <div className="text-gray-500 mb-1">当前可售</div>
+                           <div className={eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-pink font-bold" : "text-white font-bold"}>
+                              {eco.daysOfCover.toFixed(0)} 天
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="flex justify-between text-xs font-mono text-gray-400 mb-4 border-t border-white/10 pt-2">
+                        <span>建议采购量:</span>
+                        <span className="text-cyber-yellow font-bold text-sm">{Math.ceil(eco.reorderQty)} pcs</span>
+                     </div>
+                     <button className="w-full py-3 bg-cyber-yellow text-black font-bold text-sm hover:bg-white transition-colors uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)]">
+                        生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
+                     </button>
+                  </div>
+
+               </div>
             </div>
-            <button className="bg-cyber-cyan text-black px-6 py-2 rounded-lg font-bold hover:bg-white transition-colors flex items-center gap-2 shadow-neon-cyan h-[52px]">
-               <Plus size={18} /> 新建 SKU
+         </div>
+      </div>
+    );
+  };
+
+  // --- Main List Render ---
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <style>{`
+        .lbl {
+          font-size: 0.7rem;
+          color: #9CA3AF;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.35rem;
+          display: block;
+          font-family: 'JetBrains Mono', monospace;
+          letter-spacing: 0.05em;
+        }
+        .input-cyber {
+          width: 100%;
+          background-color: #050505;
+          border: 1px solid #27272a;
+          padding: 0.6rem;
+          color: white;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.85rem;
+          outline: none;
+          transition: all 0.2s;
+          border-radius: 2px;
+        }
+        .input-cyber:focus {
+          border-color: #00F0FF;
+          box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+      `}</style>
+
+      {renderDetailModal()}
+
+      {/* Main Table Header & Tools */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/10 pb-6">
+         <div>
+            <h1 className="text-3xl font-black text-white tracking-wider">智能备货中心</h1>
+            <p className="text-gray-500 font-mono text-xs mt-2 flex items-center gap-2">
+               <Info size={12}/> 全球汇率基准: USD/RMB = {exchangeRate}
+            </p>
+         </div>
+         <div className="flex gap-4">
+            <div className="relative">
+               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+               <input 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="搜索 SKU, Tracking, Inbound..." 
+                  className="bg-black border border-white/20 pl-10 pr-4 py-2 text-sm text-white focus:border-cyber-cyan outline-none font-mono w-72"
+               />
+            </div>
+
+            {/* Hidden Input for File Upload */}
+            <input 
+               type="file" 
+               ref={fileInputRef} 
+               onChange={handleFileUpload} 
+               className="hidden" 
+               accept=".json" 
+            />
+
+            <div className="flex items-center gap-2 bg-black border border-white/20 p-1 rounded">
+               <button 
+                  onClick={handleExportData}
+                  title="导出数据备份 (Export JSON)"
+                  className="p-2 text-gray-400 hover:text-cyber-cyan hover:bg-white/10 rounded transition-colors"
+               >
+                  <Download size={16} />
+               </button>
+               <button 
+                  onClick={handleImportClick}
+                  title="导入数据 (Import JSON)"
+                  className="p-2 text-gray-400 hover:text-cyber-purple hover:bg-white/10 rounded transition-colors"
+               >
+                  <Upload size={16} />
+               </button>
+            </div>
+
+            <button className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan">
+               <Plus size={16} /> 新建产品
             </button>
          </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-         <input 
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="搜索 SKU, 产品名称..." 
-            className="w-full pl-12 pr-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-lg text-white outline-none focus:border-cyber-cyan/50 focus:bg-black transition-all font-mono text-sm"
-         />
-      </div>
-
-      {/* Table Header */}
-      <div className="hidden md:grid grid-cols-[40px_1.5fr_1.5fr_1.5fr_1.5fr_1.2fr_1.2fr_100px] gap-4 px-6 py-2 text-[10px] font-bold text-gray-500 uppercase font-mono tracking-wider border-b border-white/5">
-         <div></div>
-         <div>SKU / 入库信息</div>
-         <div>产品详情 / 箱规</div>
-         <div>物流状态</div>
-         <div>库存 / 计划补货量</div>
-         <div>硬成本 (RMB)</div>
-         <div>利润分析 (USD)</div>
-         <div className="text-right">操作</div>
-      </div>
-
-      {/* Product List */}
-      <div className="flex flex-col gap-3">
-         {filtered.map((product) => (
-            <div key={product.id} className="group relative bg-[#0F1218]/80 border border-white/5 rounded-lg p-4 hover:border-cyber-cyan/30 transition-all duration-300">
-               
-               <div className="grid grid-cols-1 md:grid-cols-[40px_1.5fr_1.5fr_1.5fr_1.5fr_1.2fr_1.2fr_100px] gap-4 items-center">
+      {/* Product Grid List */}
+      <div className="grid gap-4">
+         {products.filter(p => 
+            p && (
+               (p.skuCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+               (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
+            )
+         ).map((product) => {
+            const eco = calculateEconomics(product);
+            return (
+               <div key={product.id} onClick={() => setSelectedProduct(product)} className="bg-[#0F1218] border border-white/5 p-0 hover:border-cyber-cyan/50 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-800 group-hover:bg-cyber-cyan transition-colors"></div>
                   
-                  {/* Checkbox */}
-                  <div className="flex justify-center">
-                     <input type="checkbox" className="w-4 h-4 rounded bg-black border-gray-700 checked:bg-cyber-cyan" />
-                  </div>
-
-                  {/* SKU Info */}
-                  <div>
-                     <div className="font-black text-cyber-cyan text-sm mb-1">{product.skuCode}</div>
-                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
-                        <Box size={10} /> {product.inboundId}
+                  {/* Top Row: Identity */}
+                  <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
+                     <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
+                        {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <Package className="m-auto text-gray-600"/>}
                      </div>
-                  </div>
-
-                  {/* Product Details */}
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                        <Package size={20} className="text-gray-400" />
-                     </div>
-                     <div>
-                        <div className="text-xs font-bold text-white mb-0.5">{product.productName}</div>
-                        <div className="text-[10px] text-gray-500 font-mono flex gap-2">
-                           <span>🏭 {product.supplier}</span>
+                     <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                           <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
+                           <div className="flex items-center gap-2">
+                              {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
+                              <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
+                                 {product.logistics?.status || 'N/A'}
+                              </span>
+                           </div>
                         </div>
-                        <div className="text-[10px] text-gray-400 font-mono mt-1 bg-white/5 px-1.5 py-0.5 rounded inline-block">
-                           装箱: {product.packing.pcsPerBox} pcs | 箱数: {product.packing.boxCount}
+                        
+                        {/* Critical Logistics Identifiers */}
+                        <div className="mt-2 flex flex-col gap-1.5">
+                           <div className="flex items-center gap-3 text-xs font-mono text-gray-500">
+                              <span className="text-cyber-cyan font-bold bg-cyber-cyan/10 px-1.5 py-0.5 rounded border border-cyber-cyan/20">{product.skuCode}</span>
+                              <span className="flex items-center gap-1 text-gray-400"><Warehouse size={12}/> {product.logistics?.warehouseDest || 'N/A'}</span>
+                           </div>
+                           
+                           <div className="flex items-center gap-4 text-[11px] font-mono text-gray-400">
+                              <div className="flex items-center gap-1.5 bg-blue-900/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300">
+                                 <FileText size={12}/> 
+                                 <span>{product.logistics?.inboundId || '待创建入库单'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 bg-yellow-900/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300">
+                                 <Truck size={12}/> 
+                                 <span>{product.logistics?.trackingNo || '待填追踪号'}</span>
+                              </div>
+                           </div>
                         </div>
                      </div>
                   </div>
 
-                  {/* Logistics */}
-                  <div>
-                     <div className="flex items-center gap-2 mb-1">
-                        {product.logistics.mode === 'air' ? <Plane size={12} className="text-cyber-cyan" /> : <Ship size={12} className="text-blue-400" />}
-                        <span className="text-[10px] font-mono text-gray-500 truncate max-w-[100px]">{product.logistics.trackingNo}</span>
-                        <ArrowRight size={10} className="text-gray-600" />
+                  {/* Middle Row: The Nuclear Dashboard (Dense Data) */}
+                  <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/40">
+                     
+                     {/* Column 1: Procurement Plan */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Package size={10} className="text-cyber-yellow"/> 建议备货 (Plan)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-lg font-bold text-white">{Math.ceil(eco.reorderQty)}</span>
+                           <span className="text-xs text-gray-500">pcs</span>
+                        </div>
+                        <div className="text-xs font-mono text-cyber-yellow mt-1">
+                           ¥{eco.capitalRequiredRMB.toLocaleString()} <span className="text-gray-600 opacity-50">CAPITAL</span>
+                        </div>
                      </div>
-                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
-                        <span>⚖️ {product.logistics.weight}</span>
-                        <span className="bg-white/10 px-1 rounded text-gray-400">{product.logistics.tag}</span>
-                     </div>
-                  </div>
 
-                  {/* Inventory */}
-                  <div>
-                     <div className="flex justify-between items-end mb-1">
-                        <span className="text-[10px] text-gray-400">现货库存:</span>
-                        <span className="text-sm font-bold text-white font-mono">{product.inventory.current}</span>
+                     {/* Column 2: Freight Estimation */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Plane size={10} className="text-blue-400"/> 头程物流 (Freight)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-lg font-bold text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                           <span className="text-xs text-gray-500">total</span>
+                        </div>
+                        <div className="text-xs font-mono text-blue-400 mt-1">
+                           ${eco.unitFreightUSD.toFixed(2)} <span className="text-gray-600 opacity-50">/ unit</span>
+                        </div>
                      </div>
-                     <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden mb-1">
-                        <div className={`h-full ${getProgressColor(product.inventory.current)} rounded-full`} style={{width: '60%'}}></div>
-                     </div>
-                     <div className="flex justify-between text-[10px]">
-                        <span className="text-gray-600 font-mono">Inventory</span>
-                        <span className="text-cyber-green font-mono">补货: {product.inventory.planned}</span>
-                     </div>
-                  </div>
 
-                  {/* Costs (RMB) */}
-                  <div className="font-mono">
-                     <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
-                        <span>采购</span>
-                        <span className="text-white">¥{product.costRMB.purchase.toFixed(1)}</span>
+                     {/* Column 3: Profit Projection */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Wallet size={10} className="text-cyber-green"/> 预计利润 (Profit)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className={`text-lg font-bold ${eco.totalProfitBatchUSD > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                              ${eco.totalProfitBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                           </span>
+                           <span className="text-xs text-gray-500">total</span>
+                        </div>
+                        <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between">
+                           <span>${eco.netProfit.toFixed(2)}/u</span>
+                           <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
+                        </div>
                      </div>
-                     <div className="flex justify-between text-[10px] text-gray-500 mb-1 border-b border-white/5 pb-1">
-                        <span>头程</span>
-                        <span className="text-cyber-cyan">¥{product.costRMB.logistics.toFixed(1)}</span>
-                     </div>
-                     <div className="flex justify-between text-xs font-bold">
-                        <span className="text-yellow-500">硬成本</span>
-                        <span className="text-yellow-400">¥{product.costRMB.total.toFixed(1)}</span>
-                     </div>
-                  </div>
 
-                  {/* Profit (USD) */}
-                  <div className="font-mono">
-                     <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                        <span>单品</span>
-                        <span className="text-emerald-400 font-bold">+${product.profitUSD.unit.toFixed(2)}</span>
-                     </div>
-                     <div className="flex justify-between items-center bg-white/5 px-2 py-1 rounded">
-                        <span className="text-[10px] text-gray-400">总计 (EST)</span>
-                        <span className="text-emerald-400 font-bold text-xs">${product.profitUSD.totalEst.toLocaleString()}</span>
-                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-1">
-                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">
-                        <Edit2 size={14} />
-                     </button>
-                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">
-                        <Copy size={14} />
-                     </button>
-                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-400/50 transition-colors">
-                        <Trash2 size={14} />
-                     </button>
+                  
+                  {/* Bottom Action Strip */}
+                  <div className="px-4 py-2 bg-[#0c0c0c] border-t border-white/5 flex justify-between items-center">
+                      <div className="text-[10px] text-gray-600 font-mono">
+                         LEAD TIME: {product.supplier?.leadTime || 0} DAYS
+                      </div>
+                      <div className="flex gap-2">
+                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                           <GitFork size={14}/>
+                         </button>
+                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                           <Edit2 size={14}/>
+                         </button>
+                      </div>
                   </div>
-
                </div>
-            </div>
-         ))}
+            );
+         })}
       </div>
-
     </div>
   );
 };
