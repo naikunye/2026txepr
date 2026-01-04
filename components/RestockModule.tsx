@@ -133,6 +133,73 @@ const initialProducts: Product[] = [
   }
 ];
 
+// --- Data Sanitization Helper ---
+// Ensures imported JSON matches the Strict Product Interface, preventing "undefined" errors or string/number type mismatches.
+const sanitizeProduct = (p: any): Product => {
+  return {
+    id: String(p.id || Date.now() + Math.random()),
+    skuCode: String(p.skuCode || 'UNKNOWN-SKU'),
+    productName: String(p.productName || 'New Product'),
+    image: String(p.image || ''),
+    
+    variants: Array.isArray(p.variants) ? p.variants.map((v: any) => ({
+        id: String(v.id || Date.now()),
+        suffix: String(v.suffix || ''),
+        variantName: String(v.variantName || ''),
+        quantity: Number(v.quantity) || 0
+    })) : [],
+
+    supplier: {
+      name: String(p.supplier?.name || ''),
+      link: String(p.supplier?.link || ''),
+      moq: Number(p.supplier?.moq) || 0,
+      unitPriceRMB: Number(p.supplier?.unitPriceRMB) || 0,
+      leadTime: Number(p.supplier?.leadTime) || 0,
+      paymentTerms: String(p.supplier?.paymentTerms || ''),
+    },
+
+    logistics: {
+      inboundId: String(p.logistics?.inboundId || ''),
+      trackingNo: String(p.logistics?.trackingNo || ''),
+      mode: ['air', 'sea', 'rail'].includes(p.logistics?.mode) ? p.logistics.mode : 'sea',
+      warehouseDest: String(p.logistics?.warehouseDest || ''),
+      unitRateRMB: Number(p.logistics?.unitRateRMB) || 0,
+      dutyRate: Number(p.logistics?.dutyRate) || 0,
+      hsCode: String(p.logistics?.hsCode || ''),
+      status: ['Plan', 'Shipped', 'Customs', 'Received'].includes(p.logistics?.status) ? p.logistics.status : 'Plan',
+    },
+
+    packing: {
+      pcsPerBox: Number(p.packing?.pcsPerBox) || 0,
+      boxCount: Number(p.packing?.boxCount) || 0,
+      boxWeightKg: Number(p.packing?.boxWeightKg) || 0,
+      boxVolumeCbm: Number(p.packing?.boxVolumeCbm) || 0,
+    },
+
+    financials: {
+      sellingPriceUSD: Number(p.financials?.sellingPriceUSD) || 0,
+      referralFeeRate: Number(p.financials?.referralFeeRate) || 0,
+      transactionFeeRate: Number(p.financials?.transactionFeeRate) || 0,
+      fixedTransactionFeeUSD: Number(p.financials?.fixedTransactionFeeUSD) || 0,
+      affiliateRate: Number(p.financials?.affiliateRate) || 0,
+      fulfillmentFeeUSD: Number(p.financials?.fulfillmentFeeUSD) || 0,
+      outboundHandlingFeeUSD: Number(p.financials?.outboundHandlingFeeUSD) || 0,
+      storageFeeUSD: Number(p.financials?.storageFeeUSD) || 0,
+      adCostUSD: Number(p.financials?.adCostUSD) || 0,
+      targetRoas: Number(p.financials?.targetRoas) || 0,
+      returnRate: Number(p.financials?.returnRate) || 0,
+      miscCostUSD: Number(p.financials?.miscCostUSD) || 0,
+    },
+
+    inventory: {
+      current: Number(p.inventory?.current) || 0,
+      incoming: Number(p.inventory?.incoming) || 0,
+      dailyVelocity: Number(p.inventory?.dailyVelocity) || 0,
+      safetyDays: Number(p.inventory?.safetyDays) || 0,
+    }
+  };
+};
+
 export const RestockModule: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState('');
@@ -176,14 +243,17 @@ export const RestockModule: React.FC = () => {
       try {
         const json = JSON.parse(e.target?.result as string);
         if (Array.isArray(json)) {
-          // In a real app, use Zod or similar to validate schema structure
-          setProducts(json);
-          alert(`SYSTEM_RESTORE: Successfully imported ${json.length} SKUs.`);
+          // Normalize data structure to match Product interface exactly
+          // This fixes issues where imported data lacks nested fields or has incorrect types (strings instead of numbers)
+          const normalizedData = json.map(item => sanitizeProduct(item));
+          setProducts(normalizedData);
+          alert(`SYSTEM_RESTORE: Successfully imported and normalized ${normalizedData.length} SKUs.`);
         } else {
           alert("ERROR: Invalid Data Format. Expected an array of products.");
         }
       } catch (err) {
-        alert("ERROR: Failed to parse JSON file.");
+        console.error(err);
+        alert("ERROR: Failed to parse JSON file or data structure mismatch.");
       }
     };
     reader.readAsText(file);
