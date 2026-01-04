@@ -10,7 +10,7 @@ const data = [
 export const FinanceModule: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-       <div className="border-b border-white/10 pb-4 mb-6">
+       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6">
           <h1 className="text-3xl font-black text-white tracking-wider">资金账户</h1>
           <p className="text-gray-400 font-mono text-xs mt-1">CRYPTO & FIAT ASSETS</p>
        </div>

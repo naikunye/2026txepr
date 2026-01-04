@@ -1,183 +1,297 @@
 import React, { useState } from 'react';
-import { Search, Plus, Package, Edit2, AlertTriangle, Check, X } from 'lucide-react';
+import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight } from 'lucide-react';
 
+// Enhanced Data Structure matching the screenshot
 interface Product {
   id: string;
-  name: string;
-  sku: string;
-  pack: string;
-  stock: number;
-  target: number;
-  cost: number;
-  sale: number;
-  imageColor: string; 
+  skuCode: string; // e.g., dsz-01-COPY
+  inboundId: string; // e.g., IB112251229RS
+  
+  productName: string; // e.g., 登山杖
+  supplier: string; // e.g., 1688 or 老罗
+  packing: {
+    pcsPerBox: number;
+    boxCount: number;
+  };
+
+  logistics: {
+    mode: 'air' | 'sea';
+    trackingNo: string;
+    weight: string;
+    tag: string; // e.g., 材积
+  };
+
+  inventory: {
+    current: number;
+    planned: number;
+  };
+
+  costRMB: {
+    purchase: number; // 采购
+    logistics: number; // 头程
+    total: number; // 硬成本
+  };
+
+  profitUSD: {
+    unit: number;
+    totalEst: number;
+  };
 }
 
 const initialProducts: Product[] = [
-  { id: 'DSZ-01', name: '战术登山杖 Pro', sku: 'OUTDOOR-001', pack: '20 pcs', stock: 60, target: 120, cost: 47.0, sale: 11.12, imageColor: 'border-cyber-pink text-cyber-pink' },
-  { id: 'K7500', name: '赛博机械键盘 K7', sku: 'TECH-KEY-09', pack: '24 pcs', stock: 990, target: 990, cost: 44.0, sale: 5.60, imageColor: 'border-cyber-cyan text-cyber-cyan' },
-  { id: 'MDQ-MINI', name: '光子灭蚊灯 Mini', sku: 'HOME-SUM-22', pack: '24 pcs', stock: 200, target: 500, cost: 6.0, sale: 0.26, imageColor: 'border-cyber-green text-cyber-green' },
-  { id: 'YOGA-MAT', name: '纳米瑜伽垫', sku: 'FIT-MAT-02', pack: '10 pcs', stock: 15, target: 200, cost: 12.0, sale: 28.50, imageColor: 'border-cyber-yellow text-cyber-yellow' },
-  { id: 'USB-C-HUB', name: '7合1 扩展坞', sku: 'TECH-ACC-55', pack: '50 pcs', stock: 320, target: 400, cost: 18.0, sale: 45.00, imageColor: 'border-cyber-purple text-cyber-purple' },
+  { 
+    id: '1', 
+    skuCode: 'dsz-01-COPY', 
+    inboundId: 'IB112251229RS', 
+    productName: '登山杖', 
+    supplier: '1688', 
+    packing: { pcsPerBox: 20, boxCount: 7 },
+    logistics: { mode: 'air', trackingNo: '1ZHV25250412...', weight: '0.600kg', tag: '材积' },
+    inventory: { current: 60, planned: 60 },
+    costRMB: { purchase: 47.0, logistics: 36.0, total: 83.0 },
+    profitUSD: { unit: 11.12, totalEst: 667 }
+  },
+  { 
+    id: '2', 
+    skuCode: 'k7500', 
+    inboundId: 'IB112251228RS', 
+    productName: 'K7500', 
+    supplier: '老罗', 
+    packing: { pcsPerBox: 24, boxCount: 5 },
+    logistics: { mode: 'air', trackingNo: '1ZHV25250412...', weight: '0.500kg', tag: '材积' },
+    inventory: { current: 990, planned: 990 },
+    costRMB: { purchase: 44.0, logistics: 30.0, total: 74.0 },
+    profitUSD: { unit: 5.60, totalEst: 5544 }
+  },
+  { 
+    id: '3', 
+    skuCode: 'k7500-COPY', 
+    inboundId: 'IB112251226RT', 
+    productName: 'K7500', 
+    supplier: '老罗', 
+    packing: { pcsPerBox: 24, boxCount: 3 },
+    logistics: { mode: 'air', trackingNo: '1ZB87V900405...', weight: '0.667kg', tag: '材积' },
+    inventory: { current: 528, planned: 528 },
+    costRMB: { purchase: 44.0, logistics: 40.0, total: 84.0 },
+    profitUSD: { unit: 4.21, totalEst: 2224 }
+  },
+  { 
+    id: '4', 
+    skuCode: 'MDQ', 
+    inboundId: 'IB112251226RS', 
+    productName: 'MDQ', 
+    supplier: '1688', 
+    packing: { pcsPerBox: 24, boxCount: 1 },
+    logistics: { mode: 'air', trackingNo: '1ZB87V900405...', weight: '0.500kg', tag: '材积' },
+    inventory: { current: 200, planned: 200 },
+    costRMB: { purchase: 6.0, logistics: 30.0, total: 36.0 },
+    profitUSD: { unit: 8.26, totalEst: 51 }
+  },
+  { 
+    id: '5', 
+    skuCode: 'k7500', 
+    inboundId: 'IB112251225RS', 
+    productName: 'K7500', 
+    supplier: '老罗', 
+    packing: { pcsPerBox: 24, boxCount: 4 },
+    logistics: { mode: 'sea', trackingNo: '1ZB87V900415...', weight: '0.667kg', tag: '材积' },
+    inventory: { current: 740, planned: 740 },
+    costRMB: { purchase: 44.0, logistics: 40.0, total: 84.0 },
+    profitUSD: { unit: 4.21, totalEst: 3117 }
+  },
+   { 
+    id: '6', 
+    skuCode: '15500-1', 
+    inboundId: 'IB112251219RS', 
+    productName: 'BM-15500133333', 
+    supplier: '1688', 
+    packing: { pcsPerBox: 24, boxCount: 2 },
+    logistics: { mode: 'air', trackingNo: '887304370399', weight: '0.500kg', tag: '材积' },
+    inventory: { current: 100, planned: 100 },
+    costRMB: { purchase: 45.0, logistics: 6.0, total: 51.0 },
+    profitUSD: { unit: 38.82, totalEst: 3082 }
+  }
 ];
 
 export const RestockModule: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: '', stock: 0, target: 100 });
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = products.filter(p => 
+    p.skuCode.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.productName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Visual Components
-  const StockBar = ({ current, max }: { current: number, max: number }) => {
-    const percent = Math.min((current / max) * 100, 100);
-    const isLow = percent < 30;
-    const colorClass = isLow ? 'bg-cyber-pink shadow-neon-pink' : (percent >= 100 ? 'bg-cyber-green shadow-neon-green' : 'bg-cyber-cyan shadow-neon-cyan');
-    
-    return (
-      <div className="mt-4">
-        <div className="flex justify-between text-[10px] font-mono mb-1">
-          <span className={isLow ? 'text-cyber-pink' : 'text-gray-400'}>{current} UNIT</span>
-          <span className="text-gray-600">MAX: {max}</span>
-        </div>
-        <div className="h-1.5 w-full bg-gray-800 overflow-hidden">
-          <div 
-            className={`h-full transition-all duration-1000 ${colorClass}`} 
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  const handleAddSubmit = () => {
-    if(!newProduct.name) return;
-    setProducts([{ 
-      id: `SKU-${Date.now()}`, 
-      name: newProduct.name!, 
-      sku: 'NEW-SKU', 
-      pack: '1 pcs', 
-      stock: Number(newProduct.stock)||0, 
-      target: Number(newProduct.target)||100, 
-      cost: 0, sale: 0, 
-      imageColor: 'border-gray-500 text-gray-500' 
-    } as Product, ...products]);
-    setIsAdding(false);
+  // Helper for progress bar color
+  const getProgressColor = (current: number) => {
+    // Just a visual approximation from screenshot
+    return 'bg-cyber-cyan';
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* iOS Modal for Add */}
-      {isAdding && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsAdding(false)} />
-            <div className="bg-cyber-panel w-full max-w-lg border border-cyber-cyan p-8 shadow-neon-cyan relative z-10">
-               <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
-                  <h3 className="text-xl font-bold text-white tracking-widest">新增 SKU</h3>
-                  <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-white"><X size={20}/></button>
-               </div>
-               <div className="space-y-4 font-mono text-sm">
-                  <input className="w-full p-4 bg-black border border-gray-700 text-white outline-none focus:border-cyber-cyan" placeholder="产品名称" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                  <div className="flex gap-4">
-                     <input type="number" className="w-1/2 p-4 bg-black border border-gray-700 text-white outline-none focus:border-cyber-cyan" placeholder="当前库存" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} />
-                     <input type="number" className="w-1/2 p-4 bg-black border border-gray-700 text-white outline-none focus:border-cyber-cyan" placeholder="目标库存" value={newProduct.target} onChange={e => setNewProduct({...newProduct, target: Number(e.target.value)})} />
-                  </div>
-                  <button onClick={handleAddSubmit} className="w-full py-4 mt-4 bg-cyber-cyan text-black font-bold hover:bg-white hover:shadow-neon-cyan transition-all uppercase tracking-wider">
-                     确认入库
-                  </button>
-               </div>
-            </div>
-         </div>
-      )}
-
-      {/* Header with Title and Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-6">
-         <div>
-            <h1 className="text-4xl font-black text-white tracking-wider text-glow">智能补货</h1>
-            <p className="text-gray-400 text-xs mt-1 font-mono">INVENTORY MANAGEMENT SYSTEM</p>
-         </div>
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
          <div className="flex items-center gap-4">
-            <div className="relative group">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyber-cyan" size={18} />
-               <input 
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="搜索 SKU / 产品 ID..." 
-                  className="pl-12 pr-4 py-3 bg-black border border-white/20 text-white outline-none focus:border-cyber-cyan w-64 transition-all font-mono text-sm"
-               />
-            </div>
-            <button 
-               onClick={() => setIsAdding(true)}
-               className="bg-cyber-cyan text-black px-6 py-3 font-bold shadow-neon-cyan hover:bg-white transition-all active:scale-95 flex items-center gap-2 clip-path-polygon"
-            >
-               <Plus size={18} /> 新增 SKU
-            </button>
+            <h1 className="text-3xl font-black text-white tracking-wider">智能备货清单</h1>
+            <span className="px-2 py-1 text-[10px] font-bold border border-white/20 text-gray-300 rounded font-mono uppercase">Smart Restock</span>
          </div>
-      </div>
-
-      {/* Suggestion Banner */}
-      <div className="w-full bg-gradient-to-r from-cyber-purple/20 to-cyber-cyan/10 border border-cyber-purple/50 p-6 relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-purple/20 blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-         <div className="relative z-10 flex items-start justify-between">
-            <div>
-               <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 bg-cyber-purple/20 border border-cyber-purple text-[10px] text-cyber-purple font-mono font-bold animate-pulse">AI 预测</span>
+         
+         <div className="flex gap-4">
+            <div className="bg-[#111] border border-white/10 rounded-xl px-5 py-2 flex items-center gap-4">
+               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400">
+                  <Box size={16} />
                </div>
-               <h2 className="text-xl font-bold text-white mb-1">补货建议</h2>
-               <p className="text-gray-400 text-sm max-w-xl">
-                  基于 Q1 销售速率分析，<span className="text-white font-bold">战术登山杖 Pro</span> 将在 4 天内耗尽库存。 
-                  建议立即补货: <span className="text-cyber-green font-bold">200 件</span> (供应商 A)。
-               </p>
+               <div>
+                  <div className="text-[10px] text-gray-500 uppercase font-mono font-bold">SKU 总数</div>
+                  <div className="text-xl font-black text-white leading-none">12</div>
+               </div>
             </div>
-            <button className="bg-transparent border border-cyber-purple text-cyber-purple px-6 py-2 font-bold hover:bg-cyber-purple hover:text-black transition-colors">
-               一键执行
+            <div className="bg-[#111] border border-white/10 rounded-xl px-5 py-2 flex items-center gap-4">
+               <div className="text-emerald-500 font-bold text-lg">$</div>
+               <div>
+                  <div className="text-[10px] text-gray-500 uppercase font-mono font-bold">库存存货总额 (RMB)</div>
+                  <div className="text-xl font-black text-white leading-none flex items-baseline gap-1">
+                     <span className="text-emerald-400">¥ 346,049</span>
+                  </div>
+               </div>
+            </div>
+            <button className="bg-cyber-cyan text-black px-6 py-2 rounded-lg font-bold hover:bg-white transition-colors flex items-center gap-2 shadow-neon-cyan h-[52px]">
+               <Plus size={18} /> 新建 SKU
             </button>
          </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-         {filtered.map(product => (
-            <div key={product.id} className="bg-black/40 border border-white/10 p-6 hover:border-cyber-cyan hover:shadow-neon-cyan hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative">
+      {/* Search Bar */}
+      <div className="relative">
+         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+         <input 
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="搜索 SKU, 产品名称..." 
+            className="w-full pl-12 pr-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-lg text-white outline-none focus:border-cyber-cyan/50 focus:bg-black transition-all font-mono text-sm"
+         />
+      </div>
+
+      {/* Table Header */}
+      <div className="hidden md:grid grid-cols-[40px_1.5fr_1.5fr_1.5fr_1.5fr_1.2fr_1.2fr_100px] gap-4 px-6 py-2 text-[10px] font-bold text-gray-500 uppercase font-mono tracking-wider border-b border-white/5">
+         <div></div>
+         <div>SKU / 入库信息</div>
+         <div>产品详情 / 箱规</div>
+         <div>物流状态</div>
+         <div>库存 / 计划补货量</div>
+         <div>硬成本 (RMB)</div>
+         <div>利润分析 (USD)</div>
+         <div className="text-right">操作</div>
+      </div>
+
+      {/* Product List */}
+      <div className="flex flex-col gap-3">
+         {filtered.map((product) => (
+            <div key={product.id} className="group relative bg-[#0F1218]/80 border border-white/5 rounded-lg p-4 hover:border-cyber-cyan/30 transition-all duration-300">
                
-               <div className="flex justify-between items-start mb-6">
-                  <div className={`w-14 h-14 border ${product.imageColor} flex items-center justify-center bg-black/50`}>
-                     <Package size={24} />
+               <div className="grid grid-cols-1 md:grid-cols-[40px_1.5fr_1.5fr_1.5fr_1.5fr_1.2fr_1.2fr_100px] gap-4 items-center">
+                  
+                  {/* Checkbox */}
+                  <div className="flex justify-center">
+                     <input type="checkbox" className="w-4 h-4 rounded bg-black border-gray-700 checked:bg-cyber-cyan" />
                   </div>
-                  <button className="text-gray-600 hover:text-white transition-colors">
-                     <Edit2 size={16} />
-                  </button>
-               </div>
 
-               <div className="mb-4">
-                  <h3 className="text-lg font-bold text-white leading-tight mb-1 truncate group-hover:text-cyber-cyan transition-colors">{product.name}</h3>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
-                     <span className="border border-gray-700 px-1">{product.sku}</span>
-                     <span>•</span>
-                     <span>{product.pack}</span>
-                  </div>
-               </div>
-
-               <StockBar current={product.stock} max={product.target} />
-
-               <div className="mt-6 flex items-center justify-between border-t border-gray-800 pt-4">
+                  {/* SKU Info */}
                   <div>
-                     <div className="text-[10px] text-gray-500 uppercase font-mono">预计成本</div>
-                     <div className="text-sm font-bold text-white font-mono">¥{(product.cost * (product.target - product.stock)).toLocaleString()}</div>
-                  </div>
-                  {(product.stock / product.target) < 0.3 ? (
-                     <button className="bg-cyber-pink/20 border border-cyber-pink text-cyber-pink px-3 py-1.5 text-xs font-bold hover:bg-cyber-pink hover:text-black transition-colors flex items-center gap-1">
-                        <AlertTriangle size={12} /> 补货
-                     </button>
-                  ) : (
-                     <div className="flex items-center gap-1 text-cyber-green text-xs font-bold font-mono">
-                        <Check size={12} /> 状态良好
+                     <div className="font-black text-cyber-cyan text-sm mb-1">{product.skuCode}</div>
+                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
+                        <Box size={10} /> {product.inboundId}
                      </div>
-                  )}
-               </div>
+                  </div>
 
+                  {/* Product Details */}
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                        <Package size={20} className="text-gray-400" />
+                     </div>
+                     <div>
+                        <div className="text-xs font-bold text-white mb-0.5">{product.productName}</div>
+                        <div className="text-[10px] text-gray-500 font-mono flex gap-2">
+                           <span>🏭 {product.supplier}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-mono mt-1 bg-white/5 px-1.5 py-0.5 rounded inline-block">
+                           装箱: {product.packing.pcsPerBox} pcs | 箱数: {product.packing.boxCount}
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Logistics */}
+                  <div>
+                     <div className="flex items-center gap-2 mb-1">
+                        {product.logistics.mode === 'air' ? <Plane size={12} className="text-cyber-cyan" /> : <Ship size={12} className="text-blue-400" />}
+                        <span className="text-[10px] font-mono text-gray-500 truncate max-w-[100px]">{product.logistics.trackingNo}</span>
+                        <ArrowRight size={10} className="text-gray-600" />
+                     </div>
+                     <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
+                        <span>⚖️ {product.logistics.weight}</span>
+                        <span className="bg-white/10 px-1 rounded text-gray-400">{product.logistics.tag}</span>
+                     </div>
+                  </div>
+
+                  {/* Inventory */}
+                  <div>
+                     <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] text-gray-400">现货库存:</span>
+                        <span className="text-sm font-bold text-white font-mono">{product.inventory.current}</span>
+                     </div>
+                     <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden mb-1">
+                        <div className={`h-full ${getProgressColor(product.inventory.current)} rounded-full`} style={{width: '60%'}}></div>
+                     </div>
+                     <div className="flex justify-between text-[10px]">
+                        <span className="text-gray-600 font-mono">Inventory</span>
+                        <span className="text-cyber-green font-mono">补货: {product.inventory.planned}</span>
+                     </div>
+                  </div>
+
+                  {/* Costs (RMB) */}
+                  <div className="font-mono">
+                     <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
+                        <span>采购</span>
+                        <span className="text-white">¥{product.costRMB.purchase.toFixed(1)}</span>
+                     </div>
+                     <div className="flex justify-between text-[10px] text-gray-500 mb-1 border-b border-white/5 pb-1">
+                        <span>头程</span>
+                        <span className="text-cyber-cyan">¥{product.costRMB.logistics.toFixed(1)}</span>
+                     </div>
+                     <div className="flex justify-between text-xs font-bold">
+                        <span className="text-yellow-500">硬成本</span>
+                        <span className="text-yellow-400">¥{product.costRMB.total.toFixed(1)}</span>
+                     </div>
+                  </div>
+
+                  {/* Profit (USD) */}
+                  <div className="font-mono">
+                     <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                        <span>单品</span>
+                        <span className="text-emerald-400 font-bold">+${product.profitUSD.unit.toFixed(2)}</span>
+                     </div>
+                     <div className="flex justify-between items-center bg-white/5 px-2 py-1 rounded">
+                        <span className="text-[10px] text-gray-400">总计 (EST)</span>
+                        <span className="text-emerald-400 font-bold text-xs">${product.profitUSD.totalEst.toLocaleString()}</span>
+                     </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-1">
+                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">
+                        <Edit2 size={14} />
+                     </button>
+                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">
+                        <Copy size={14} />
+                     </button>
+                     <button className="w-8 h-8 flex items-center justify-center rounded bg-black border border-white/10 text-gray-400 hover:text-red-400 hover:border-red-400/50 transition-colors">
+                        <Trash2 size={14} />
+                     </button>
+                  </div>
+
+               </div>
             </div>
          ))}
       </div>

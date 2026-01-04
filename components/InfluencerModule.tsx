@@ -60,8 +60,8 @@ export const InfluencerModule: React.FC = () => {
          </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-4">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row md:items-center justify-between gap-6">
          <div>
             <h1 className="text-3xl font-black text-white tracking-wider">达人矩阵</h1>
             <p className="text-gray-400 font-mono mt-1 text-xs">GLOBAL INFLUENCER NETWORK</p>

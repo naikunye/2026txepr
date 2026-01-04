@@ -23,8 +23,8 @@ export const DataIntelligenceModule: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className="text-3xl font-black text-white tracking-wider">数据智脑 <span className="text-cyber-cyan text-sm align-top">V2.0</span></h1>
            <p className="text-gray-400 font-mono text-xs">实时 BI 与财务分析系统 / ONLINE</p>

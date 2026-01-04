@@ -28,7 +28,7 @@ export const UniversalDataModule: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      <div className="flex justify-between items-end border-b border-white/10 pb-4">
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex justify-between items-end">
          <div>
             <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
                <HardDrive className="text-cyber-purple" />

@@ -13,8 +13,8 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/10 pb-6">
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row justify-between items-end gap-4">
          <div>
             <div className="text-xs font-mono text-cyber-cyan/70 uppercase tracking-widest mb-1 flex items-center gap-2">
                <span className="w-2 h-2 bg-cyber-cyan rounded-full animate-ping"></span>
