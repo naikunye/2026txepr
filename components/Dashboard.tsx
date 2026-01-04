@@ -119,7 +119,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div>
                <div className="text-2xl font-bold text-white">14.2 天</div>
-               <div className="text-xs text-gray-500 font-mono">中国 -> 美西</div>
+               <div className="text-xs text-gray-500 font-mono">中国 &rarr; 美西</div>
             </div>
             <div className="flex items-center gap-1 text-xs text-cyber-green font-mono">
                <ArrowUpRight size={12} /> 效率提升 12%
