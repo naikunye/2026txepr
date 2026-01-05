@@ -20,7 +20,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
   const handleExport = () => {
     try {
-      // Export all global state keys
       const data = {
         meta: {
           exportedAt: new Date().toISOString(),
@@ -61,10 +60,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     reader.onload = (ev) => {
       try {
         const json = JSON.parse(ev.target?.result as string);
-        
-        // Backward compatibility check (if importing old format or new format)
         const payload = json.data || json;
-
         let restoreCount = 0;
 
         if (payload.logistics) {
@@ -85,7 +81,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
         addLog(`> Success: Restored ${restoreCount} data modules.`);
         
-        // Force Reload to apply changes
         if (confirm(`数据导入成功！\n共恢复 ${restoreCount} 个模块的数据。\n\n系统需要重新加载以应用更改。点击“确定”立即刷新。`)) {
           window.location.reload();
         }
@@ -96,7 +91,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   const addLog = (msg: string) => {
@@ -106,7 +101,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const handleTestConnection = () => {
     setServerStatus('connecting');
     addLog('> Initiating handshake with Tencent Cloud...');
-    
     setTimeout(() => {
       setServerStatus('connected');
       addLog('> Connection established: 43.192.xx.xx:22');
@@ -153,7 +147,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                {/* Cyber Theme */}
                <button 
                  onClick={() => onThemeChange('cyber')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'cyber' ? 'border-cyber-cyan shadow-neon-cyan' : 'border-cyber-border opacity-60 hover:opacity-100'}`}
+                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'cyber' ? 'border-cyber-cyan shadow-neon-cyan ring-1 ring-cyber-cyan' : 'border-cyber-border opacity-60 hover:opacity-100'}`}
                  style={{background: '#050505'}}
                >
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
@@ -164,22 +158,22 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                {/* Light Theme */}
                <button 
                  onClick={() => onThemeChange('light')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'light' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 opacity-60 hover:opacity-100'}`}
-                 style={{background: '#F3F4F6'}}
+                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'light' ? 'border-blue-600 shadow-lg ring-1 ring-blue-600' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
+                 style={{background: '#F1F5F9'}}
                >
-                  <div className="absolute top-2 left-2 w-full h-8 bg-white rounded shadow-sm"></div>
-                  <span className="relative z-10 text-gray-900 font-bold font-mono mt-auto">CORPORATE</span>
+                  <div className="absolute top-2 left-2 w-full h-8 bg-white rounded shadow-sm border border-gray-200"></div>
+                  <span className="relative z-10 text-blue-900 font-bold font-mono mt-auto">CORPORATE</span>
                   <span className="relative z-10 text-gray-500 text-[10px]">Clean / Light</span>
                </button>
 
                {/* Obsidian Theme */}
                <button 
                  onClick={() => onThemeChange('obsidian')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'obsidian' ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-gray-800 opacity-60 hover:opacity-100'}`}
+                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'obsidian' ? 'border-gray-500 shadow-xl ring-1 ring-gray-500' : 'border-gray-800 opacity-60 hover:opacity-100'}`}
                  style={{background: '#000000'}}
                >
-                  <span className="relative z-10 text-white font-bold font-mono">OBSIDIAN</span>
-                  <span className="relative z-10 text-gray-500 text-[10px]">Minimal / Void</span>
+                  <span className="relative z-10 text-gray-200 font-bold font-mono">OBSIDIAN</span>
+                  <span className="relative z-10 text-gray-500 text-[10px]">Matte / Void</span>
                </button>
             </div>
          </div>
@@ -196,7 +190,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             </h2>
 
             <div className="space-y-6">
-               <div className="bg-cyber-bg/50 p-4 rounded border border-cyber-border flex items-center justify-between">
+               <div className="bg-cyber-bg p-4 rounded border border-cyber-border flex items-center justify-between">
                   <div>
                      <div className="text-cyber-text font-bold text-sm">全量数据导出 (JSON)</div>
                      <div className="text-cyber-dim text-xs mt-1">导出 物流/财务/备货/配置 等全站数据</div>
@@ -209,7 +203,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                   </button>
                </div>
 
-               <div className="bg-cyber-bg/50 p-4 rounded border border-cyber-border flex items-center justify-between">
+               <div className="bg-cyber-bg p-4 rounded border border-cyber-border flex items-center justify-between">
                   <div>
                      <div className="text-cyber-text font-bold text-sm">数据恢复/导入</div>
                      <div className="text-cyber-dim text-xs mt-1">导入后系统将自动刷新以应用数据</div>
