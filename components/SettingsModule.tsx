@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
-  Terminal, Activity, Lock, Eye, EyeOff
+  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon
 } from 'lucide-react';
 
 interface SettingsModuleProps {
@@ -140,40 +140,32 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             
             <h2 className="text-xl font-bold text-cyber-text mb-6 flex items-center gap-2">
                <Monitor size={20} className="text-cyber-purple" />
-               UI 主题引擎
+               视觉神经接口 (Theme)
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                {/* Cyber Theme */}
                <button 
                  onClick={() => onThemeChange('cyber')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'cyber' ? 'border-cyber-cyan shadow-neon-cyan ring-1 ring-cyber-cyan' : 'border-cyber-border opacity-60 hover:opacity-100'}`}
+                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all group ${currentTheme === 'cyber' ? 'border-cyber-cyan shadow-neon-cyan ring-1 ring-cyber-cyan' : 'border-cyber-border opacity-60 hover:opacity-100'}`}
                  style={{background: '#050505'}}
                >
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
-                  <span className="relative z-10 text-cyan-400 font-bold font-mono">CYBERPUNK</span>
-                  <span className="relative z-10 text-gray-500 text-[10px]">Neon / Dark</span>
+                  <Zap size={24} className="absolute top-3 right-3 text-cyan-400 opacity-50 group-hover:opacity-100" />
+                  <span className="relative z-10 text-cyan-400 font-bold font-mono tracking-wider">NIGHT CITY</span>
+                  <span className="relative z-10 text-gray-500 text-[10px] font-mono">Original / Neon</span>
                </button>
 
-               {/* Light Theme */}
-               <button 
-                 onClick={() => onThemeChange('light')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'light' ? 'border-blue-600 shadow-lg ring-1 ring-blue-600' : 'border-gray-300 opacity-60 hover:opacity-100'}`}
-                 style={{background: '#F1F5F9'}}
-               >
-                  <div className="absolute top-2 left-2 w-full h-8 bg-white rounded shadow-sm border border-gray-200"></div>
-                  <span className="relative z-10 text-blue-900 font-bold font-mono mt-auto">CORPORATE</span>
-                  <span className="relative z-10 text-gray-500 text-[10px]">Clean / Light</span>
-               </button>
-
-               {/* Obsidian Theme */}
+               {/* Obsidian Theme (Arasaka) */}
                <button 
                  onClick={() => onThemeChange('obsidian')}
-                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all ${currentTheme === 'obsidian' ? 'border-gray-500 shadow-xl ring-1 ring-gray-500' : 'border-gray-800 opacity-60 hover:opacity-100'}`}
+                 className={`relative h-32 border-2 rounded-lg p-4 flex flex-col justify-end overflow-hidden transition-all group ${currentTheme === 'obsidian' ? 'border-red-600 shadow-[0_0_20px_rgba(255,0,0,0.6)] ring-1 ring-red-600' : 'border-red-900/50 opacity-60 hover:opacity-100'}`}
                  style={{background: '#000000'}}
                >
-                  <span className="relative z-10 text-gray-200 font-bold font-mono">OBSIDIAN</span>
-                  <span className="relative z-10 text-gray-500 text-[10px]">Matte / Void</span>
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,0,0,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,0,0,0.2)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                  <AlertTriangle size={24} className="absolute top-3 right-3 text-red-600 opacity-50 group-hover:opacity-100 animate-pulse" />
+                  <span className="relative z-10 text-red-600 font-bold font-mono tracking-wider">ARASAKA</span>
+                  <span className="relative z-10 text-gray-500 text-[10px] font-mono">Tactical / Red</span>
                </button>
             </div>
          </div>

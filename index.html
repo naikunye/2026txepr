@@ -44,10 +44,10 @@
     </script>
     <style>
       :root {
-        /* Default Theme: CYBER (Dark/Neon) */
+        /* Default Theme: NIGHT CITY (Classic Cyberpunk) */
         --bg: #050505;
         --panel: #0F1218;
-        --border: rgba(0, 240, 255, 0.2);
+        --border: rgba(0, 240, 255, 0.3);
         --cyan: #00F0FF;
         --pink: #FF003C;
         --purple: #BC13FE;
@@ -56,50 +56,30 @@
         --text: #E0E0E0;
         --dim: #6B7280;
         --grid-color: rgba(0, 240, 255, 0.05);
-        --shadow-cyan: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.3);
-        --shadow-pink: 0 0 10px rgba(255, 0, 60, 0.5), 0 0 20px rgba(255, 0, 60, 0.3);
-        --shadow-purple: 0 0 10px rgba(188, 19, 254, 0.5), 0 0 20px rgba(188, 19, 254, 0.3);
+        --shadow-cyan: 0 0 15px rgba(0, 240, 255, 0.5);
+        --shadow-pink: 0 0 15px rgba(255, 0, 60, 0.5);
+        --shadow-purple: 0 0 15px rgba(188, 19, 254, 0.5);
         --panel-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.8);
       }
 
-      /* Theme: CORPORATE (Professional/Clean/Swiss) */
-      [data-theme='light'] {
-        --bg: #F1F5F9; /* Slate 100 */
-        --panel: #FFFFFF;
-        --border: #E2E8F0; /* Slate 200 */
-        --cyan: #2563EB; /* Royal Blue 600 - Professional, trustworthy */
-        --pink: #BE123C; /* Rose 700 */
-        --purple: #7E22CE; /* Purple 700 */
-        --yellow: #B45309; /* Amber 700 */
-        --green: #15803D; /* Green 700 */
-        --text: #1E293B; /* Slate 800 - High legibility */
-        --dim: #64748B; /* Slate 500 */
-        --grid-color: rgba(0, 0, 0, 0.03);
-        /* Soft, diffuse shadows for depth without neon */
-        --shadow-cyan: 0 4px 12px rgba(37, 99, 235, 0.15); 
-        --shadow-pink: 0 4px 12px rgba(190, 18, 60, 0.15);
-        --shadow-purple: 0 4px 12px rgba(126, 34, 206, 0.15);
-        --panel-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.05);
-      }
-
-      /* Theme: OBSIDIAN (Matte/Stealth/Luxury) */
+      /* Theme: ARASAKA (Tactical Red/Dark) */
       [data-theme='obsidian'] {
-        --bg: #000000; /* Pure Black */
-        --panel: #111111; /* Graphite */
-        --border: #333333; /* Dark Gray */
-        --cyan: #E4E4E7; /* Zinc 200 - Silver/White Accent */
-        --pink: #A1A1AA; /* Zinc 400 - Desaturated */
-        --purple: #71717A; /* Zinc 500 */
-        --yellow: #D4D4D8; /* Zinc 300 */
-        --green: #FFFFFF; /* White */
-        --text: #D4D4D8; /* Zinc 300 */
-        --dim: #52525B; /* Zinc 600 */
-        --grid-color: rgba(255, 255, 255, 0.04);
-        /* No glow, just flat matte elegance */
-        --shadow-cyan: none;
-        --shadow-pink: none;
-        --shadow-purple: none;
-        --panel-shadow: 0 0 0 1px #333; /* Simulated thin border */
+        --bg: #000000; /* Pure Void */
+        --panel: #050505; /* Near Black */
+        --border: #FF0000; /* Sharp Red Border */
+        --cyan: #FF0000; /* REPLACED Cyan with Red for Monochromatic feel */
+        --pink: #FFFFFF; /* White Accents */
+        --purple: #B91C1C; /* Dark Red */
+        --yellow: #FFD700; /* Gold */
+        --green: #00FF00; /* Retro Terminal Green */
+        --text: #D4D4D4; /* Light Grey */
+        --dim: #525252; /* Dark Grey */
+        --grid-color: rgba(255, 0, 0, 0.15); /* Red Grid */
+        
+        --shadow-cyan: 0 0 15px rgba(255, 0, 0, 0.6); /* Red Glow */
+        --shadow-pink: 0 0 10px rgba(255, 255, 255, 0.3);
+        --shadow-purple: 0 0 10px rgba(185, 28, 28, 0.4);
+        --panel-shadow: inset 0 0 40px rgba(20, 0, 0, 0.8), 0 0 0 1px #330000;
       }
 
       body {
@@ -114,26 +94,6 @@
         transition: background-color 0.5s ease, color 0.5s ease;
       }
 
-      /* Global Override for Hardcoded Colors in Light Mode */
-      /* This is a safety net for components that still have 'text-white' hardcoded */
-      [data-theme='light'] .text-white {
-        color: #1E293B !important;
-      }
-      [data-theme='light'] .bg-black {
-        background-color: #ffffff !important;
-        border-color: #E2E8F0 !important;
-      }
-      [data-theme='light'] .bg-black\/40, 
-      [data-theme='light'] .bg-black\/50,
-      [data-theme='light'] .bg-black\/80 {
-        background-color: rgba(255, 255, 255, 0.9) !important;
-        backdrop-filter: blur(10px);
-      }
-      [data-theme='light'] .border-white\/10,
-      [data-theme='light'] .border-white\/20 {
-        border-color: #E2E8F0 !important;
-      }
-
       /* Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
@@ -143,46 +103,47 @@
       }
       ::-webkit-scrollbar-thumb {
         background: var(--border); 
-        border-radius: 3px;
+        border-radius: 0;
       }
 
       .tech-border {
         position: relative;
         background: var(--panel);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(12px);
         border: 1px solid var(--border);
         box-shadow: var(--panel-shadow);
         transition: all 0.3s ease;
       }
       
-      /* Corner accents - hide in Light mode for cleaner look, subtle in Obsidian */
-      [data-theme='light'] .tech-border::before,
-      [data-theme='light'] .tech-border::after {
-        display: none;
-      }
-      
-      [data-theme='cyber'] .tech-border::before {
+      /* Corner accents - Crucial for Sci-Fi feel in all themes */
+      .tech-border::before {
         content: '';
         position: absolute;
-        top: 0; left: 0; width: 8px; height: 8px;
+        top: -1px; left: -1px; width: 10px; height: 10px;
         border-top: 2px solid var(--cyan);
         border-left: 2px solid var(--cyan);
+        transition: border-color 0.3s;
+        z-index: 10;
       }
-      [data-theme='cyber'] .tech-border::after {
+      .tech-border::after {
         content: '';
         position: absolute;
-        bottom: 0; right: 0; width: 8px; height: 8px;
+        bottom: -1px; right: -1px; width: 10px; height: 10px;
         border-bottom: 2px solid var(--cyan);
         border-right: 2px solid var(--cyan);
+        transition: border-color 0.3s;
+        z-index: 10;
       }
 
       .text-glow {
         text-shadow: 0 0 10px var(--border);
       }
-      [data-theme='light'] .text-glow,
-      [data-theme='obsidian'] .text-glow {
-        text-shadow: none;
-      }
+      
+      /* Special overrides for Arasaka (Red) Theme */
+      [data-theme='obsidian'] .text-cyber-cyan { color: #FF0000 !important; }
+      [data-theme='obsidian'] .border-cyber-cyan { border-color: #FF0000 !important; }
+      [data-theme='obsidian'] .bg-cyber-cyan { background-color: #FF0000 !important; color: black !important; }
+      [data-theme='obsidian'] .shadow-neon-cyan { box-shadow: 0 0 15px #FF0000 !important; }
       
       .clip-path-hexagon {
         clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
