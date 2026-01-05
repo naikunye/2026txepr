@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { FinanceModule } from './components/FinanceModule';
@@ -7,11 +7,27 @@ import { DataIntelligenceModule } from './components/DataIntelligenceModule';
 import { InfluencerModule } from './components/InfluencerModule';
 import { RestockModule } from './components/RestockModule';
 import { TaskModule } from './components/TaskModule';
+import { SettingsModule } from './components/SettingsModule'; // Import
 import { ModulePlaceholder } from './components/ModulePlaceholder';
 import { Sparkles, Command } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [theme, setTheme] = useState('cyber');
+
+  // Load theme from localStorage on boot
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('AERO_THEME');
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  // Apply theme to document body/root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('AERO_THEME', theme);
+  }, [theme]);
 
   const renderContent = () => {
     switch(activeTab) {
@@ -29,13 +45,15 @@ export default function App() {
         return <TaskModule />;
       case 'finance':
         return <FinanceModule />;
+      case 'settings':
+        return <SettingsModule currentTheme={theme} onThemeChange={setTheme} />;
       default:
         return <ModulePlaceholder title={activeTab} />;
     }
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-cyber-bg text-cyber-text font-sans">
+    <div className="flex min-h-screen overflow-hidden bg-cyber-bg text-cyber-text font-sans transition-colors duration-500">
       <Sidebar activeTab={activeTab} onNavigate={setActiveTab} />
       
       {/* Main Content Area */}

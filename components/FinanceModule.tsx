@@ -6,8 +6,23 @@ import {
 import { 
   CreditCard, ArrowUpRight, ArrowDownRight, DollarSign, Wallet, 
   Bitcoin, Globe, RefreshCcw, Landmark, FileText, PieChart as PieIcon,
-  TrendingUp, TrendingDown, ArrowRightLeft, ShieldCheck, Download
+  TrendingUp, TrendingDown, ArrowRightLeft, ShieldCheck, Download,
+  Plus, Filter, Search, Calendar, Tag, MoreHorizontal, X, Check, Trash2,
+  ChevronDown
 } from 'lucide-react';
+
+// --- Types ---
+
+interface Transaction {
+  id: string;
+  desc: string;
+  amount: number;
+  type: 'in' | 'out';
+  currency: string;
+  category: string;
+  date: string;
+  status: 'Cleared' | 'Processing' | 'Pending';
+}
 
 // --- Mock Data ---
 
@@ -29,18 +44,67 @@ const costStructureData = [
   { name: 'Ops (运营杂费)', value: 5, color: '#FCEE0A' },
 ];
 
-const recentTransactions = [
-  { id: 'TX-9921', desc: 'Amazon Settlement (US)', amount: '+ $45,230.00', type: 'in', currency: 'USD', date: 'Today, 14:20', status: 'Cleared' },
-  { id: 'TX-9920', desc: 'Supplier Payment: Shenzhen Tech', amount: '- ¥120,000.00', type: 'out', currency: 'CNY', date: 'Today, 09:15', status: 'Processing' },
-  { id: 'TX-9919', desc: 'FedEx Logistics Invoice', amount: '- $3,450.50', type: 'out', currency: 'USD', date: 'Yesterday', status: 'Cleared' },
-  { id: 'TX-9918', desc: 'TikTok Shop Payout (UK)', amount: '+ £8,200.00', type: 'in', currency: 'GBP', date: 'Jan 02', status: 'Cleared' },
-  { id: 'TX-9917', desc: 'AWS Cloud Services', amount: '- $450.00', type: 'out', currency: 'USD', date: 'Jan 01', status: 'Cleared' },
+const initialTransactions: Transaction[] = [
+  { id: 'TX-9921', desc: 'Amazon Settlement (US)', amount: 45230.00, type: 'in', currency: 'USD', category: 'Sales', date: '2025-01-04 14:20', status: 'Cleared' },
+  { id: 'TX-9920', desc: 'Supplier Payment: Shenzhen Tech', amount: 120000.00, type: 'out', currency: 'CNY', category: 'COGS', date: '2025-01-04 09:15', status: 'Processing' },
+  { id: 'TX-9919', desc: 'FedEx Logistics Invoice', amount: 3450.50, type: 'out', currency: 'USD', category: 'Logistics', date: '2025-01-03 18:00', status: 'Cleared' },
+  { id: 'TX-9918', desc: 'TikTok Shop Payout (UK)', amount: 8200.00, type: 'in', currency: 'GBP', category: 'Sales', date: '2025-01-02 11:30', status: 'Cleared' },
+  { id: 'TX-9917', desc: 'AWS Cloud Services', amount: 450.00, type: 'out', currency: 'USD', category: 'Ops', date: '2025-01-01 10:00', status: 'Cleared' },
 ];
+
+const categories = ['Sales', 'COGS', 'Logistics', 'Marketing', 'Ops', 'Tax', 'Salary'];
+const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'USDT'];
 
 // --- Components ---
 
 export const FinanceModule: React.FC = () => {
   const [activeCurrency, setActiveCurrency] = useState('USD');
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTx, setNewTx] = useState<Partial<Transaction>>({
+    type: 'out',
+    currency: 'USD',
+    category: 'Ops',
+    status: 'Cleared'
+  });
+
+  // --- Helpers ---
+  const handleAddTransaction = () => {
+    if (!newTx.amount || !newTx.desc) return;
+    
+    const tx: Transaction = {
+      id: `TX-${Math.floor(Math.random() * 10000)}`,
+      desc: newTx.desc,
+      amount: Number(newTx.amount),
+      type: newTx.type as 'in' | 'out',
+      currency: newTx.currency as string,
+      category: newTx.category as string,
+      date: new Date().toLocaleString(),
+      status: newTx.status as any
+    };
+
+    setTransactions([tx, ...transactions]);
+    setIsModalOpen(false);
+    setNewTx({ type: 'out', currency: 'USD', category: 'Ops', status: 'Cleared', desc: '', amount: undefined });
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('确认删除此条流水记录吗？此操作不可逆。')) {
+      setTransactions(transactions.filter(t => t.id !== id));
+    }
+  };
+
+  const filteredTransactions = transactions.filter(t => {
+    const matchesSearch = t.desc.toLowerCase().includes(searchTerm.toLowerCase()) || t.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || t.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  // --- Sub-components ---
 
   const CurrencyCard = ({ code, symbol, balance, trend, trendVal, chartColor }: any) => (
     <div 
@@ -80,9 +144,113 @@ export const FinanceModule: React.FC = () => {
     </div>
   );
 
+  const Modal = () => {
+    if (!isModalOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-md rounded-lg shadow-2xl relative">
+           <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#111]">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                 <FileText size={18} className="text-cyber-cyan"/> 记账 (Record Transaction)
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white"><X size={20} /></button>
+           </div>
+           
+           <div className="p-6 space-y-4">
+              {/* Type Switcher */}
+              <div className="flex bg-black p-1 border border-white/10 rounded">
+                 <button 
+                   onClick={() => setNewTx({...newTx, type: 'in'})}
+                   className={`flex-1 py-2 text-xs font-bold transition-all ${newTx.type === 'in' ? 'bg-cyber-green text-black' : 'text-gray-500 hover:text-white'}`}
+                 >
+                    + 收入 (Income)
+                 </button>
+                 <button 
+                   onClick={() => setNewTx({...newTx, type: 'out'})}
+                   className={`flex-1 py-2 text-xs font-bold transition-all ${newTx.type === 'out' ? 'bg-cyber-pink text-black' : 'text-gray-500 hover:text-white'}`}
+                 >
+                    - 支出 (Expense)
+                 </button>
+              </div>
+
+              {/* Amount & Currency */}
+              <div className="grid grid-cols-3 gap-4">
+                 <div className="col-span-2">
+                    <label className="text-[10px] text-gray-500 font-mono uppercase mb-1 block">金额 (Amount)</label>
+                    <input 
+                      type="number" 
+                      value={newTx.amount || ''}
+                      onChange={e => setNewTx({...newTx, amount: e.target.valueAsNumber})}
+                      placeholder="0.00" 
+                      className="w-full bg-black border border-white/20 p-2 text-white font-mono focus:border-cyber-cyan outline-none"
+                    />
+                 </div>
+                 <div>
+                    <label className="text-[10px] text-gray-500 font-mono uppercase mb-1 block">币种</label>
+                    <select 
+                      value={newTx.currency}
+                      onChange={e => setNewTx({...newTx, currency: e.target.value})}
+                      className="w-full bg-black border border-white/20 p-2 text-white font-mono focus:border-cyber-cyan outline-none"
+                    >
+                       {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                 </div>
+              </div>
+
+              {/* Desc */}
+              <div>
+                 <label className="text-[10px] text-gray-500 font-mono uppercase mb-1 block">交易摘要 (Description)</label>
+                 <input 
+                    value={newTx.desc || ''}
+                    onChange={e => setNewTx({...newTx, desc: e.target.value})}
+                    placeholder="e.g. 物流费用支付" 
+                    className="w-full bg-black border border-white/20 p-2 text-white text-sm focus:border-cyber-cyan outline-none"
+                 />
+              </div>
+
+              {/* Category & Status */}
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <label className="text-[10px] text-gray-500 font-mono uppercase mb-1 block">分类 (Category)</label>
+                    <select 
+                      value={newTx.category}
+                      onChange={e => setNewTx({...newTx, category: e.target.value})}
+                      className="w-full bg-black border border-white/20 p-2 text-white text-sm focus:border-cyber-cyan outline-none"
+                    >
+                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                 </div>
+                 <div>
+                    <label className="text-[10px] text-gray-500 font-mono uppercase mb-1 block">状态 (Status)</label>
+                    <select 
+                      value={newTx.status}
+                      onChange={e => setNewTx({...newTx, status: e.target.value as any})}
+                      className="w-full bg-black border border-white/20 p-2 text-white text-sm focus:border-cyber-cyan outline-none"
+                    >
+                       <option value="Cleared">已入账 (Cleared)</option>
+                       <option value="Processing">处理中 (Processing)</option>
+                       <option value="Pending">待定 (Pending)</option>
+                    </select>
+                 </div>
+              </div>
+
+              <button 
+                onClick={handleAddTransaction}
+                className="w-full py-3 bg-cyber-cyan text-black font-bold uppercase tracking-wider hover:bg-white transition-all shadow-neon-cyan mt-4"
+              >
+                 确认记账
+              </button>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 relative">
        
+       <Modal />
+
        {/* Sticky Header */}
        <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
           <div>
@@ -158,15 +326,16 @@ export const FinanceModule: React.FC = () => {
                    <PieIcon size={16} className="text-cyber-purple"/> 成本结构分析 (Cost Structure)
                 </h3>
                 
-                <div className="flex-1 relative">
+                {/* Fixed Container Height to prevent clipping */}
+                <div className="flex-1 min-h-[250px] relative w-full">
                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                          <Pie
                             data={costStructureData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
+                            innerRadius="50%"
+                            outerRadius="80%" 
                             paddingAngle={5}
                             dataKey="value"
                             stroke="none"
@@ -246,44 +415,71 @@ export const FinanceModule: React.FC = () => {
           </div>
        </div>
 
-       {/* Bottom Row: The Ledger (Transactions) */}
-       <div className="tech-border p-0 bg-black/40 overflow-hidden">
+       {/* Bottom Row: The Interactive Ledger (Transactions) */}
+       <div className="tech-border p-0 bg-black/40 overflow-hidden min-h-[500px] flex flex-col">
           <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#0c0c0c]">
              <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <FileText size={20} className="text-white"/> 全球流水账本 (Global Ledger)
              </h3>
-             <div className="flex gap-2">
-                <input placeholder="搜索交易号 / 对方账户..." className="bg-black border border-white/20 px-3 py-1.5 text-xs text-white outline-none w-64 focus:border-cyber-cyan transition-colors" />
-                <button className="p-1.5 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-colors"><Download size={16} /></button>
+             <div className="flex gap-3">
+                <div className="relative">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                   <input 
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder="搜索交易号 / 对方账户..." 
+                      className="bg-black border border-white/20 pl-10 pr-4 py-2 text-xs text-white outline-none w-64 focus:border-cyber-cyan transition-colors" 
+                   />
+                </div>
+                
+                {/* Filter Buttons */}
+                <div className="flex bg-black border border-white/20 rounded overflow-hidden">
+                   <button onClick={() => setFilterType('all')} className={`px-3 py-1 text-xs font-bold transition-all ${filterType === 'all' ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}>全部</button>
+                   <button onClick={() => setFilterType('in')} className={`px-3 py-1 text-xs font-bold transition-all ${filterType === 'in' ? 'bg-cyber-green text-black' : 'text-gray-500 hover:text-white'}`}>收入</button>
+                   <button onClick={() => setFilterType('out')} className={`px-3 py-1 text-xs font-bold transition-all ${filterType === 'out' ? 'bg-cyber-pink text-black' : 'text-gray-500 hover:text-white'}`}>支出</button>
+                </div>
+
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 bg-cyber-cyan text-black text-xs font-bold hover:bg-white transition-all flex items-center gap-2 shadow-neon-cyan"
+                >
+                   <Plus size={14} /> 记一笔
+                </button>
              </div>
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-x-auto">
              <table className="w-full text-left text-sm">
-                <thead className="bg-white/5 text-gray-400 font-mono text-xs uppercase">
+                <thead className="bg-white/5 text-gray-400 font-mono text-xs uppercase sticky top-0 backdrop-blur-sm z-10">
                    <tr>
                       <th className="p-4 pl-6">交易状态</th>
-                      <th className="p-4">摘要 / 对方账户</th>
+                      <th className="p-4">摘要 / 类别</th>
                       <th className="p-4">交易时间</th>
                       <th className="p-4">币种</th>
                       <th className="p-4 text-right pr-6">金额</th>
+                      <th className="p-4 w-10">操作</th>
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                   {recentTransactions.map((tx) => (
+                   {filteredTransactions.map((tx) => (
                       <tr key={tx.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
                          <td className="p-4 pl-6">
                             <div className="flex items-center gap-3">
-                               <div className={`w-2 h-2 rounded-full ${tx.status === 'Cleared' ? 'bg-cyber-green shadow-[0_0_8px_#39FF14]' : 'bg-cyber-yellow animate-pulse'}`}></div>
+                               <div className={`w-2 h-2 rounded-full ${tx.status === 'Cleared' ? 'bg-cyber-green shadow-[0_0_8px_#39FF14]' : tx.status === 'Processing' ? 'bg-cyber-yellow animate-pulse' : 'bg-gray-500'}`}></div>
                                <div>
-                                  <div className="text-white font-bold text-xs">{tx.status === 'Cleared' ? '已入账' : '处理中'}</div>
+                                  <div className="text-white font-bold text-xs">{tx.status === 'Cleared' ? '已入账' : tx.status === 'Processing' ? '处理中' : '待处理'}</div>
                                   <div className="text-[10px] text-gray-500 font-mono">{tx.id}</div>
                                </div>
                             </div>
                          </td>
                          <td className="p-4">
                             <div className="text-white font-medium group-hover:text-cyber-cyan transition-colors">{tx.desc}</div>
-                            <div className="text-[10px] text-gray-500">{tx.type === 'in' ? '收入' : '支出'}</div>
+                            <div className="flex gap-2 mt-1">
+                               <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">{tx.category}</span>
+                               <span className={`text-[10px] font-bold ${tx.type === 'in' ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                  {tx.type === 'in' ? 'INCOME' : 'EXPENSE'}
+                               </span>
+                            </div>
                          </td>
                          <td className="p-4 text-gray-400 font-mono text-xs">
                             {tx.date}
@@ -294,15 +490,34 @@ export const FinanceModule: React.FC = () => {
                             </span>
                          </td>
                          <td className={`p-4 pr-6 text-right font-mono font-bold text-base ${tx.type === 'in' ? 'text-cyber-green' : 'text-white'}`}>
-                            {tx.amount}
+                            {tx.type === 'in' ? '+' : '-'} {tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                         </td>
+                         <td className="p-4 text-center">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(tx.id); }}
+                              className="text-gray-600 hover:text-cyber-pink transition-colors p-2"
+                              title="删除记录"
+                            >
+                               <Trash2 size={16} />
+                            </button>
                          </td>
                       </tr>
                    ))}
+                   {filteredTransactions.length === 0 && (
+                      <tr>
+                         <td colSpan={6} className="p-8 text-center text-gray-500 text-sm">
+                            没有找到符合条件的交易记录。
+                         </td>
+                      </tr>
+                   )}
                 </tbody>
              </table>
           </div>
-          <div className="p-3 bg-black/50 border-t border-white/10 text-center text-xs text-gray-500 cursor-pointer hover:text-white transition-colors">
-             查看更多历史记录 (View All)
+          <div className="p-3 bg-black/50 border-t border-white/10 flex justify-between items-center text-xs text-gray-500">
+             <span>显示 {filteredTransactions.length} 条记录</span>
+             <button className="flex items-center gap-1 hover:text-white transition-colors">
+                <Download size={12} /> 导出报表 (Excel)
+             </button>
           </div>
        </div>
 

@@ -12,16 +12,16 @@
           extend: {
             colors: {
               cyber: {
-                bg: '#050505',         // Pure Black
-                panel: '#0F1218',      // Dark Tech Blue/Gray
-                border: 'rgba(0, 240, 255, 0.2)', // Cyan low opacity
-                cyan: '#00F0FF',       // Cyber Cyan
-                pink: '#FF003C',       // Cyber Pink
-                purple: '#BC13FE',     // Cyber Purple
-                yellow: '#FCEE0A',     // Acid Yellow
-                green: '#39FF14',      // Neon Green
-                text: '#E0E0E0',       // Off-white text
-                dim: '#6B7280',        // Dimmed text
+                bg: 'var(--bg)',
+                panel: 'var(--panel)',
+                border: 'var(--border)',
+                cyan: 'var(--cyan)',
+                pink: 'var(--pink)',
+                purple: 'var(--purple)',
+                yellow: 'var(--yellow)',
+                green: 'var(--green)',
+                text: 'var(--text)',
+                dim: 'var(--dim)',
               }
             },
             fontFamily: {
@@ -29,28 +29,84 @@
               mono: ['"JetBrains Mono"', 'monospace'],
             },
             boxShadow: {
-              'neon-cyan': '0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.3)',
-              'neon-pink': '0 0 10px rgba(255, 0, 60, 0.5), 0 0 20px rgba(255, 0, 60, 0.3)',
+              'neon-cyan': 'var(--shadow-cyan)',
+              'neon-pink': 'var(--shadow-pink)',
+              'neon-purple': 'var(--shadow-purple)',
               'tech-panel': 'inset 0 0 20px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.8)',
             },
             backgroundImage: {
-              'tech-grid': 'linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px)',
+              'tech-grid': 'linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)',
             }
           }
         }
       }
     </script>
     <style>
+      :root {
+        /* Default Theme: CYBER (Dark/Neon) */
+        --bg: #050505;
+        --panel: #0F1218;
+        --border: rgba(0, 240, 255, 0.2);
+        --cyan: #00F0FF;
+        --pink: #FF003C;
+        --purple: #BC13FE;
+        --yellow: #FCEE0A;
+        --green: #39FF14;
+        --text: #E0E0E0;
+        --dim: #6B7280;
+        --grid-color: rgba(0, 240, 255, 0.05);
+        --shadow-cyan: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(0, 240, 255, 0.3);
+        --shadow-pink: 0 0 10px rgba(255, 0, 60, 0.5), 0 0 20px rgba(255, 0, 60, 0.3);
+        --shadow-purple: 0 0 10px rgba(188, 19, 254, 0.5), 0 0 20px rgba(188, 19, 254, 0.3);
+      }
+
+      /* Theme: CORPORATE (Light/Clean) */
+      [data-theme='light'] {
+        --bg: #F3F4F6;
+        --panel: #FFFFFF;
+        --border: #E5E7EB;
+        --cyan: #0284C7; /* Sky Blue */
+        --pink: #E11D48; /* Rose */
+        --purple: #7C3AED; /* Violet */
+        --yellow: #D97706; /* Amber */
+        --green: #059669; /* Emerald */
+        --text: #111827; /* Gray 900 */
+        --dim: #6B7280;
+        --grid-color: rgba(0, 0, 0, 0.03);
+        --shadow-cyan: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-pink: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-purple: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Theme: OBSIDIAN (Minimal/Matte Black) */
+      [data-theme='obsidian'] {
+        --bg: #000000;
+        --panel: #111111;
+        --border: #333333;
+        --cyan: #FFFFFF; /* High contrast white */
+        --pink: #CCCCCC;
+        --purple: #999999;
+        --yellow: #FFFFFF;
+        --green: #FFFFFF;
+        --text: #F3F4F6;
+        --dim: #888888;
+        --grid-color: rgba(255, 255, 255, 0.03);
+        --shadow-cyan: none;
+        --shadow-pink: none;
+        --shadow-purple: none;
+      }
+
       body {
-        background-color: #020204;
+        background-color: var(--bg);
         background-image: 
-          radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
-          linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), 
-          linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+          radial-gradient(circle at 50% 0%, var(--border) 0%, transparent 50%),
+          linear-gradient(var(--grid-color) 1px, transparent 1px), 
+          linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
         background-size: 100% 100%, 40px 40px, 40px 40px;
-        color: #E0E0E0;
+        color: var(--text);
         font-family: "JetBrains Mono", "Noto Sans SC", sans-serif;
         font-weight: 500;
+        transition: background-color 0.5s ease, color 0.5s ease;
       }
 
       /* Custom Scrollbar */
@@ -58,43 +114,43 @@
         width: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #0a0a0a; 
+        background: var(--bg); 
       }
       ::-webkit-scrollbar-thumb {
-        background: #333; 
-        border: 1px solid #00F0FF;
+        background: var(--dim); 
+        border: 1px solid var(--border);
       }
 
       .tech-border {
         position: relative;
-        background: rgba(15, 18, 24, 0.7);
+        background: var(--panel);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 240, 255, 0.2);
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        border: 1px solid var(--border);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.05); /* Lighter inset for compatibility */
       }
       
       .tech-border::before {
         content: '';
         position: absolute;
         top: 0; left: 0; width: 8px; height: 8px;
-        border-top: 2px solid #00F0FF;
-        border-left: 2px solid #00F0FF;
+        border-top: 2px solid var(--cyan);
+        border-left: 2px solid var(--cyan);
       }
       .tech-border::after {
         content: '';
         position: absolute;
         bottom: 0; right: 0; width: 8px; height: 8px;
-        border-bottom: 2px solid #00F0FF;
-        border-right: 2px solid #00F0FF;
+        border-bottom: 2px solid var(--cyan);
+        border-right: 2px solid var(--cyan);
       }
 
       .text-glow {
-        text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+        text-shadow: 0 0 10px var(--border);
       }
       
       .glitch-effect:hover {
         animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
-        color: #00F0FF;
+        color: var(--cyan);
       }
 
       @keyframes glitch {
