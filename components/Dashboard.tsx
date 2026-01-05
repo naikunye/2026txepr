@@ -115,7 +115,7 @@ export const Dashboard: React.FC = () => {
                <div className="w-10 h-10 border border-cyber-cyan bg-cyber-cyan/10 flex items-center justify-center text-cyber-cyan">
                   <Clock size={20} />
                </div>
-               <span className="text-[10px] font-bold text-gray-400 font-mono">AVG. TIME</span>
+               <span className="text-[10px] font-bold text-gray-400 font-mono">平均时效</span>
             </div>
             <div>
                <div className="text-2xl font-bold text-white">14.2 天</div>

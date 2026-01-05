@@ -27,7 +27,7 @@ export const DataIntelligenceModule: React.FC = () => {
       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className="text-3xl font-black text-white tracking-wider">数据智脑 <span className="text-cyber-cyan text-sm align-top">V2.0</span></h1>
-           <p className="text-gray-400 font-mono text-xs">实时 BI 与财务分析系统 / ONLINE</p>
+           <p className="text-gray-400 font-mono text-xs">实时 BI 与财务分析系统 / 在线</p>
         </div>
         <div className="flex bg-black border border-white/20 p-1">
            {['今日', '本周', '本月', '全年'].map((t, i) => (
@@ -48,7 +48,7 @@ export const DataIntelligenceModule: React.FC = () => {
            <div className="flex items-center gap-2 mb-2">
               <span className="text-sm font-bold text-white tracking-wide">AI 深度洞察</span>
               <span className="px-2 py-0.5 border border-cyber-purple text-[10px] font-mono text-cyber-purple flex items-center gap-1">
-                 <Radio size={10} className="animate-pulse" /> LIVE
+                 <Radio size={10} className="animate-pulse" /> 实时
               </span>
            </div>
            <p className="text-sm text-gray-300 leading-relaxed font-mono">
@@ -123,7 +123,7 @@ export const DataIntelligenceModule: React.FC = () => {
         {/* Source Estimations */}
         <div className="tech-border p-8 flex flex-col relative">
            <div className="mb-6">
-              <h3 className="text-lg font-bold text-white">渠道占比</h3>
+              <h3 className="text-lg font-bold text-white">渠道收入占比</h3>
               <p className="text-xs text-gray-500 mt-1 font-mono">Revenue Mix by Source</p>
            </div>
            <div className="flex-1 w-full h-[300px] relative">

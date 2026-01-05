@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
   { id: 'data', label: '数据智脑', icon: BarChart3 },
   // Market module removed
   { id: 'influencers', label: '达人矩阵', icon: Users },
-  { id: 'finance', label: '资金账户', icon: CreditCard },
+  { id: 'finance', label: '财务中心', icon: CreditCard },
   { id: 'logistics', label: '物流追踪', icon: PackageSearch },
   { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务看板', icon: ListTodo },
@@ -42,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
            </div>
            <div>
              <h1 className="font-black text-xl tracking-wider text-white italic">AERO<span className="text-cyber-cyan">.OS</span></h1>
-             <span className="text-[10px] font-mono text-cyber-cyan tracking-widest opacity-80">SYSTEM_ONLINE</span>
+             <span className="text-[10px] font-mono text-cyber-cyan tracking-widest opacity-80">系统在线 · SYSTEM_ONLINE</span>
            </div>
         </div>
       </div>
@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-4 space-y-2 custom-scrollbar mt-4">
         <div className="text-[10px] font-mono text-gray-500 px-4 py-2 uppercase tracking-widest border-b border-gray-800 mb-2">
-          // Modules
+          // 功能模块
         </div>
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
           </div>
           <div className="flex-1 text-left">
              <div className="text-sm font-bold text-white tracking-wide">管理员</div>
-             <div className="text-[10px] text-cyber-cyan font-mono">LEVEL_99_ACCESS</div>
+             <div className="text-[10px] text-cyber-cyan font-mono">最高权限_LV99</div>
           </div>
           <Settings size={16} className="text-gray-500 group-hover:text-cyber-cyan group-hover:rotate-90 transition-all duration-500" />
         </div>
