@@ -17,22 +17,31 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS Terminal initialized...', '> Waiting for connection...']);
 
   const addLog = (msg: string) => {
-    setConsoleLogs(prev => [...prev.slice(-5), msg]);
+    setConsoleLogs(prev => [...prev.slice(-6), msg]);
   };
 
   // --- Handlers ---
 
   const handleExport = () => {
     try {
+      // Check if data actually exists before export to warn user
+      const logisticsData = localStorage.getItem('AERO_LOGISTICS_DATA');
+      const financeData = localStorage.getItem('AERO_FINANCE_DATA');
+      
+      if (!logisticsData && !financeData) {
+         addLog('> WARN: Detecting empty local storage.');
+         alert('⚠️ 注意：检测到本地数据为空。\n\n如果您刚打开系统，请先点击访问一下【物流】、【财务】等模块，待数据初始化后再进行导出。否则导出的备份将是空的。');
+      }
+
       const data = {
         meta: {
           exportedAt: new Date().toISOString(),
-          version: '2.1.0',
+          version: '2.2.0',
           user: 'Admin_01'
         },
         data: {
-          logistics: localStorage.getItem('AERO_LOGISTICS_DATA'),
-          finance: localStorage.getItem('AERO_FINANCE_DATA'),
+          logistics: logisticsData,
+          finance: financeData,
           restock: localStorage.getItem('AERO_RESTOCK_DATA'),
           theme: localStorage.getItem('AERO_THEME')
         }
@@ -47,7 +56,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       link.click();
       document.body.removeChild(link);
       
-      addLog('> FULL_DUMP: Export successful.');
+      addLog('> FULL_DUMP: Export sequence complete.');
     } catch (e) {
       addLog('> ERROR: Data export failed.');
       console.error(e);
@@ -58,7 +67,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     const file = e.target.files?.[0];
     if (!file) return;
     
-    addLog(`> Analyzing: ${file.name}...`);
+    addLog(`> Reading: ${file.name}...`);
     
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -68,52 +77,64 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
         // 1. Check for Array format (Single Module Export)
         if (Array.isArray(json)) {
-            addLog('> WARNING: Detected Array format.');
-            alert('导入中断：\n\n您上传的是【单模块列表数据】（如商品SKU列表），而非系统全量备份。\n\n请前往对应的业务模块（如智能备货 -> 导入）进行操作。');
+            addLog('> ERROR: Format Mismatch (Array).');
+            alert('导入失败：\n\n您上传的是【单模块数据】，请前往对应模块（如智能备货）进行导入。\n此处仅支持系统级全量备份文件。');
             return;
         }
 
         const payload = json.data || json;
+        const keysFound = Object.keys(payload);
+        addLog(`> Keys found: [${keysFound.join(', ')}]`);
+
         let restoreCount = 0;
-        const foundKeys: string[] = [];
+        const restoredModules: string[] = [];
 
-        // Helper to safely restore
-        const restoreKey = (key: string, storageKey: string) => {
-            if (payload[key] !== undefined && payload[key] !== null) {
-                const valueToStore = typeof payload[key] === 'string' 
-                    ? payload[key] 
-                    : JSON.stringify(payload[key]);
+        // Definition of restorable modules
+        const targets = [
+            { key: 'logistics', storage: 'AERO_LOGISTICS_DATA' },
+            { key: 'finance', storage: 'AERO_FINANCE_DATA' },
+            { key: 'restock', storage: 'AERO_RESTOCK_DATA' },
+            { key: 'theme', storage: 'AERO_THEME' }
+        ];
+
+        targets.forEach(({ key, storage }) => {
+            if (payload.hasOwnProperty(key)) {
+                const val = payload[key];
                 
-                // Avoid restoring explicit null strings
-                if (valueToStore === 'null' || valueToStore === 'undefined') return false;
+                // Diagnostic log for nulls
+                if (val === null || val === undefined) {
+                    addLog(`> SKIP: '${key}' is null in file.`);
+                    return;
+                }
 
-                localStorage.setItem(storageKey, valueToStore);
-                foundKeys.push(key);
-                return true;
+                const valueToStore = typeof val === 'string' ? val : JSON.stringify(val);
+                
+                // Filter out literal "null" strings
+                if (valueToStore === 'null' || valueToStore === 'undefined' || valueToStore === '[]') {
+                    addLog(`> SKIP: '${key}' is empty/null.`);
+                    return;
+                }
+
+                localStorage.setItem(storage, valueToStore);
+                restoredModules.push(key);
+                restoreCount++;
+                addLog(`> RESTORE: ${key} -> OK`);
             }
-            return false;
-        };
-
-        if (restoreKey('logistics', 'AERO_LOGISTICS_DATA')) restoreCount++;
-        if (restoreKey('finance', 'AERO_FINANCE_DATA')) restoreCount++;
-        if (restoreKey('restock', 'AERO_RESTOCK_DATA')) restoreCount++;
-        if (restoreKey('theme', 'AERO_THEME')) restoreCount++;
+        });
 
         if (restoreCount > 0) {
-            addLog(`> RESTORED: [${foundKeys.join(', ')}]`);
-            addLog(`> Success: ${restoreCount} modules updated.`);
-            
-            if (confirm(`数据导入成功！\n\n已恢复以下模块的数据：\n${foundKeys.join(', ')}\n\n点击“确定”刷新系统以应用更改。`)) {
+            addLog(`> DONE: ${restoreCount} modules updated.`);
+            if (confirm(`导入成功！\n\n已恢复以下模块数据：\n${restoredModules.join(', ')}\n\n是否立即刷新页面以加载数据？`)) {
               window.location.reload();
             }
         } else {
-            addLog('> WARN: Valid JSON but no AERO data found.');
-            alert('导入完成，但未发现有效数据 (0 items)。\n\n可能原因：\n1. 备份文件中的数据字段为 null\n2. 文件结构不匹配');
+            addLog('> WARN: 0 items imported.');
+            alert(`导入完成，但没有数据被写入 (0 items)。\n\n原因诊断：\n备份文件中的数据字段为空 (null)。\n\n这通常是因为导出时未访问过相关模块导致缓存未建立。`);
         }
 
       } catch (err) {
         addLog('> FATAL: JSON Parse Error.');
-        alert('文件解析失败：请确保上传的是标准的 .json 备份文件。');
+        alert('文件解析失败：文件格式错误或已损坏。');
         console.error(err);
       }
     };
