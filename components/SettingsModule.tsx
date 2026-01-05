@@ -16,6 +16,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const [serverStatus, setServerStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS Terminal initialized...', '> Waiting for connection...']);
 
+  const addLog = (msg: string) => {
+    setConsoleLogs(prev => [...prev.slice(-5), msg]);
+  };
+
   // --- Handlers ---
 
   const handleExport = () => {
@@ -23,7 +27,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       const data = {
         meta: {
           exportedAt: new Date().toISOString(),
-          version: '2.0.0',
+          version: '2.1.0',
           user: 'Admin_01'
         },
         data: {
@@ -43,7 +47,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       link.click();
       document.body.removeChild(link);
       
-      addLog('> FULL_DUMP: Data export successful.');
+      addLog('> FULL_DUMP: Export successful.');
     } catch (e) {
       addLog('> ERROR: Data export failed.');
       console.error(e);
@@ -54,48 +58,67 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     const file = e.target.files?.[0];
     if (!file) return;
     
-    addLog('> Reading file stream...');
+    addLog(`> Analyzing: ${file.name}...`);
     
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const json = JSON.parse(ev.target?.result as string);
+        const rawContent = ev.target?.result as string;
+        const json = JSON.parse(rawContent);
+
+        // 1. Check for Array format (Single Module Export)
+        if (Array.isArray(json)) {
+            addLog('> WARNING: Detected Array format.');
+            alert('导入中断：\n\n您上传的是【单模块列表数据】（如商品SKU列表），而非系统全量备份。\n\n请前往对应的业务模块（如智能备货 -> 导入）进行操作。');
+            return;
+        }
+
         const payload = json.data || json;
         let restoreCount = 0;
+        const foundKeys: string[] = [];
 
-        if (payload.logistics) {
-           localStorage.setItem('AERO_LOGISTICS_DATA', typeof payload.logistics === 'string' ? payload.logistics : JSON.stringify(payload.logistics));
-           restoreCount++;
-        }
-        if (payload.finance) {
-           localStorage.setItem('AERO_FINANCE_DATA', typeof payload.finance === 'string' ? payload.finance : JSON.stringify(payload.finance));
-           restoreCount++;
-        }
-        if (payload.restock) {
-           localStorage.setItem('AERO_RESTOCK_DATA', typeof payload.restock === 'string' ? payload.restock : JSON.stringify(payload.restock));
-           restoreCount++;
-        }
-        if (payload.theme) {
-           localStorage.setItem('AERO_THEME', payload.theme);
+        // Helper to safely restore
+        const restoreKey = (key: string, storageKey: string) => {
+            if (payload[key] !== undefined && payload[key] !== null) {
+                const valueToStore = typeof payload[key] === 'string' 
+                    ? payload[key] 
+                    : JSON.stringify(payload[key]);
+                
+                // Avoid restoring explicit null strings
+                if (valueToStore === 'null' || valueToStore === 'undefined') return false;
+
+                localStorage.setItem(storageKey, valueToStore);
+                foundKeys.push(key);
+                return true;
+            }
+            return false;
+        };
+
+        if (restoreKey('logistics', 'AERO_LOGISTICS_DATA')) restoreCount++;
+        if (restoreKey('finance', 'AERO_FINANCE_DATA')) restoreCount++;
+        if (restoreKey('restock', 'AERO_RESTOCK_DATA')) restoreCount++;
+        if (restoreKey('theme', 'AERO_THEME')) restoreCount++;
+
+        if (restoreCount > 0) {
+            addLog(`> RESTORED: [${foundKeys.join(', ')}]`);
+            addLog(`> Success: ${restoreCount} modules updated.`);
+            
+            if (confirm(`数据导入成功！\n\n已恢复以下模块的数据：\n${foundKeys.join(', ')}\n\n点击“确定”刷新系统以应用更改。`)) {
+              window.location.reload();
+            }
+        } else {
+            addLog('> WARN: Valid JSON but no AERO data found.');
+            alert('导入完成，但未发现有效数据 (0 items)。\n\n可能原因：\n1. 备份文件中的数据字段为 null\n2. 文件结构不匹配');
         }
 
-        addLog(`> Success: Restored ${restoreCount} data modules.`);
-        
-        if (confirm(`数据导入成功！\n共恢复 ${restoreCount} 个模块的数据。\n\n系统需要重新加载以应用更改。点击“确定”立即刷新。`)) {
-          window.location.reload();
-        }
       } catch (err) {
-        addLog('> CRITICAL_ERROR: JSON parse failed or invalid schema.');
-        alert('文件格式错误：请确保上传的是 AERO.OS 导出的标准 JSON 备份文件。');
+        addLog('> FATAL: JSON Parse Error.');
+        alert('文件解析失败：请确保上传的是标准的 .json 备份文件。');
         console.error(err);
       }
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
-
-  const addLog = (msg: string) => {
-    setConsoleLogs(prev => [...prev.slice(-4), msg]);
   };
 
   const handleTestConnection = () => {
