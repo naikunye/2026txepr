@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon } from 'lucide-react';
 
 // --- World-Class ERP Data Model ---
@@ -264,7 +264,21 @@ const sanitizeProduct = (p: any): Product => {
 };
 
 export const RestockModule: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  // Initialize with Persistence
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('AERO_RESTOCK_DATA');
+      return saved ? JSON.parse(saved) : initialProducts;
+    } catch (e) {
+      return initialProducts;
+    }
+  });
+
+  // Save on change
+  useEffect(() => {
+    localStorage.setItem('AERO_RESTOCK_DATA', JSON.stringify(products));
+  }, [products]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<'supply' | 'logistics' | 'finance'>('finance'); // Modal tabs

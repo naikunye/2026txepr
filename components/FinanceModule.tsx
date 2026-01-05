@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, BarChart, Bar, Cell, ComposedChart, Line, Legend, PieChart, Pie
@@ -59,7 +59,22 @@ const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'USDT'];
 
 export const FinanceModule: React.FC = () => {
   const [activeCurrency, setActiveCurrency] = useState('USD');
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  
+  // Initialize with Persistence
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('AERO_FINANCE_DATA');
+      return saved ? JSON.parse(saved) : initialTransactions;
+    } catch (e) {
+      return initialTransactions;
+    }
+  });
+
+  // Save on change
+  useEffect(() => {
+    localStorage.setItem('AERO_FINANCE_DATA', JSON.stringify(transactions));
+  }, [transactions]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
   

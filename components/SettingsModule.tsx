@@ -20,12 +20,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
   const handleExport = () => {
     try {
-      // Export all relevant localStorage keys
+      // Export all global state keys
       const data = {
-        logistics: localStorage.getItem('AERO_LOGISTICS_DATA'),
-        // Add other keys as needed
-        exportedAt: new Date().toISOString(),
-        version: '1.0.0'
+        meta: {
+          exportedAt: new Date().toISOString(),
+          version: '2.0.0',
+          user: 'Admin_01'
+        },
+        data: {
+          logistics: localStorage.getItem('AERO_LOGISTICS_DATA'),
+          finance: localStorage.getItem('AERO_FINANCE_DATA'),
+          restock: localStorage.getItem('AERO_RESTOCK_DATA'),
+          theme: localStorage.getItem('AERO_THEME')
+        }
       };
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -37,9 +44,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       link.click();
       document.body.removeChild(link);
       
-      addLog('> Data export successful.');
+      addLog('> FULL_DUMP: Data export successful.');
     } catch (e) {
       addLog('> ERROR: Data export failed.');
+      console.error(e);
     }
   };
 
@@ -47,20 +55,48 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     const file = e.target.files?.[0];
     if (!file) return;
     
+    addLog('> Reading file stream...');
+    
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const json = JSON.parse(ev.target?.result as string);
-        if (json.logistics) localStorage.setItem('AERO_LOGISTICS_DATA', json.logistics);
-        addLog('> System data restored from backup.');
-        alert('导入成功！请刷新页面以应用数据。');
+        
+        // Backward compatibility check (if importing old format or new format)
+        const payload = json.data || json;
+
+        let restoreCount = 0;
+
+        if (payload.logistics) {
+           localStorage.setItem('AERO_LOGISTICS_DATA', typeof payload.logistics === 'string' ? payload.logistics : JSON.stringify(payload.logistics));
+           restoreCount++;
+        }
+        if (payload.finance) {
+           localStorage.setItem('AERO_FINANCE_DATA', typeof payload.finance === 'string' ? payload.finance : JSON.stringify(payload.finance));
+           restoreCount++;
+        }
+        if (payload.restock) {
+           localStorage.setItem('AERO_RESTOCK_DATA', typeof payload.restock === 'string' ? payload.restock : JSON.stringify(payload.restock));
+           restoreCount++;
+        }
+        if (payload.theme) {
+           localStorage.setItem('AERO_THEME', payload.theme);
+        }
+
+        addLog(`> Success: Restored ${restoreCount} data modules.`);
+        
+        // Force Reload to apply changes
+        if (confirm(`数据导入成功！\n共恢复 ${restoreCount} 个模块的数据。\n\n系统需要重新加载以应用更改。点击“确定”立即刷新。`)) {
+          window.location.reload();
+        }
       } catch (err) {
-        addLog('> ERROR: Invalid backup file.');
-        alert('文件格式错误');
+        addLog('> CRITICAL_ERROR: JSON parse failed or invalid schema.');
+        alert('文件格式错误：请确保上传的是 AERO.OS 导出的标准 JSON 备份文件。');
+        console.error(err);
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
+    e.target.value = ''; // Reset input
   };
 
   const addLog = (msg: string) => {
@@ -163,7 +199,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                <div className="bg-cyber-bg/50 p-4 rounded border border-cyber-border flex items-center justify-between">
                   <div>
                      <div className="text-cyber-text font-bold text-sm">全量数据导出 (JSON)</div>
-                     <div className="text-cyber-dim text-xs mt-1">包含物流、财务、库存设置等所有本地数据</div>
+                     <div className="text-cyber-dim text-xs mt-1">导出 物流/财务/备货/配置 等全站数据</div>
                   </div>
                   <button 
                     onClick={handleExport}
@@ -176,7 +212,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                <div className="bg-cyber-bg/50 p-4 rounded border border-cyber-border flex items-center justify-between">
                   <div>
                      <div className="text-cyber-text font-bold text-sm">数据恢复/导入</div>
-                     <div className="text-cyber-dim text-xs mt-1">请上传标准的 .json 备份文件</div>
+                     <div className="text-cyber-dim text-xs mt-1">导入后系统将自动刷新以应用数据</div>
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
                   <button 
@@ -258,14 +294,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                </div>
 
                {/* Console Log */}
-               <div className="bg-black border border-cyber-border p-4 font-mono text-xs text-green-500 overflow-hidden flex flex-col">
+               <div className="bg-black border border-cyber-border p-4 font-mono text-xs text-green-500 overflow-hidden flex flex-col h-full min-h-[200px]">
                   <div className="flex items-center gap-2 border-b border-cyber-border pb-2 mb-2 text-cyber-dim">
                      <Terminal size={12} />
                      <span>SYSTEM LOG</span>
                   </div>
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
                      {consoleLogs.map((log, i) => (
-                        <div key={i} className="opacity-80">{log}</div>
+                        <div key={i} className="opacity-80 break-all">{log}</div>
                      ))}
                      {serverStatus === 'connecting' && (
                         <div className="animate-pulse">_</div>
