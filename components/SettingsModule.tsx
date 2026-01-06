@@ -168,7 +168,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             <h2 className="text-xl font-bold text-cyber-text mb-6 flex items-center gap-2">
                <Palette size={20} className="text-cyber-purple" /> 界面主题
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <button 
                  onClick={() => onThemeChange('cyber')}
                  className={`h-24 border rounded-lg p-4 flex items-end transition-all ${currentTheme === 'cyber' ? 'border-cyber-cyan bg-cyber-cyan/5' : 'border-cyber-border/30 opacity-50 hover:opacity-100'}`}
@@ -180,6 +180,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                  className={`h-24 border rounded-lg p-4 flex items-end transition-all ${currentTheme === 'obsidian' ? 'border-red-600 bg-red-900/20' : 'border-red-900/30 opacity-50 hover:opacity-100'}`}
                >
                   <span className="text-red-500 font-bold font-mono">ARASAKA (Red)</span>
+               </button>
+               <button 
+                 onClick={() => onThemeChange('tiktok')}
+                 className={`h-24 border rounded-lg p-4 flex items-end transition-all ${currentTheme === 'tiktok' ? 'border-[#25F4EE] bg-[#25F4EE]/10' : 'border-gray-800 bg-gray-900/50 opacity-50 hover:opacity-100'}`}
+               >
+                  <div className="flex flex-col items-start">
+                    <div className="flex gap-0.5 text-xl font-black tracking-tighter leading-none">
+                        <span className="text-[#25F4EE] drop-shadow-[1px_1px_0px_rgba(254,44,85,0.8)]">TIK</span>
+                        <span className="text-[#FE2C55] drop-shadow-[-1px_-1px_0px_rgba(37,244,238,0.8)]">TOK</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-mono mt-1">Creator Stream</span>
+                  </div>
                </button>
             </div>
          </div>
