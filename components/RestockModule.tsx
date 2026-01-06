@@ -105,6 +105,31 @@ const initialProducts: Product[] = [
         miscCostUSD: 0.50 
     },
     inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
+  },
+  { 
+    id: '2', 
+    skuCode: 'K7500-MECH', 
+    productName: 'K7500 机械键盘 (青轴)', 
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
+    variants: [],
+    supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
+    packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
+    financials: { 
+        sellingPriceUSD: 69.99, 
+        referralFeeRate: 0.08, 
+        transactionFeeRate: 0.029, 
+        fixedTransactionFeeUSD: 0.3, 
+        affiliateRate: 0.15, 
+        fulfillmentFeeUSD: 9.20, 
+        outboundHandlingFeeUSD: 2.00, // Added
+        storageFeeUSD: 0.50,          // Added
+        adCostUSD: 15.00, 
+        targetRoas: 4.0, 
+        returnRate: 0.08,             // Added
+        miscCostUSD: 1.00 
+    },
+    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
   }
 ];
 
@@ -157,7 +182,6 @@ const cleanNumber = (val: any): number => {
 
 const sanitizeProduct = (p: any): Product => {
   // Helper: Aggressive Fuzzy Finder
-  // Iterates through ALL keys in 'obj' to find if any key CONTAINS one of the 'targets'.
   const fuzzyVal = (obj: any, targets: string[], type: 'string'|'number', defaultVal: any) => {
     if (!obj || typeof obj !== 'object') return defaultVal;
 
@@ -179,16 +203,12 @@ const sanitizeProduct = (p: any): Product => {
         }
     }
 
-    // Strategy 3: "Nuclear" Inclusion Match (Lowest Priority but most powerful)
-    // E.g. target "采购" will match key "2024实际采购价(不含税)"
+    // Strategy 3: "Nuclear" Inclusion Match (Lowest Priority)
     for (const t of targets) {
-        // Skip short generic targets to avoid false positives (e.g. 'id' matching 'width')
         if (t.length < 2) continue; 
-        
         const lowerT = t.toLowerCase();
         const foundKey = objKeys.find(k => k.toLowerCase().includes(lowerT));
         if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null && String(obj[foundKey]).trim() !== '') {
-             // console.log(`Fuzzy Matched: [${t}] found in key [${foundKey}] -> ${obj[foundKey]}`);
              return type === 'number' ? cleanNumber(obj[foundKey]) : String(obj[foundKey]);
         }
     }
@@ -196,20 +216,33 @@ const sanitizeProduct = (p: any): Product => {
     return defaultVal;
   };
 
-  // Flatten logic: Search in root, then check specific sub-objects just in case structure differs
   const root = p || {};
   const mixedPool = { ...root, ...(root.supplier || {}), ...(root.logistics || {}), ...(root.financials || {}), ...(root.packing || {}), ...(root.inventory || {}) };
+
+  // --- EXHAUSTIVE INBOUND ID KEY LIST ---
+  // Covers: Lingxing, SellerSprite, ERPs, Chinese, English, Mixed Case
+  const inboundKeys = [
+      'inboundId', 'inbound_id', 'Inbound ID', 
+      'shipmentId', 'shipment_id', 'shipment_name', 'Shipment Name', 'Shipment ID',
+      'fba_shipment_id', 'fba_shipment_name', 'fba_id', 'FBA ID',
+      'seller_shipment_id', 'seller_shipment_name',
+      'reference_id', 'Reference ID', 'Reference', 'ref_no',
+      'lx_id', 'lx_no',
+      'plan_no', 'plan_id', 'plan_name', 'inbound_plan_id',
+      'local_shipment_id',
+      '入库单号', '入库单名称', '入库计划单号',
+      '货件编号', '货件名称', '货件单号', '货件ID',
+      'FBA货件号', 'FBA号', 'FBA单号',
+      '商家货件号', '计划单号', '单号'
+  ];
 
   return {
     id: String(root.id || Date.now() + Math.random()),
     
-    // SKU
-    skuCode: fuzzyVal(mixedPool, ['skuCode', 'sku', 'item_no', 'Product ID', 'Item Number', '编码', '货号', 'SKU'], 'string', 'UNKNOWN-SKU'),
+    skuCode: fuzzyVal(mixedPool, ['skuCode', 'sku', 'item_no', 'Product ID', 'Item Number', '编码', '货号', 'SKU', 'MSKU', 'FNSKU'], 'string', 'UNKNOWN-SKU'),
     
-    // Name
     productName: fuzzyVal(mixedPool, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description', '名称', '品名', '标题'], 'string', 'New Product'),
     
-    // Image
     image: fuzzyVal(mixedPool, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Picture', 'thumbnail', '图片', '缩略图', '主图'], 'string', ''),
     
     variants: Array.isArray(root.variants) ? root.variants : [],
@@ -218,49 +251,34 @@ const sanitizeProduct = (p: any): Product => {
       name: fuzzyVal(mixedPool, ['supplierName', 'vendor', 'Supplier', 'Factory', '供应商', '厂家'], 'string', ''),
       link: fuzzyVal(mixedPool, ['link', 'url', '1688', 'Link', '链接', '采购链接'], 'string', ''),
       moq: fuzzyVal(mixedPool, ['moq', 'MOQ', '起订量', '最小起订'], 'number', 0),
-      
-      // COST (Crucial)
       unitPriceRMB: fuzzyVal(mixedPool, ['unitPriceRMB', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'factory_price', '采购价', '成本', '含税价', '单价', 'RMB', '进货价', 'price'], 'number', 0), 
-      
       leadTime: fuzzyVal(mixedPool, ['leadTime', 'productionTime', 'Lead Time', '交期', '生产周期', '备货时间'], 'number', 0),
       paymentTerms: fuzzyVal(mixedPool, ['paymentTerms', 'Payment Terms', '付款方式', '账期'], 'string', ''),
     },
 
     logistics: {
-      inboundId: fuzzyVal(mixedPool, ['inboundId', 'shipmentId', 'lx_id', 'Reference', 'Inbound ID', 'FBA ID', 'fba_shipment_id', 'shipment_name', '入库单号', 'FBA单号', '计划单号', '货件号'], 'string', ''),
+      // UPDATED: Use the exhaustive list for Inbound ID
+      inboundId: fuzzyVal(mixedPool, inboundKeys, 'string', ''),
       
       trackingNo: fuzzyVal(mixedPool, ['trackingNo', 'tracking', 'waybill', 'Tracking Number', '追踪号', '运单号', '快递单号'], 'string', ''),
-      
       mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
-      
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
-      
       unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
-      
-      dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0), // cleanNumber handles % automatically
-      
+      dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0),
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
-      
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
     },
 
     packing: {
-      // PACKING (Crucial)
       pcsPerBox: fuzzyVal(mixedPool, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton', '装箱量'], 'number', 0),
-      
       boxCount: fuzzyVal(mixedPool, ['boxCount', 'ctn_count', 'Carton Count', '箱数', '件数', 'CTNS', 'Total Cartons', 'cartons', '总箱数'], 'number', 0),
-      
       boxWeightKg: fuzzyVal(mixedPool, ['boxWeightKg', 'weight', 'Weight (kg)', '重量', '单箱重量', '毛重', 'G.W.', 'gross_weight', '整箱重'], 'number', 0),
-      
       boxVolumeCbm: fuzzyVal(mixedPool, ['boxVolumeCbm', 'volume', 'cbm', 'CBM', '体积', '单箱体积', 'Meas', 'measurement', '外箱体积'], 'number', 0),
     },
 
     financials: {
       sellingPriceUSD: fuzzyVal(mixedPool, ['sellingPriceUSD', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price', '售价', '销售价', '定价'], 'number', 0),
-      
-      // COMMISSION (Crucial) - cleanNumber handles %
       referralFeeRate: fuzzyVal(mixedPool, ['referralFeeRate', 'commission', 'Platform Fee', '佣金', '平台佣金', 'Fee Rate', '扣点'], 'number', 0),
-      
       transactionFeeRate: fuzzyVal(mixedPool, ['transactionFeeRate', '手续费', '支付费率'], 'number', 0),
       fixedTransactionFeeUSD: fuzzyVal(mixedPool, ['fixedTransactionFeeUSD', '固定费', 'fixed_fee'], 'number', 0),
       affiliateRate: fuzzyVal(mixedPool, ['affiliateRate', 'Affiliate', '达人佣金', 'TK佣金'], 'number', 0),
@@ -274,9 +292,7 @@ const sanitizeProduct = (p: any): Product => {
     },
     
     inventory: {
-        // QUANTITY (Crucial)
         current: fuzzyVal(mixedPool, ['current', 'stock', 'qty', 'Stock', 'Quantity', '库存', '现有库存', '数量', 'available', '在库'], 'number', 0),
-        
         incoming: fuzzyVal(mixedPool, ['incoming', 'Incoming', '在途', '在途库存', 'Shipping'], 'number', 0),
         dailyVelocity: fuzzyVal(mixedPool, ['dailyVelocity', 'sales_velocity', 'Velocity', '日销', '销量', '日均'], 'number', 0),
         safetyDays: fuzzyVal(mixedPool, ['safetyDays', 'Safety Days', '安全库存天数', '周转天数'], 'number', 0),
