@@ -157,19 +157,31 @@ const defaultLogisticsSeed = [
         { label: '已送达', date: '01/22', status: 'pending' },
     ]
   },
-  // ... (Other seeds kept short for brevity, logic handles them)
 ];
 
 // --- SMART DATA SANITIZATION (Fixes Missing Fields) ---
 const sanitizeProduct = (p: any): Product => {
-  // Helper to find value in multiple possible paths (Fuzzy Match)
+  // Helper to find value in multiple possible paths (Fuzzy Match - Case Insensitive Logic added)
   const getVal = (obj: any, keys: string[], type: 'string'|'number', defaultVal: any) => {
     if (!obj) return defaultVal;
+    
+    // 1. Try exact matches first
     for (const k of keys) {
       if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
         return type === 'number' ? Number(obj[k]) : String(obj[k]);
       }
     }
+    
+    // 2. Try Case-Insensitive matches if strict match failed
+    const objKeys = Object.keys(obj);
+    for (const k of keys) {
+       const lowerK = k.toLowerCase();
+       const foundKey = objKeys.find(ok => ok.toLowerCase() === lowerK);
+       if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null && obj[foundKey] !== '') {
+          return type === 'number' ? Number(obj[foundKey]) : String(obj[foundKey]);
+       }
+    }
+
     return defaultVal;
   };
 
@@ -181,68 +193,73 @@ const sanitizeProduct = (p: any): Product => {
   const pak = root.packing || {};
   const inv = root.inventory || {};
 
+  // Expanded Aliases for Compatibility
   return {
     id: String(root.id || Date.now() + Math.random()),
-    skuCode: getVal(root, ['skuCode', 'sku', 'SKU', 'item_no'], 'string', 'UNKNOWN-SKU'),
-    productName: getVal(root, ['productName', 'name', 'title', 'desc'], 'string', 'New Product'),
-    // Fix: Look for 'img', 'url', 'pic' in root
-    image: getVal(root, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl'], 'string', ''),
+    skuCode: getVal(root, ['skuCode', 'sku', 'SKU', 'item_no', 'Product ID', 'Item Number'], 'string', 'UNKNOWN-SKU'),
+    productName: getVal(root, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description'], 'string', 'New Product'),
+    
+    // Image Fix: Added 'thumbnail', 'Photo', 'Picture'
+    image: getVal(root, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Image', 'Picture', 'thumbnail'], 'string', ''),
     
     variants: Array.isArray(root.variants) ? root.variants : [],
 
     supplier: {
-      name: getVal(sup, ['name', 'supplierName', 'vendor'], 'string', ''),
-      link: getVal(sup, ['link', 'url', '1688'], 'string', ''),
-      moq: getVal(sup, ['moq'], 'number', 0),
-      // Fix: Look for 'cost' or 'price' in root if missing in supplier
-      unitPriceRMB: getVal(sup, ['unitPriceRMB', 'price', 'cost', 'unitCost'], 'number', 
-                    getVal(root, ['cost', 'purchasePrice'], 'number', 0)), 
-      leadTime: getVal(sup, ['leadTime', 'productionTime'], 'number', 0),
-      paymentTerms: getVal(sup, ['paymentTerms'], 'string', ''),
+      name: getVal(sup, ['name', 'supplierName', 'vendor', 'Supplier', 'Factory'], 'string', ''),
+      link: getVal(sup, ['link', 'url', '1688', 'Link'], 'string', ''),
+      moq: getVal(sup, ['moq', 'MOQ'], 'number', 0),
+      // Cost Fix: Added 'Purchase Price', 'Cost RMB'
+      unitPriceRMB: getVal(sup, ['unitPriceRMB', 'price', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'RMB Cost', 'factory_price'], 'number', 
+                    getVal(root, ['cost', 'purchasePrice', 'Cost'], 'number', 0)), 
+      leadTime: getVal(sup, ['leadTime', 'productionTime', 'Lead Time'], 'number', 0),
+      paymentTerms: getVal(sup, ['paymentTerms', 'Payment Terms'], 'string', ''),
     },
 
     logistics: {
-      // Fix: Look for 'inboundId' variations
-      inboundId: getVal(log, ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no'], 'string', ''), 
-      trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill'], 'string', ''),
-      mode: getVal(log, ['mode', 'transportMode'], 'string', 'sea') as any,
-      warehouseDest: getVal(log, ['warehouseDest', 'warehouse', 'destination'], 'string', ''),
-      // Fix: Look for 'freight' or 'headFee'
-      unitRateRMB: getVal(log, ['unitRateRMB', 'freight', 'shippingRate', 'headFee'], 'number', 0),
-      dutyRate: getVal(log, ['dutyRate', 'taxRate'], 'number', 0),
-      hsCode: getVal(log, ['hsCode'], 'string', ''),
-      status: getVal(log, ['status'], 'string', 'Plan') as any,
+      // Inbound ID Fix: Added 'FBA ID', 'Reference'
+      inboundId: getVal(log, ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID'], 'string', 
+                 getVal(root, ['Inbound ID', 'Reference ID'], 'string', '')), 
+      trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill', 'Tracking Number'], 'string', 
+                  getVal(root, ['Tracking', 'Waybill'], 'string', '')),
+      mode: getVal(log, ['mode', 'transportMode', 'Method'], 'string', 'sea') as any,
+      warehouseDest: getVal(log, ['warehouseDest', 'warehouse', 'destination', 'Dest'], 'string', ''),
+      // Freight Fix: Added 'Freight Cost', 'Shipping Fee'
+      unitRateRMB: getVal(log, ['unitRateRMB', 'freight', 'shippingRate', 'headFee', 'Freight Cost', 'Shipping Fee'], 'number', 
+                   getVal(root, ['Freight', 'Shipping'], 'number', 0)),
+      dutyRate: getVal(log, ['dutyRate', 'taxRate', 'Duty'], 'number', 0),
+      hsCode: getVal(log, ['hsCode', 'HS Code'], 'string', ''),
+      status: getVal(log, ['status', 'Status'], 'string', 'Plan') as any,
     },
 
     packing: {
-      pcsPerBox: getVal(pak, ['pcsPerBox', 'pcs_per_ctn'], 'number', 0),
-      boxCount: getVal(pak, ['boxCount', 'ctn_count'], 'number', 0),
-      boxWeightKg: getVal(pak, ['boxWeightKg', 'weight'], 'number', 0),
-      boxVolumeCbm: getVal(pak, ['boxVolumeCbm', 'volume', 'cbm'], 'number', 0),
+      pcsPerBox: getVal(pak, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn'], 'number', 0),
+      boxCount: getVal(pak, ['boxCount', 'ctn_count', 'Carton Count'], 'number', 0),
+      boxWeightKg: getVal(pak, ['boxWeightKg', 'weight', 'Weight (kg)'], 'number', 0),
+      boxVolumeCbm: getVal(pak, ['boxVolumeCbm', 'volume', 'cbm', 'CBM'], 'number', 0),
     },
 
     financials: {
-      // Fix: Look for 'sellingPrice' in root
-      sellingPriceUSD: getVal(fin, ['sellingPriceUSD', 'price', 'sellingPrice', 'tkPrice'], 'number', 
-                       getVal(root, ['price', 'sellingPrice'], 'number', 0)),
-      referralFeeRate: getVal(fin, ['referralFeeRate', 'commission'], 'number', 0),
+      // Selling Price Fix: Added 'Retail Price', 'USD Price'
+      sellingPriceUSD: getVal(fin, ['sellingPriceUSD', 'price', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price'], 'number', 
+                       getVal(root, ['price', 'sellingPrice', 'Price'], 'number', 0)),
+      referralFeeRate: getVal(fin, ['referralFeeRate', 'commission', 'Platform Fee'], 'number', 0),
       transactionFeeRate: getVal(fin, ['transactionFeeRate'], 'number', 0),
       fixedTransactionFeeUSD: getVal(fin, ['fixedTransactionFeeUSD'], 'number', 0),
-      affiliateRate: getVal(fin, ['affiliateRate'], 'number', 0),
-      fulfillmentFeeUSD: getVal(fin, ['fulfillmentFeeUSD', 'fbaFee'], 'number', 0),
+      affiliateRate: getVal(fin, ['affiliateRate', 'Affiliate'], 'number', 0),
+      fulfillmentFeeUSD: getVal(fin, ['fulfillmentFeeUSD', 'fbaFee', 'Fulfillment'], 'number', 0),
       outboundHandlingFeeUSD: getVal(fin, ['outboundHandlingFeeUSD'], 'number', 0),
-      storageFeeUSD: getVal(fin, ['storageFeeUSD'], 'number', 0),
-      adCostUSD: getVal(fin, ['adCostUSD', 'cpa'], 'number', 0),
-      targetRoas: getVal(fin, ['targetRoas', 'roas'], 'number', 0),
-      returnRate: getVal(fin, ['returnRate'], 'number', 0),
-      miscCostUSD: getVal(fin, ['miscCostUSD'], 'number', 0),
+      storageFeeUSD: getVal(fin, ['storageFeeUSD', 'Storage'], 'number', 0),
+      adCostUSD: getVal(fin, ['adCostUSD', 'cpa', 'Ads', 'Marketing'], 'number', 0),
+      targetRoas: getVal(fin, ['targetRoas', 'roas', 'ROAS'], 'number', 0),
+      returnRate: getVal(fin, ['returnRate', 'Returns'], 'number', 0),
+      miscCostUSD: getVal(fin, ['miscCostUSD', 'Misc'], 'number', 0),
     },
     
     inventory: {
-        current: getVal(inv, ['current', 'stock', 'qty'], 'number', 0),
-        incoming: getVal(inv, ['incoming'], 'number', 0),
-        dailyVelocity: getVal(inv, ['dailyVelocity', 'sales_velocity'], 'number', 0),
-        safetyDays: getVal(inv, ['safetyDays'], 'number', 0),
+        current: getVal(inv, ['current', 'stock', 'qty', 'Stock', 'Quantity'], 'number', 0),
+        incoming: getVal(inv, ['incoming', 'Incoming'], 'number', 0),
+        dailyVelocity: getVal(inv, ['dailyVelocity', 'sales_velocity', 'Velocity'], 'number', 0),
+        safetyDays: getVal(inv, ['safetyDays', 'Safety Days'], 'number', 0),
     }
   };
 };
@@ -423,6 +440,45 @@ export const RestockModule: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  // --- Helper: Deep Search for Arrays ---
+  const findDataArray = (obj: any): any[] | null => {
+    if (Array.isArray(obj)) return obj;
+    if (typeof obj !== 'object' || obj === null) return null;
+
+    // Check specific known keys
+    if (Array.isArray(obj.data)) return obj.data;
+    if (obj.data && Array.isArray(obj.data.restock)) return obj.data.restock;
+    if (Array.isArray(obj.restock)) return obj.restock;
+    if (Array.isArray(obj.products)) return obj.products;
+    
+    // Search deeper (Level 1)
+    for (const key in obj) {
+        if (Array.isArray(obj[key])) {
+            const arr = obj[key];
+            // Heuristic: Check if array items look like products (have ID, SKU, Name)
+            if (arr.length > 0) {
+               const first = arr[0];
+               if (first && (typeof first === 'object')) {
+                   // Accept any object array as potential data candidate
+                   return arr;
+               }
+            }
+        }
+    }
+    
+    // Try parsing stringified JSON keys
+    for (const key in obj) {
+        if (typeof obj[key] === 'string') {
+            try {
+                const parsed = JSON.parse(obj[key]);
+                if (Array.isArray(parsed)) return parsed;
+            } catch(e) {}
+        }
+    }
+
+    return null;
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -430,37 +486,34 @@ export const RestockModule: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const json = JSON.parse(e.target?.result as string);
-        let targetData = json;
-
-        // 1. Support Full System Backup format (Object with 'data.restock')
-        if (json.data && Array.isArray(json.data.restock)) {
-             targetData = json.data.restock;
-             console.log("Found Full Backup, extracted restock data.");
-        } 
-        // 2. Support stringified storage format inside JSON (legacy backup)
-        else if (json.data && typeof json.data.restock === 'string') {
-             try {
-                targetData = JSON.parse(json.data.restock);
-                console.log("Found Legacy Stringified Backup, parsed.");
-             } catch(e) {}
+        const rawText = e.target?.result as string;
+        let json;
+        try {
+            json = JSON.parse(rawText);
+        } catch (parseErr) {
+            alert("文件错误：不是有效的 JSON 文件。");
+            return;
         }
+
+        // Deep Search for valid array
+        const targetData = findDataArray(json);
         
         if (Array.isArray(targetData)) {
           // Normalize data structure with Smart Mapping
           const normalizedData = targetData.map(item => sanitizeProduct(item));
           setProducts(normalizedData);
-          alert(`系统恢复成功！\n\n✅ 成功解析并映射 ${normalizedData.length} 个 SKU。\n已自动修复缺失的图片、成本和售价字段。`);
+          alert(`系统恢复成功！\n\n✅ 成功导入并映射 ${normalizedData.length} 个 SKU。\n已自动修复字段映射（图片、成本、售价、单号）。`);
         } else {
-          alert("错误：无法在文件中找到有效的数据数组。");
+          console.error("Import failed. Structure:", json);
+          const keys = typeof json === 'object' ? Object.keys(json).join(', ') : 'unknown';
+          alert(`错误：无法在文件中找到有效的数据数组。\n\n检测到的文件包含键值: [${keys}]\n请确认您上传的是正确的产品列表备份。`);
         }
       } catch (err) {
         console.error(err);
-        alert("错误：文件解析失败，请检查 JSON 格式。");
+        alert("严重错误：文件解析过程中发生未知错误。");
       }
     };
     reader.readAsText(file);
-    // Reset value so same file can be selected again if needed
     event.target.value = '';
   };
 
