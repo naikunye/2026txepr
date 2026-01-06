@@ -1296,3 +1296,215 @@ export const RestockModule: React.FC = () => {
       </div>
     );
   };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 h-[calc(100vh-100px)] flex flex-col">
+      <style>{`
+        .lbl {
+          font-size: 0.7rem;
+          color: #9CA3AF;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.35rem;
+          display: block;
+          font-family: 'JetBrains Mono', monospace;
+          letter-spacing: 0.05em;
+        }
+        .input-cyber {
+          width: 100%;
+          background-color: #000;
+          border: 1px solid #333;
+          padding: 0.5rem;
+          color: white;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.8rem;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .input-cyber:focus {
+          border-color: #00F0FF;
+        }
+      `}</style>
+      
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex justify-between items-end flex-shrink-0">
+          <div>
+             <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
+                <Calculator className="text-cyber-cyan" size={32}/>
+                智能备货 <span className="text-cyber-cyan text-sm px-2 py-0.5 border border-cyber-cyan rounded align-top mt-1">AI</span>
+             </h1>
+             <p className="text-gray-400 font-mono text-xs mt-1">库存周转预测 / 利润模型演算 / 自动补货建议</p>
+          </div>
+          <div className="flex gap-2">
+             <button onClick={handleExportData} className="px-4 py-2 border border-white/20 hover:border-white hover:text-white text-gray-400 text-xs font-bold transition-all flex items-center gap-2">
+                <Download size={14} /> 备份数据
+             </button>
+             <button onClick={handleImportClick} className="px-4 py-2 border border-cyber-yellow/50 text-cyber-yellow hover:bg-cyber-yellow hover:text-black text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(252,238,10,0.2)]">
+                <Upload size={14} /> 导入数据 (JSON)
+             </button>
+             <input 
+               type="file" 
+               ref={fileInputRef} 
+               onChange={handleFileUpload} 
+               className="hidden" 
+               accept=".json"
+             />
+          </div>
+      </div>
+
+      {/* Toolbar & Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 bg-[#080808] border border-white/10 rounded-lg overflow-hidden relative">
+         
+         {/* Detail Modal Overlay */}
+         {renderDetailModal()}
+
+         {/* Toolbar */}
+         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-[#0c0c0c]">
+            <div className="flex items-center gap-4">
+               <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-cyan" size={14} />
+                  <input 
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="搜索 SKU / 产品名称..." 
+                    className="bg-black border border-white/20 pl-10 pr-4 py-2 text-xs text-white outline-none w-64 focus:border-cyber-cyan transition-colors font-mono" 
+                  />
+               </div>
+               <div className="flex bg-black border border-white/20 rounded p-1">
+                  <button className="px-3 py-1 bg-white/10 text-white text-xs font-bold rounded">全部 ({products.length})</button>
+                  <button className="px-3 py-1 text-gray-500 hover:text-white text-xs font-bold transition-colors">需补货 (0)</button>
+               </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+               {selectedIds.length > 0 && (
+                  <button 
+                    onClick={handleBatchDelete}
+                    className="px-4 py-2 bg-red-900/30 text-red-500 border border-red-900 hover:bg-red-600 hover:text-white text-xs font-bold transition-all flex items-center gap-2 animate-in fade-in"
+                  >
+                     <Trash2 size={14} /> 删除 ({selectedIds.length})
+                  </button>
+               )}
+               <button 
+                 onClick={handleCreateNew}
+                 className="px-4 py-2 bg-cyber-cyan text-black text-xs font-bold hover:bg-white transition-all flex items-center gap-2 shadow-neon-cyan"
+               >
+                  <Plus size={14} /> 新建产品
+               </button>
+            </div>
+         </div>
+
+         {/* Data Grid Header */}
+         <div className="grid grid-cols-12 gap-4 p-4 border-b border-white/10 bg-[#0F1218] text-[10px] font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+            <div className="col-span-1 flex items-center justify-center">
+               <button onClick={toggleSelectAll} className="w-4 h-4 border border-gray-600 flex items-center justify-center hover:border-white">
+                  {selectedIds.length > 0 && <div className="w-2 h-2 bg-cyber-cyan"></div>}
+               </button>
+            </div>
+            <div className="col-span-4">产品信息 (Product Info)</div>
+            <div className="col-span-2 text-right">成本/售价 (Cost/Price)</div>
+            <div className="col-span-2 text-center">利润率 (Margin)</div>
+            <div className="col-span-2 text-center">库存周转 (Inv)</div>
+            <div className="col-span-1 text-center">操作</div>
+         </div>
+
+         {/* Product List */}
+         <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {filteredProducts.map((p) => {
+               const eco = calculateEconomics(p);
+               const isSelected = selectedIds.includes(p.id);
+
+               return (
+                  <div 
+                    key={p.id}
+                    onClick={() => setSelectedProduct(p)}
+                    className={`grid grid-cols-12 gap-4 p-4 border-b border-white/5 items-center hover:bg-white/5 transition-all group cursor-pointer ${isSelected ? 'bg-cyber-cyan/5 border-cyber-cyan/30' : ''}`}
+                  >
+                     <div className="col-span-1 flex items-center justify-center">
+                        <button 
+                          onClick={(e) => toggleSelection(e, p.id)}
+                          className={`w-4 h-4 border flex items-center justify-center transition-colors ${isSelected ? 'border-cyber-cyan bg-cyber-cyan text-black' : 'border-gray-600 hover:border-white'}`}
+                        >
+                           {isSelected && <Check size={12} strokeWidth={4} />}
+                        </button>
+                     </div>
+                     
+                     <div className="col-span-4 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-black border border-white/10 rounded overflow-hidden flex-shrink-0 relative">
+                           {p.image ? (
+                              <img src={p.image} alt="" className="w-full h-full object-cover" />
+                           ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-700"><ImageIcon size={16}/></div>
+                           )}
+                           {p.variants && p.variants.length > 0 && (
+                              <div className="absolute bottom-0 right-0 bg-cyber-purple text-white text-[9px] px-1 font-bold">
+                                 +{p.variants.length}
+                              </div>
+                           )}
+                        </div>
+                        <div className="min-w-0">
+                           <div className="text-sm font-bold text-white truncate group-hover:text-cyber-cyan transition-colors">{p.productName}</div>
+                           <div className="text-[10px] text-gray-500 font-mono mt-1 flex items-center gap-2">
+                              <span className="bg-white/10 px-1 rounded text-gray-300">{p.skuCode}</span>
+                              {p.logistics?.inboundId && (
+                                <span className="text-cyber-purple border border-cyber-purple/30 px-1 rounded flex items-center gap-1">
+                                   <Truck size={8} /> {p.logistics.inboundId}
+                                </span>
+                              )}
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="col-span-2 text-right">
+                        <div className="text-sm font-bold text-white font-mono">${p.financials?.sellingPriceUSD?.toFixed(2)}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">Cost: ¥{p.supplier?.unitPriceRMB}</div>
+                     </div>
+
+                     <div className="col-span-2 text-center">
+                        <div className={`text-sm font-black font-mono ${eco.margin > 15 ? 'text-cyber-green' : eco.margin > 0 ? 'text-cyber-yellow' : 'text-cyber-pink'}`}>
+                           {eco.margin.toFixed(1)}%
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-mono">ROI: {eco.roi.toFixed(0)}%</div>
+                     </div>
+
+                     <div className="col-span-2 text-center">
+                        <div className="text-sm font-bold text-white font-mono">
+                           {p.inventory?.current + p.inventory?.incoming} <span className="text-gray-600 text-[10px]">pcs</span>
+                        </div>
+                        <div className={`text-[10px] font-mono ${eco.daysOfCover < (p.inventory?.safetyDays || 30) ? 'text-cyber-pink animate-pulse' : 'text-cyber-cyan'}`}>
+                           {eco.daysOfCover.toFixed(0)} Days Left
+                        </div>
+                     </div>
+
+                     <div className="col-span-1 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-2 hover:bg-white/10 rounded text-cyber-cyan">
+                           <Edit2 size={16} />
+                        </button>
+                     </div>
+                  </div>
+               );
+            })}
+            
+            {/* Empty State */}
+            {filteredProducts.length === 0 && (
+               <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                  <Package size={48} className="mb-4 opacity-20" />
+                  <p className="text-xs font-mono">暂无产品数据 / NO DATA FOUND</p>
+                  <button onClick={handleCreateNew} className="mt-4 text-cyber-cyan hover:underline text-xs">新建产品 +</button>
+               </div>
+            )}
+         </div>
+
+         {/* Footer Stats */}
+         <div className="p-3 bg-[#0c0c0c] border-t border-white/10 flex justify-between items-center text-[10px] font-mono text-gray-500">
+            <div>Total SKUs: {products.length}</div>
+            <div className="flex gap-4">
+               <span>Est. Revenue: <span className="text-white">${products.reduce((acc, p) => acc + (p.financials?.sellingPriceUSD || 0) * (p.inventory?.current || 0), 0).toLocaleString()}</span></span>
+               <span>Potential Profit: <span className="text-cyber-green">${products.reduce((acc, p) => acc + (calculateEconomics(p).netProfit || 0) * (p.inventory?.current || 0), 0).toLocaleString()}</span></span>
+            </div>
+         </div>
+
+      </div>
+    </div>
+  );
+};
