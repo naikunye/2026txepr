@@ -105,31 +105,6 @@ const initialProducts: Product[] = [
         miscCostUSD: 0.50 
     },
     inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
-  },
-  { 
-    id: '2', 
-    skuCode: 'K7500-MECH', 
-    productName: 'K7500 机械键盘 (青轴)', 
-    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
-    variants: [],
-    supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
-    packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
-    financials: { 
-        sellingPriceUSD: 69.99, 
-        referralFeeRate: 0.08, 
-        transactionFeeRate: 0.029, 
-        fixedTransactionFeeUSD: 0.3, 
-        affiliateRate: 0.15, 
-        fulfillmentFeeUSD: 9.20, 
-        outboundHandlingFeeUSD: 2.00, // Added
-        storageFeeUSD: 0.50,          // Added
-        adCostUSD: 15.00, 
-        targetRoas: 4.0, 
-        returnRate: 0.08,             // Added
-        miscCostUSD: 1.00 
-    },
-    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
   }
 ];
 
@@ -159,143 +134,107 @@ const defaultLogisticsSeed = [
   },
 ];
 
-// --- NUCLEAR OPTION: DATA CLEANING & FUZZY MATCHING ---
-const cleanNumber = (val: any): number => {
-    if (typeof val === 'number') return val;
-    if (val === undefined || val === null) return 0;
-    
-    const str = String(val).trim();
-    if (str === '') return 0;
-
-    // 1. Check for Percentage (e.g., "15%") -> 0.15
-    if (str.includes('%')) {
-        const num = parseFloat(str.replace(/[^\d.-]/g, '')); // Strip all but digits/dots/minus
-        return isNaN(num) ? 0 : num / 100;
-    }
-
-    // 2. Standard Cleanup: Remove currency symbols (¥, $, £), commas, letters (kg, cm)
-    // Keep only digits, dots, and minus sign
-    const cleanStr = str.replace(/[^\d.-]/g, ''); 
-    const num = parseFloat(cleanStr);
-    return isNaN(num) ? 0 : num;
-};
-
+// --- SMART DATA SANITIZATION (Fixes Missing Fields) ---
 const sanitizeProduct = (p: any): Product => {
-  // Helper: Aggressive Fuzzy Finder
-  const fuzzyVal = (obj: any, targets: string[], type: 'string'|'number', defaultVal: any) => {
-    if (!obj || typeof obj !== 'object') return defaultVal;
-
-    const objKeys = Object.keys(obj);
+  // Helper to find value in multiple possible paths (Fuzzy Match - Case Insensitive Logic added)
+  const getVal = (obj: any, keys: string[], type: 'string'|'number', defaultVal: any) => {
+    if (!obj) return defaultVal;
     
-    // Strategy 1: Exact Match (Highest Priority)
-    for (const t of targets) {
-        if (obj[t] !== undefined && obj[t] !== null && obj[t] !== '') {
-            return type === 'number' ? cleanNumber(obj[t]) : String(obj[t]);
-        }
+    // 1. Try exact matches first
+    for (const k of keys) {
+      if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+        return type === 'number' ? Number(obj[k]) : String(obj[k]);
+      }
     }
-
-    // Strategy 2: Case-Insensitive Strict Match
-    for (const t of targets) {
-        const lowerT = t.toLowerCase();
-        const foundKey = objKeys.find(k => k.toLowerCase() === lowerT);
-        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null) {
-             return type === 'number' ? cleanNumber(obj[foundKey]) : String(obj[foundKey]);
-        }
-    }
-
-    // Strategy 3: "Nuclear" Inclusion Match (Lowest Priority)
-    for (const t of targets) {
-        if (t.length < 2) continue; 
-        const lowerT = t.toLowerCase();
-        const foundKey = objKeys.find(k => k.toLowerCase().includes(lowerT));
-        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null && String(obj[foundKey]).trim() !== '') {
-             return type === 'number' ? cleanNumber(obj[foundKey]) : String(obj[foundKey]);
-        }
+    
+    // 2. Try Case-Insensitive matches if strict match failed
+    const objKeys = Object.keys(obj);
+    for (const k of keys) {
+       const lowerK = k.toLowerCase();
+       const foundKey = objKeys.find(ok => ok.toLowerCase() === lowerK);
+       if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null && obj[foundKey] !== '') {
+          return type === 'number' ? Number(obj[foundKey]) : String(obj[foundKey]);
+       }
     }
 
     return defaultVal;
   };
 
+  // Resolve root-level fallbacks if nested objects are missing
   const root = p || {};
-  const mixedPool = { ...root, ...(root.supplier || {}), ...(root.logistics || {}), ...(root.financials || {}), ...(root.packing || {}), ...(root.inventory || {}) };
+  const sup = root.supplier || {};
+  const log = root.logistics || {};
+  const fin = root.financials || {};
+  const pak = root.packing || {};
+  const inv = root.inventory || {};
 
-  // --- EXHAUSTIVE INBOUND ID KEY LIST ---
-  // Covers: Lingxing, SellerSprite, ERPs, Chinese, English, Mixed Case
-  const inboundKeys = [
-      'inboundId', 'inbound_id', 'Inbound ID', 
-      'shipmentId', 'shipment_id', 'shipment_name', 'Shipment Name', 'Shipment ID',
-      'fba_shipment_id', 'fba_shipment_name', 'fba_id', 'FBA ID',
-      'seller_shipment_id', 'seller_shipment_name',
-      'reference_id', 'Reference ID', 'Reference', 'ref_no',
-      'lx_id', 'lx_no',
-      'plan_no', 'plan_id', 'plan_name', 'inbound_plan_id',
-      'local_shipment_id',
-      '入库单号', '入库单名称', '入库计划单号',
-      '货件编号', '货件名称', '货件单号', '货件ID',
-      'FBA货件号', 'FBA号', 'FBA单号',
-      '商家货件号', '计划单号', '单号'
-  ];
-
+  // Expanded Aliases for Compatibility
   return {
     id: String(root.id || Date.now() + Math.random()),
+    skuCode: getVal(root, ['skuCode', 'sku', 'SKU', 'item_no', 'Product ID', 'Item Number'], 'string', 'UNKNOWN-SKU'),
+    productName: getVal(root, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description'], 'string', 'New Product'),
     
-    skuCode: fuzzyVal(mixedPool, ['skuCode', 'sku', 'item_no', 'Product ID', 'Item Number', '编码', '货号', 'SKU', 'MSKU', 'FNSKU'], 'string', 'UNKNOWN-SKU'),
-    
-    productName: fuzzyVal(mixedPool, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description', '名称', '品名', '标题'], 'string', 'New Product'),
-    
-    image: fuzzyVal(mixedPool, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Picture', 'thumbnail', '图片', '缩略图', '主图'], 'string', ''),
+    // Image Fix: Added 'thumbnail', 'Photo', 'Picture'
+    image: getVal(root, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Image', 'Picture', 'thumbnail'], 'string', ''),
     
     variants: Array.isArray(root.variants) ? root.variants : [],
 
     supplier: {
-      name: fuzzyVal(mixedPool, ['supplierName', 'vendor', 'Supplier', 'Factory', '供应商', '厂家'], 'string', ''),
-      link: fuzzyVal(mixedPool, ['link', 'url', '1688', 'Link', '链接', '采购链接'], 'string', ''),
-      moq: fuzzyVal(mixedPool, ['moq', 'MOQ', '起订量', '最小起订'], 'number', 0),
-      unitPriceRMB: fuzzyVal(mixedPool, ['unitPriceRMB', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'factory_price', '采购价', '成本', '含税价', '单价', 'RMB', '进货价', 'price'], 'number', 0), 
-      leadTime: fuzzyVal(mixedPool, ['leadTime', 'productionTime', 'Lead Time', '交期', '生产周期', '备货时间'], 'number', 0),
-      paymentTerms: fuzzyVal(mixedPool, ['paymentTerms', 'Payment Terms', '付款方式', '账期'], 'string', ''),
+      name: getVal(sup, ['name', 'supplierName', 'vendor', 'Supplier', 'Factory'], 'string', ''),
+      link: getVal(sup, ['link', 'url', '1688', 'Link'], 'string', ''),
+      moq: getVal(sup, ['moq', 'MOQ'], 'number', 0),
+      // Cost Fix: Added 'Purchase Price', 'Cost RMB'
+      unitPriceRMB: getVal(sup, ['unitPriceRMB', 'price', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'RMB Cost', 'factory_price'], 'number', 
+                    getVal(root, ['cost', 'purchasePrice', 'Cost'], 'number', 0)), 
+      leadTime: getVal(sup, ['leadTime', 'productionTime', 'Lead Time'], 'number', 0),
+      paymentTerms: getVal(sup, ['paymentTerms', 'Payment Terms'], 'string', ''),
     },
 
     logistics: {
-      // UPDATED: Use the exhaustive list for Inbound ID
-      inboundId: fuzzyVal(mixedPool, inboundKeys, 'string', ''),
-      
-      trackingNo: fuzzyVal(mixedPool, ['trackingNo', 'tracking', 'waybill', 'Tracking Number', '追踪号', '运单号', '快递单号'], 'string', ''),
-      mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
-      warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
-      unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
-      dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0),
-      hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
-      status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
+      // Inbound ID Fix: Added 'FBA ID', 'Reference'
+      inboundId: getVal(log, ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID'], 'string', 
+                 getVal(root, ['Inbound ID', 'Reference ID'], 'string', '')), 
+      trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill', 'Tracking Number'], 'string', 
+                  getVal(root, ['Tracking', 'Waybill'], 'string', '')),
+      mode: getVal(log, ['mode', 'transportMode', 'Method'], 'string', 'sea') as any,
+      warehouseDest: getVal(log, ['warehouseDest', 'warehouse', 'destination', 'Dest'], 'string', ''),
+      // Freight Fix: Added 'Freight Cost', 'Shipping Fee'
+      unitRateRMB: getVal(log, ['unitRateRMB', 'freight', 'shippingRate', 'headFee', 'Freight Cost', 'Shipping Fee'], 'number', 
+                   getVal(root, ['Freight', 'Shipping'], 'number', 0)),
+      dutyRate: getVal(log, ['dutyRate', 'taxRate', 'Duty'], 'number', 0),
+      hsCode: getVal(log, ['hsCode', 'HS Code'], 'string', ''),
+      status: getVal(log, ['status', 'Status'], 'string', 'Plan') as any,
     },
 
     packing: {
-      pcsPerBox: fuzzyVal(mixedPool, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton', '装箱量'], 'number', 0),
-      boxCount: fuzzyVal(mixedPool, ['boxCount', 'ctn_count', 'Carton Count', '箱数', '件数', 'CTNS', 'Total Cartons', 'cartons', '总箱数'], 'number', 0),
-      boxWeightKg: fuzzyVal(mixedPool, ['boxWeightKg', 'weight', 'Weight (kg)', '重量', '单箱重量', '毛重', 'G.W.', 'gross_weight', '整箱重'], 'number', 0),
-      boxVolumeCbm: fuzzyVal(mixedPool, ['boxVolumeCbm', 'volume', 'cbm', 'CBM', '体积', '单箱体积', 'Meas', 'measurement', '外箱体积'], 'number', 0),
+      pcsPerBox: getVal(pak, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn'], 'number', 0),
+      boxCount: getVal(pak, ['boxCount', 'ctn_count', 'Carton Count'], 'number', 0),
+      boxWeightKg: getVal(pak, ['boxWeightKg', 'weight', 'Weight (kg)'], 'number', 0),
+      boxVolumeCbm: getVal(pak, ['boxVolumeCbm', 'volume', 'cbm', 'CBM'], 'number', 0),
     },
 
     financials: {
-      sellingPriceUSD: fuzzyVal(mixedPool, ['sellingPriceUSD', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price', '售价', '销售价', '定价'], 'number', 0),
-      referralFeeRate: fuzzyVal(mixedPool, ['referralFeeRate', 'commission', 'Platform Fee', '佣金', '平台佣金', 'Fee Rate', '扣点'], 'number', 0),
-      transactionFeeRate: fuzzyVal(mixedPool, ['transactionFeeRate', '手续费', '支付费率'], 'number', 0),
-      fixedTransactionFeeUSD: fuzzyVal(mixedPool, ['fixedTransactionFeeUSD', '固定费', 'fixed_fee'], 'number', 0),
-      affiliateRate: fuzzyVal(mixedPool, ['affiliateRate', 'Affiliate', '达人佣金', 'TK佣金'], 'number', 0),
-      fulfillmentFeeUSD: fuzzyVal(mixedPool, ['fulfillmentFeeUSD', 'fbaFee', 'Fulfillment', '尾程', '配送费', 'FBA费'], 'number', 0),
-      outboundHandlingFeeUSD: fuzzyVal(mixedPool, ['outboundHandlingFeeUSD', '操作费', '出库费'], 'number', 0),
-      storageFeeUSD: fuzzyVal(mixedPool, ['storageFeeUSD', 'Storage', '仓储费'], 'number', 0),
-      adCostUSD: fuzzyVal(mixedPool, ['adCostUSD', 'cpa', 'Ads', 'Marketing', '广告费', 'CPA', '营销费'], 'number', 0),
-      targetRoas: fuzzyVal(mixedPool, ['targetRoas', 'roas', 'ROAS', '投产比'], 'number', 0),
-      returnRate: fuzzyVal(mixedPool, ['returnRate', 'Returns', '退货率', '退款率'], 'number', 0),
-      miscCostUSD: fuzzyVal(mixedPool, ['miscCostUSD', 'Misc', '杂费', '其他费用'], 'number', 0),
+      // Selling Price Fix: Added 'Retail Price', 'USD Price'
+      sellingPriceUSD: getVal(fin, ['sellingPriceUSD', 'price', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price'], 'number', 
+                       getVal(root, ['price', 'sellingPrice', 'Price'], 'number', 0)),
+      referralFeeRate: getVal(fin, ['referralFeeRate', 'commission', 'Platform Fee'], 'number', 0),
+      transactionFeeRate: getVal(fin, ['transactionFeeRate'], 'number', 0),
+      fixedTransactionFeeUSD: getVal(fin, ['fixedTransactionFeeUSD'], 'number', 0),
+      affiliateRate: getVal(fin, ['affiliateRate', 'Affiliate'], 'number', 0),
+      fulfillmentFeeUSD: getVal(fin, ['fulfillmentFeeUSD', 'fbaFee', 'Fulfillment'], 'number', 0),
+      outboundHandlingFeeUSD: getVal(fin, ['outboundHandlingFeeUSD'], 'number', 0),
+      storageFeeUSD: getVal(fin, ['storageFeeUSD', 'Storage'], 'number', 0),
+      adCostUSD: getVal(fin, ['adCostUSD', 'cpa', 'Ads', 'Marketing'], 'number', 0),
+      targetRoas: getVal(fin, ['targetRoas', 'roas', 'ROAS'], 'number', 0),
+      returnRate: getVal(fin, ['returnRate', 'Returns'], 'number', 0),
+      miscCostUSD: getVal(fin, ['miscCostUSD', 'Misc'], 'number', 0),
     },
     
     inventory: {
-        current: fuzzyVal(mixedPool, ['current', 'stock', 'qty', 'Stock', 'Quantity', '库存', '现有库存', '数量', 'available', '在库'], 'number', 0),
-        incoming: fuzzyVal(mixedPool, ['incoming', 'Incoming', '在途', '在途库存', 'Shipping'], 'number', 0),
-        dailyVelocity: fuzzyVal(mixedPool, ['dailyVelocity', 'sales_velocity', 'Velocity', '日销', '销量', '日均'], 'number', 0),
-        safetyDays: fuzzyVal(mixedPool, ['safetyDays', 'Safety Days', '安全库存天数', '周转天数'], 'number', 0),
+        current: getVal(inv, ['current', 'stock', 'qty', 'Stock', 'Quantity'], 'number', 0),
+        incoming: getVal(inv, ['incoming', 'Incoming'], 'number', 0),
+        dailyVelocity: getVal(inv, ['dailyVelocity', 'sales_velocity', 'Velocity'], 'number', 0),
+        safetyDays: getVal(inv, ['safetyDays', 'Safety Days'], 'number', 0),
     }
   };
 };
@@ -555,7 +494,7 @@ export const RestockModule: React.FC = () => {
           // Normalize data structure with Smart Mapping
           const normalizedData = targetData.map(item => sanitizeProduct(item));
           setProducts(normalizedData);
-          alert(`✅ 系统恢复成功！\n\n成功导入 ${normalizedData.length} 个产品 SKU。\n已启用核弹级模糊匹配引擎，所有中文/缩写/符号表头已自动识别并清洗。`);
+          alert(`✅ 系统恢复成功！\n\n成功导入 ${normalizedData.length} 个产品 SKU。\n智能字段映射已应用 (自动修复图片、价格、单号)。`);
         } else {
           console.error("Import failed. Structure:", json);
           const keys = typeof json === 'object' ? Object.keys(json).join(', ') : 'unknown';
@@ -1297,8 +1236,9 @@ export const RestockModule: React.FC = () => {
     );
   };
 
+  // --- Main List Render ---
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-[calc(100vh-100px)] flex flex-col">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <style>{`
         .lbl {
           font-size: 0.7rem;
@@ -1312,198 +1252,263 @@ export const RestockModule: React.FC = () => {
         }
         .input-cyber {
           width: 100%;
-          background-color: #000;
-          border: 1px solid #333;
-          padding: 0.5rem;
+          background-color: #050505;
+          border: 1px solid #27272a;
+          padding: 0.6rem;
           color: white;
           font-family: 'JetBrains Mono', monospace;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           outline: none;
           transition: all 0.2s;
+          border-radius: 2px;
         }
         .input-cyber:focus {
           border-color: #00F0FF;
+          box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
       `}</style>
-      
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex justify-between items-end flex-shrink-0">
-          <div>
-             <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
-                <Calculator className="text-cyber-cyan" size={32}/>
-                智能备货 <span className="text-cyber-cyan text-sm px-2 py-0.5 border border-cyber-cyan rounded align-top mt-1">AI</span>
-             </h1>
-             <p className="text-gray-400 font-mono text-xs mt-1">库存周转预测 / 利润模型演算 / 自动补货建议</p>
-          </div>
-          <div className="flex gap-2">
-             <button onClick={handleExportData} className="px-4 py-2 border border-white/20 hover:border-white hover:text-white text-gray-400 text-xs font-bold transition-all flex items-center gap-2">
-                <Download size={14} /> 备份数据
-             </button>
-             <button onClick={handleImportClick} className="px-4 py-2 border border-cyber-yellow/50 text-cyber-yellow hover:bg-cyber-yellow hover:text-black text-xs font-bold transition-all flex items-center gap-2 shadow-[0_0_10px_rgba(252,238,10,0.2)]">
-                <Upload size={14} /> 导入数据 (JSON)
-             </button>
-             <input 
+
+      {renderDetailModal()}
+
+      {/* Main Table Header & Tools */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row justify-between items-end gap-6">
+         <div>
+            <h1 className="text-3xl font-black text-white tracking-wider">智能备货中心</h1>
+            <p className="text-gray-500 font-mono text-xs mt-2 flex items-center gap-2">
+               <Info size={12}/> 全球汇率基准: USD/RMB = {exchangeRate}
+            </p>
+         </div>
+         <div className="flex gap-4">
+            {/* Batch Action Toolbar */}
+            {selectedIds.length > 0 ? (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right duration-300">
+                    <div className="px-4 py-2 bg-red-900/30 border border-red-500/50 text-red-500 rounded text-sm font-bold flex items-center gap-2">
+                        <span>已选 {selectedIds.length} 项</span>
+                    </div>
+                    <button 
+                        onClick={handleBatchDelete}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center gap-2 text-sm"
+                    >
+                        <Trash2 size={16} /> 批量删除
+                    </button>
+                    <button 
+                        onClick={() => setSelectedIds([])}
+                        className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white rounded text-sm font-bold"
+                    >
+                        取消
+                    </button>
+                </div>
+            ) : (
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                    <input 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="搜索 SKU, 追踪号, 入库单..." 
+                        className="bg-black border border-white/20 pl-10 pr-4 py-2 text-sm text-white focus:border-cyber-cyan outline-none font-mono w-72"
+                    />
+                </div>
+            )}
+
+            {/* Hidden Input for File Upload */}
+            <input 
                type="file" 
                ref={fileInputRef} 
                onChange={handleFileUpload} 
                className="hidden" 
-               accept=".json"
-             />
-          </div>
+               accept=".json" 
+            />
+
+            <div className="flex items-center gap-2 bg-black border border-white/20 p-1 rounded">
+                {/* Select All Toggle */}
+                <button
+                    onClick={toggleSelectAll}
+                    title="全选 / 取消全选"
+                    className={`p-2 rounded transition-colors ${selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? 'text-cyber-cyan bg-cyber-cyan/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                >
+                    {selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                <div className="w-[1px] h-4 bg-gray-700 mx-1"></div>
+                <button 
+                    onClick={handleExportData}
+                    title="导出数据备份 (Export JSON)"
+                    className="p-2 text-gray-400 hover:text-cyber-cyan hover:bg-white/10 rounded transition-colors"
+                >
+                    <Download size={16} />
+                </button>
+                <button 
+                    onClick={handleImportClick}
+                    title="导入数据 (Import JSON)"
+                    className="p-2 text-gray-400 hover:text-cyber-purple hover:bg-white/10 rounded transition-colors"
+                >
+                    <Upload size={16} />
+                </button>
+            </div>
+
+            <button 
+                onClick={handleCreateNew}
+                className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan"
+            >
+               <Plus size={16} /> 新建产品
+            </button>
+         </div>
       </div>
 
-      {/* Toolbar & Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 bg-[#080808] border border-white/10 rounded-lg overflow-hidden relative">
-         
-         {/* Detail Modal Overlay */}
-         {renderDetailModal()}
-
-         {/* Toolbar */}
-         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-[#0c0c0c]">
-            <div className="flex items-center gap-4">
-               <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-cyan" size={14} />
-                  <input 
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder="搜索 SKU / 产品名称..." 
-                    className="bg-black border border-white/20 pl-10 pr-4 py-2 text-xs text-white outline-none w-64 focus:border-cyber-cyan transition-colors font-mono" 
-                  />
-               </div>
-               <div className="flex bg-black border border-white/20 rounded p-1">
-                  <button className="px-3 py-1 bg-white/10 text-white text-xs font-bold rounded">全部 ({products.length})</button>
-                  <button className="px-3 py-1 text-gray-500 hover:text-white text-xs font-bold transition-colors">需补货 (0)</button>
-               </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-               {selectedIds.length > 0 && (
-                  <button 
-                    onClick={handleBatchDelete}
-                    className="px-4 py-2 bg-red-900/30 text-red-500 border border-red-900 hover:bg-red-600 hover:text-white text-xs font-bold transition-all flex items-center gap-2 animate-in fade-in"
-                  >
-                     <Trash2 size={14} /> 删除 ({selectedIds.length})
-                  </button>
-               )}
-               <button 
-                 onClick={handleCreateNew}
-                 className="px-4 py-2 bg-cyber-cyan text-black text-xs font-bold hover:bg-white transition-all flex items-center gap-2 shadow-neon-cyan"
+      {/* Product Grid List */}
+      <div className="grid gap-4">
+         {filteredProducts.map((product) => {
+            const eco = calculateEconomics(product);
+            const isSelected = selectedIds.includes(product.id);
+            return (
+               <div 
+                 key={product.id} 
+                 onClick={() => setSelectedProduct(product)} 
+                 className={`bg-[#0F1218] border p-0 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg ${isSelected ? 'border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-white/5 hover:border-cyber-cyan/50'}`}
                >
-                  <Plus size={14} /> 新建产品
-               </button>
-            </div>
-         </div>
-
-         {/* Data Grid Header */}
-         <div className="grid grid-cols-12 gap-4 p-4 border-b border-white/10 bg-[#0F1218] text-[10px] font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10">
-            <div className="col-span-1 flex items-center justify-center">
-               <button onClick={toggleSelectAll} className="w-4 h-4 border border-gray-600 flex items-center justify-center hover:border-white">
-                  {selectedIds.length > 0 && <div className="w-2 h-2 bg-cyber-cyan"></div>}
-               </button>
-            </div>
-            <div className="col-span-4">产品信息 (Product Info)</div>
-            <div className="col-span-2 text-right">成本/售价 (Cost/Price)</div>
-            <div className="col-span-2 text-center">利润率 (Margin)</div>
-            <div className="col-span-2 text-center">库存周转 (Inv)</div>
-            <div className="col-span-1 text-center">操作</div>
-         </div>
-
-         {/* Product List */}
-         <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {filteredProducts.map((p) => {
-               const eco = calculateEconomics(p);
-               const isSelected = selectedIds.includes(p.id);
-
-               return (
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSelected ? 'bg-cyber-cyan' : 'bg-gray-800 group-hover:bg-cyber-cyan'}`}></div>
+                  
+                  {/* Checkbox Overlay (Top Left) */}
                   <div 
-                    key={p.id}
-                    onClick={() => setSelectedProduct(p)}
-                    className={`grid grid-cols-12 gap-4 p-4 border-b border-white/5 items-center hover:bg-white/5 transition-all group cursor-pointer ${isSelected ? 'bg-cyber-cyan/5 border-cyber-cyan/30' : ''}`}
+                    className="absolute top-4 right-4 z-20"
+                    onClick={(e) => toggleSelection(e, product.id)}
                   >
-                     <div className="col-span-1 flex items-center justify-center">
-                        <button 
-                          onClick={(e) => toggleSelection(e, p.id)}
-                          className={`w-4 h-4 border flex items-center justify-center transition-colors ${isSelected ? 'border-cyber-cyan bg-cyber-cyan text-black' : 'border-gray-600 hover:border-white'}`}
-                        >
-                           {isSelected && <Check size={12} strokeWidth={4} />}
-                        </button>
+                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black' : 'bg-black/50 border-gray-500 text-transparent hover:border-white'}`}>
+                        <Check size={14} strokeWidth={3} />
                      </div>
-                     
-                     <div className="col-span-4 flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black border border-white/10 rounded overflow-hidden flex-shrink-0 relative">
-                           {p.image ? (
-                              <img src={p.image} alt="" className="w-full h-full object-cover" />
-                           ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-700"><ImageIcon size={16}/></div>
-                           )}
-                           {p.variants && p.variants.length > 0 && (
-                              <div className="absolute bottom-0 right-0 bg-cyber-purple text-white text-[9px] px-1 font-bold">
-                                 +{p.variants.length}
-                              </div>
-                           )}
+                  </div>
+
+                  {/* Top Row: Identity */}
+                  <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
+                     <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
+                        {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <Package className="m-auto text-gray-600"/>}
+                     </div>
+                     <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                           <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
+                           <div className="flex items-center gap-2 pr-8">
+                              {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
+                              <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
+                                 {product.logistics?.status === 'Plan' ? '计划中' : 
+                                  product.logistics?.status === 'Shipped' ? '已发货' :
+                                  product.logistics?.status === 'Customs' ? '清关中' : '已入库'}
+                              </span>
+                           </div>
                         </div>
-                        <div className="min-w-0">
-                           <div className="text-sm font-bold text-white truncate group-hover:text-cyber-cyan transition-colors">{p.productName}</div>
-                           <div className="text-[10px] text-gray-500 font-mono mt-1 flex items-center gap-2">
-                              <span className="bg-white/10 px-1 rounded text-gray-300">{p.skuCode}</span>
-                              {p.logistics?.inboundId && (
-                                <span className="text-cyber-purple border border-cyber-purple/30 px-1 rounded flex items-center gap-1">
-                                   <Truck size={8} /> {p.logistics.inboundId}
-                                </span>
-                              )}
+                        
+                        {/* Critical Logistics Identifiers */}
+                        <div className="mt-2 flex flex-col gap-1.5">
+                           <div className="flex items-center gap-3 text-xs font-mono text-gray-500">
+                              <span className="text-cyber-cyan font-bold bg-cyber-cyan/10 px-1.5 py-0.5 rounded border border-cyber-cyan/20">{product.skuCode}</span>
+                              <span className="flex items-center gap-1 text-gray-400"><Warehouse size={12}/> {product.logistics?.warehouseDest || 'N/A'}</span>
+                           </div>
+                           
+                           <div className="flex items-center gap-4 text-[11px] font-mono text-gray-400">
+                              <div className="flex items-center gap-1.5 bg-blue-900/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300">
+                                 <FileText size={12}/> 
+                                 <span>{product.logistics?.inboundId || '待创建入库单'}</span>
+                              </div>
+                              <div 
+                                onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo)}
+                                className="flex items-center gap-1.5 bg-yellow-900/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
+                                title="点击前往 UPS 查询物流"
+                              >
+                                 <Truck size={12}/> 
+                                 <span>{product.logistics?.trackingNo || '待填追踪号'}</span>
+                              </div>
+                              
+                              {/* Sync Button (List Item) */}
+                              <div 
+                                onClick={(e) => handleSyncToLogistics(e, product)}
+                                className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-cyber-cyan/30 text-cyber-cyan cursor-pointer hover:bg-cyber-cyan hover:text-black transition-all group/sync"
+                                title="同步到物流追踪模块"
+                              >
+                                 <RefreshCw size={12} className="group-hover/sync:rotate-180 transition-transform" />
+                                 <span className="hidden lg:inline">同步</span>
+                              </div>
                            </div>
                         </div>
                      </div>
-
-                     <div className="col-span-2 text-right">
-                        <div className="text-sm font-bold text-white font-mono">${p.financials?.sellingPriceUSD?.toFixed(2)}</div>
-                        <div className="text-[10px] text-gray-500 font-mono">Cost: ¥{p.supplier?.unitPriceRMB}</div>
-                     </div>
-
-                     <div className="col-span-2 text-center">
-                        <div className={`text-sm font-black font-mono ${eco.margin > 15 ? 'text-cyber-green' : eco.margin > 0 ? 'text-cyber-yellow' : 'text-cyber-pink'}`}>
-                           {eco.margin.toFixed(1)}%
-                        </div>
-                        <div className="text-[10px] text-gray-500 font-mono">ROI: {eco.roi.toFixed(0)}%</div>
-                     </div>
-
-                     <div className="col-span-2 text-center">
-                        <div className="text-sm font-bold text-white font-mono">
-                           {p.inventory?.current + p.inventory?.incoming} <span className="text-gray-600 text-[10px]">pcs</span>
-                        </div>
-                        <div className={`text-[10px] font-mono ${eco.daysOfCover < (p.inventory?.safetyDays || 30) ? 'text-cyber-pink animate-pulse' : 'text-cyber-cyan'}`}>
-                           {eco.daysOfCover.toFixed(0)} Days Left
-                        </div>
-                     </div>
-
-                     <div className="col-span-1 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 hover:bg-white/10 rounded text-cyber-cyan">
-                           <Edit2 size={16} />
-                        </button>
-                     </div>
                   </div>
-               );
-            })}
-            
-            {/* Empty State */}
-            {filteredProducts.length === 0 && (
-               <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-                  <Package size={48} className="mb-4 opacity-20" />
-                  <p className="text-xs font-mono">暂无产品数据 / NO DATA FOUND</p>
-                  <button onClick={handleCreateNew} className="mt-4 text-cyber-cyan hover:underline text-xs">新建产品 +</button>
+
+                  {/* Middle Row: The Nuclear Dashboard (Dense Data) */}
+                  <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/40">
+                     
+                     {/* Column 1: Procurement Plan */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Package size={10} className="text-cyber-yellow"/> 建议备货 (Plan)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-lg font-bold text-white">{Math.ceil(eco.reorderQty)}</span>
+                           <span className="text-xs text-gray-500">pcs</span>
+                        </div>
+                        <div className="text-xs font-mono text-cyber-yellow mt-1">
+                           ¥{eco.capitalRequiredRMB.toLocaleString()} <span className="text-gray-600 opacity-50">所需资金</span>
+                        </div>
+                     </div>
+
+                     {/* Column 2: Freight Estimation */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Plane size={10} className="text-blue-400"/> 头程物流 (Freight)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-lg font-bold text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                           <span className="text-xs text-gray-500">总计</span>
+                        </div>
+                        <div className="text-xs font-mono text-blue-400 mt-1">
+                           ${eco.unitFreightUSD.toFixed(2)} <span className="text-gray-600 opacity-50">/ 件</span>
+                        </div>
+                     </div>
+
+                     {/* Column 3: Profit Projection */}
+                     <div className="p-3 hover:bg-white/5 transition-colors">
+                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                           <Wallet size={10} className="text-cyber-green"/> 预计利润 (Profit)
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                           <span className={`text-lg font-bold ${eco.totalProfitBatchUSD > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                              ${eco.totalProfitBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                           </span>
+                           <span className="text-xs text-gray-500">总计</span>
+                        </div>
+                        <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between">
+                           <span>${eco.netProfit.toFixed(2)}/件</span>
+                           <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
+                        </div>
+                     </div>
+
+                  </div>
+                  
+                  {/* Bottom Action Strip */}
+                  <div className="px-4 py-2 bg-[#0c0c0c] border-t border-white/5 flex justify-between items-center">
+                      <div className="text-[10px] text-gray-600 font-mono">
+                         生产周期: {product.supplier?.leadTime || 0} 天
+                      </div>
+                      <div className="flex gap-2 pr-8">
+                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                           <GitFork size={14}/>
+                         </button>
+                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                           <Edit2 size={14}/>
+                         </button>
+                      </div>
+                  </div>
                </div>
-            )}
-         </div>
-
-         {/* Footer Stats */}
-         <div className="p-3 bg-[#0c0c0c] border-t border-white/10 flex justify-between items-center text-[10px] font-mono text-gray-500">
-            <div>Total SKUs: {products.length}</div>
-            <div className="flex gap-4">
-               <span>Est. Revenue: <span className="text-white">${products.reduce((acc, p) => acc + (p.financials?.sellingPriceUSD || 0) * (p.inventory?.current || 0), 0).toLocaleString()}</span></span>
-               <span>Potential Profit: <span className="text-cyber-green">${products.reduce((acc, p) => acc + (calculateEconomics(p).netProfit || 0) * (p.inventory?.current || 0), 0).toLocaleString()}</span></span>
-            </div>
-         </div>
-
+            );
+         })}
       </div>
     </div>
   );
