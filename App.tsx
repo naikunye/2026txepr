@@ -8,9 +8,8 @@ import { InfluencerModule } from './components/InfluencerModule';
 import { RestockModule } from './components/RestockModule';
 import { TaskModule } from './components/TaskModule';
 import { SettingsModule } from './components/SettingsModule'; 
-import { UniversalDataModule } from './components/UniversalDataModule'; // Import
 import { ModulePlaceholder } from './components/ModulePlaceholder';
-import { Sparkles, Command, Search, ArrowRight, CreditCard, Package, Users, Settings, HardDrive } from 'lucide-react';
+import { Sparkles, Command, Search, ArrowRight, CreditCard, Package, Users, Settings } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -53,7 +52,6 @@ export default function App() {
       case 'replenish': return <RestockModule />;
       case 'tasks': return <TaskModule />;
       case 'finance': return <FinanceModule />;
-      case 'files': return <UniversalDataModule />; // Added route
       case 'settings': return <SettingsModule currentTheme={theme} onThemeChange={setTheme} />;
       default: return <ModulePlaceholder title={activeTab} />;
     }
@@ -66,7 +64,6 @@ export default function App() {
       { id: 'nav-finance', label: '记一笔账 (Record Transaction)', icon: CreditCard, action: () => setActiveTab('finance') },
       { id: 'nav-logistics', label: '查询物流 (Track Shipment)', icon: Package, action: () => setActiveTab('logistics') },
       { id: 'nav-influencer', label: '添加达人 (Add Influencer)', icon: Users, action: () => setActiveTab('influencers') },
-      { id: 'nav-files', label: '打开文档库 (Data Vault)', icon: HardDrive, action: () => setActiveTab('files') },
       { id: 'nav-settings', label: '系统设置 (Settings)', icon: Settings, action: () => setActiveTab('settings') },
     ];
 

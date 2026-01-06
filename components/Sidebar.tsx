@@ -9,8 +9,7 @@ import {
   ListTodo, 
   Settings, 
   Hexagon,
-  Cpu,
-  HardDrive
+  Cpu
 } from 'lucide-react';
 import { NavItem } from '../types';
 
@@ -28,7 +27,6 @@ const navItems: NavItem[] = [
   { id: 'logistics', label: '物流追踪', icon: PackageSearch },
   { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务看板', icon: ListTodo },
-  { id: 'files', label: '文档金库', icon: HardDrive }, // Added
   { id: 'settings', label: '系统设置', icon: Settings },
 ];
 
