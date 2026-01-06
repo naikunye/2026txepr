@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 import { Sparkles, Activity, ShoppingCart, Target, ArrowUpRight, TrendingUp, Zap, Radio } from 'lucide-react';
 
@@ -20,11 +20,33 @@ const sourceData = [
 ];
 
 export const DataIntelligenceModule: React.FC = () => {
+  const [realStats, setRealStats] = useState({
+      gmv: 0,
+      profit: 0,
+      roi: 3.2 // Hard to calc ROI without ad spend specific data, keep mock or estimate
+  });
+
+  useEffect(() => {
+      try {
+          const raw = localStorage.getItem('AERO_FINANCE_DATA');
+          if (raw) {
+              const txs = JSON.parse(raw);
+              const gmv = txs.filter((t: any) => t.type === 'in').reduce((a: number, b: any) => a + b.amount, 0);
+              const expenses = txs.filter((t: any) => t.type === 'out').reduce((a: number, b: any) => a + b.amount, 0);
+              setRealStats({
+                  gmv,
+                  profit: gmv - expenses,
+                  roi: expenses > 0 ? parseFloat((gmv / expenses).toFixed(2)) : 0
+              });
+          }
+      } catch (e) {}
+  }, []);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
       
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Sticky Header - Fixed to pt-6 pb-4 */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
            <h1 className="text-3xl font-black text-white tracking-wider">数据智脑 <span className="text-cyber-cyan text-sm align-top">V2.0</span></h1>
            <p className="text-gray-400 font-mono text-xs">实时 BI 与财务分析系统 / 在线</p>
@@ -52,7 +74,10 @@ export const DataIntelligenceModule: React.FC = () => {
               </span>
            </div>
            <p className="text-sm text-gray-300 leading-relaxed font-mono">
-             当前营收速率保持<span className="text-cyber-green font-bold">稳定</span>。然而，由于广告支出增加，净利润率接近 <span className="text-cyber-pink font-bold">0%</span>。建议优化“家居”类目 SKU 的物流链路成本。
+             当前净利润为 <span className={realStats.profit >= 0 ? "text-cyber-green font-bold" : "text-cyber-pink font-bold"}>
+                {realStats.profit >= 0 ? '+' : ''}¥{realStats.profit.toLocaleString()}
+             </span>。
+             {realStats.roi < 2 ? " ROI 低于 2.0，建议缩减低效广告投放。" : " ROI 表现健康。"}
            </p>
         </div>
         <button className="hidden md:flex px-4 py-2 bg-transparent border border-white/20 text-xs font-bold text-white hover:border-cyber-cyan hover:text-cyber-cyan transition-colors items-center gap-2">
@@ -63,10 +88,10 @@ export const DataIntelligenceModule: React.FC = () => {
       {/* Metric Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
          {[
-           { title: 'GMV (总交易额)', val: '¥124,500', icon: ShoppingCart, color: 'text-cyber-cyan', border: 'border-cyber-cyan' },
-           { title: 'ROI (投产比)', val: '3.2x', icon: Target, color: 'text-cyber-purple', border: 'border-cyber-purple' },
+           { title: 'GMV (总交易额)', val: `¥${realStats.gmv.toLocaleString()}`, icon: ShoppingCart, color: 'text-cyber-cyan', border: 'border-cyber-cyan' },
+           { title: 'ROI (投产比)', val: `${realStats.roi}x`, icon: Target, color: 'text-cyber-purple', border: 'border-cyber-purple' },
            { title: 'AOV (客单价)', val: '¥42.80', icon: ShoppingCart, color: 'text-cyber-yellow', border: 'border-cyber-yellow' },
-           { title: '净利润', val: '¥12,400', icon: Activity, color: 'text-cyber-green', border: 'border-cyber-green' }
+           { title: '净利润', val: `¥${realStats.profit.toLocaleString()}`, icon: Activity, color: realStats.profit >= 0 ? 'text-cyber-green' : 'text-cyber-pink', border: realStats.profit >= 0 ? 'border-cyber-green' : 'border-cyber-pink' }
          ].map((m, i) => (
            <div key={i} className="bg-black/40 border border-white/10 p-5 hover:border-white/30 transition-all relative overflow-hidden group">
               <div className={`absolute top-0 left-0 w-1 h-full ${m.color.replace('text-', 'bg-')}`}></div>

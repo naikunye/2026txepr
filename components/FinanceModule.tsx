@@ -10,6 +10,7 @@ import {
   Plus, Filter, Search, Calendar, Tag, MoreHorizontal, X, Check, Trash2,
   ChevronDown
 } from 'lucide-react';
+import { usePersistence } from '../hooks/usePersistence';
 
 // --- Types ---
 
@@ -24,60 +25,49 @@ interface Transaction {
   status: 'Cleared' | 'Processing' | 'Pending';
 }
 
-// --- Mock Data ---
-
-const cashFlowData = [
-  { name: 'Jan', revenue: 4000, expenses: 2400, net: 1600 },
-  { name: 'Feb', revenue: 3000, expenses: 1398, net: 1602 },
-  { name: 'Mar', revenue: 5000, expenses: 3800, net: 1200 },
-  { name: 'Apr', revenue: 7780, expenses: 3908, net: 3872 },
-  { name: 'May', revenue: 6890, expenses: 4800, net: 2090 },
-  { name: 'Jun', revenue: 8390, expenses: 3800, net: 4590 },
-  { name: 'Jul', revenue: 9490, expenses: 4300, net: 5190 },
-];
-
-const costStructureData = [
-  { name: 'COGS (产品成本)', value: 35, color: '#333' },
-  { name: 'Logistics (物流)', value: 25, color: '#00F0FF' },
-  { name: 'Marketing (营销)', value: 20, color: '#BC13FE' },
-  { name: 'Platform (佣金)', value: 15, color: '#FF003C' },
-  { name: 'Ops (运营杂费)', value: 5, color: '#FCEE0A' },
-];
-
 const initialTransactions: Transaction[] = [
   { id: 'TX-9921', desc: 'Amazon Settlement (US)', amount: 45230.00, type: 'in', currency: 'USD', category: 'Sales', date: '2025-01-04 14:20', status: 'Cleared' },
   { id: 'TX-9920', desc: 'Supplier Payment: Shenzhen Tech', amount: 120000.00, type: 'out', currency: 'CNY', category: 'COGS', date: '2025-01-04 09:15', status: 'Processing' },
   { id: 'TX-9919', desc: 'FedEx Logistics Invoice', amount: 3450.50, type: 'out', currency: 'USD', category: 'Logistics', date: '2025-01-03 18:00', status: 'Cleared' },
   { id: 'TX-9918', desc: 'TikTok Shop Payout (UK)', amount: 8200.00, type: 'in', currency: 'GBP', category: 'Sales', date: '2025-01-02 11:30', status: 'Cleared' },
   { id: 'TX-9917', desc: 'AWS Cloud Services', amount: 450.00, type: 'out', currency: 'USD', category: 'Ops', date: '2025-01-01 10:00', status: 'Cleared' },
+  // Historical data for chart visuals (simulated past months)
+  { id: 'TX-HIST-1', desc: 'Dec Sales', amount: 9800, type: 'in', currency: 'USD', category: 'Sales', date: '2024-12-15 10:00', status: 'Cleared' },
+  { id: 'TX-HIST-2', desc: 'Dec COGS', amount: 4000, type: 'out', currency: 'USD', category: 'COGS', date: '2024-12-16 10:00', status: 'Cleared' },
+  { id: 'TX-HIST-3', desc: 'Nov Sales', amount: 8500, type: 'in', currency: 'USD', category: 'Sales', date: '2024-11-15 10:00', status: 'Cleared' },
+  { id: 'TX-HIST-4', desc: 'Nov Ads', amount: 3000, type: 'out', currency: 'USD', category: 'Marketing', date: '2024-11-16 10:00', status: 'Cleared' },
 ];
 
 const categories = ['Sales', 'COGS', 'Logistics', 'Marketing', 'Ops', 'Tax', 'Salary'];
 const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'USDT'];
+
+const categoryColors: Record<string, string> = {
+    'COGS': '#333',
+    'Logistics': '#00F0FF',
+    'Marketing': '#BC13FE',
+    'Platform': '#FF003C',
+    'Ops': '#FCEE0A',
+    'Tax': '#666',
+    'Salary': '#39FF14',
+    'Sales': '#39FF14'
+};
 
 // --- Components ---
 
 export const FinanceModule: React.FC = () => {
   const [activeCurrency, setActiveCurrency] = useState('USD');
   
-  // Initialize with Persistence
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    try {
-      const saved = localStorage.getItem('AERO_FINANCE_DATA');
-      return saved ? JSON.parse(saved) : initialTransactions;
-    } catch (e) {
-      return initialTransactions;
-    }
-  });
-
-  // Save on change
-  useEffect(() => {
-    localStorage.setItem('AERO_FINANCE_DATA', JSON.stringify(transactions));
-  }, [transactions]);
+  // Use Persistence
+  const [transactions, setTransactions] = usePersistence<Transaction[]>('AERO_FINANCE_DATA', initialTransactions);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
   
+  // Chart Data State
+  const [cashFlowData, setCashFlowData] = useState<any[]>([]);
+  const [costStructureData, setCostStructureData] = useState<any[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTx, setNewTx] = useState<Partial<Transaction>>({
@@ -86,6 +76,66 @@ export const FinanceModule: React.FC = () => {
     category: 'Ops',
     status: 'Cleared'
   });
+
+  // --- Dynamic Calculation Effect ---
+  useEffect(() => {
+      // 1. Calculate Cost Structure (Expenses only)
+      const expenses = transactions.filter(t => t.type === 'out');
+      const totalExpense = expenses.reduce((acc, t) => acc + t.amount, 0);
+      
+      const costMap: Record<string, number> = {};
+      expenses.forEach(t => {
+          costMap[t.category] = (costMap[t.category] || 0) + t.amount;
+      });
+
+      const costs = Object.keys(costMap).map(cat => ({
+          name: cat,
+          value: totalExpense > 0 ? parseFloat(((costMap[cat] / totalExpense) * 100).toFixed(1)) : 0,
+          color: categoryColors[cat] || '#888'
+      })).sort((a, b) => b.value - a.value);
+      setCostStructureData(costs);
+
+      // 2. Calculate Cash Flow (Group by Month) - Simple approximation using string matching or Date parsing
+      const monthMap: Record<string, { revenue: number, expenses: number }> = {};
+      
+      transactions.forEach(t => {
+          // Attempt to parse date. Formats might vary, so we handle basic ISO or YYYY-MM-DD
+          try {
+              const d = new Date(t.date);
+              if(isNaN(d.getTime())) return; // skip invalid dates
+              const key = d.toLocaleString('en-US', { month: 'short' }); // e.g., 'Jan'
+              if (!monthMap[key]) monthMap[key] = { revenue: 0, expenses: 0 };
+              
+              if (t.type === 'in') monthMap[key].revenue += t.amount;
+              else monthMap[key].expenses += t.amount;
+          } catch(e) {}
+      });
+
+      // Order months? Ideally use a full date sort, but for this mock-ish view, standard calendar order or just existing keys is fine.
+      // Let's force a standard order if keys exist
+      const monthsOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const flowData = monthsOrder
+        .filter(m => monthMap[m])
+        .map(m => ({
+            name: m,
+            revenue: monthMap[m].revenue,
+            expenses: monthMap[m].expenses,
+            net: monthMap[m].revenue - monthMap[m].expenses
+        }));
+      
+      // If empty (new system), seed with empty months
+      if (flowData.length === 0) {
+          const currentMonth = new Date().toLocaleString('en-US', { month: 'short' });
+          setCashFlowData([{ name: currentMonth, revenue: 0, expenses: 0, net: 0 }]);
+      } else {
+          setCashFlowData(flowData);
+      }
+
+      // 3. Total Balance (Simple Sum of all in - out)
+      const balance = transactions.reduce((acc, t) => t.type === 'in' ? acc + t.amount : acc - t.amount, 0);
+      setTotalBalance(balance);
+
+  }, [transactions]);
 
   // --- Helpers ---
   const handleAddTransaction = () => {
@@ -98,7 +148,7 @@ export const FinanceModule: React.FC = () => {
       type: newTx.type as 'in' | 'out',
       currency: newTx.currency as string,
       category: newTx.category as string,
-      date: new Date().toLocaleString(),
+      date: new Date().toISOString(), // Use ISO for consistency now
       status: newTx.status as any
     };
 
@@ -151,7 +201,7 @@ export const FinanceModule: React.FC = () => {
        {/* Background Chart Effect */}
        <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity">
           <ResponsiveContainer width="100%" height="100%">
-             <AreaChart data={cashFlowData}>
+             <AreaChart data={cashFlowData.length > 0 ? cashFlowData : [{revenue:0},{revenue:0}]}>
                 <Area type="monotone" dataKey="revenue" stroke={chartColor} fill={chartColor} fillOpacity={0.4} />
              </AreaChart>
           </ResponsiveContainer>
@@ -262,12 +312,12 @@ export const FinanceModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 relative">
+    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500 relative">
        
        <Modal />
 
-       {/* Sticky Header */}
-       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-cyber-border pb-4 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
+       {/* Sticky Header with Adjusted Padding */}
+       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-cyber-border pb-4 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
           <div>
              <h1 className="text-3xl font-black text-cyber-text tracking-wider flex items-center gap-3">
                 财务中心 <span className="text-cyber-cyan text-sm px-2 py-0.5 border border-cyber-cyan rounded align-top mt-1 font-mono">GLOBAL</span>
@@ -302,7 +352,7 @@ export const FinanceModule: React.FC = () => {
                       </div>
                       <h2 className="text-cyber-dim text-sm font-bold uppercase tracking-widest">全球总资产估值 (USD)</h2>
                       <div className="text-5xl font-black text-cyber-text mt-2 text-glow flex items-baseline gap-2">
-                         $2,845,920<span className="text-2xl text-cyber-dim">.45</span>
+                         ${totalBalance.toLocaleString()} <span className="text-2xl text-cyber-dim">.00</span>
                       </div>
                       <div className="mt-4 flex gap-6 text-sm font-mono">
                          <span className="text-cyber-green flex items-center gap-1"><ArrowUpRight size={14}/> +$12,400 (今日)</span>
@@ -373,7 +423,7 @@ export const FinanceModule: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 mt-4">
-                   {costStructureData.map((item) => (
+                   {costStructureData.length > 0 ? costStructureData.map((item) => (
                       <div key={item.name} className="flex items-center justify-between text-xs">
                          <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
@@ -381,7 +431,7 @@ export const FinanceModule: React.FC = () => {
                          </div>
                          <span className="text-cyber-text font-mono">{item.value}%</span>
                       </div>
-                   ))}
+                   )) : <div className="text-xs text-center text-gray-500 py-4">暂无支出数据</div>}
                 </div>
              </div>
           </div>
@@ -497,7 +547,7 @@ export const FinanceModule: React.FC = () => {
                             </div>
                          </td>
                          <td className="p-4 text-cyber-dim font-mono text-xs">
-                            {tx.date}
+                            {new Date(tx.date).toLocaleString()}
                          </td>
                          <td className="p-4">
                             <span className="px-2 py-1 bg-cyber-bg border border-cyber-border rounded text-[10px] font-mono text-cyber-text">

@@ -7,6 +7,7 @@ import {
   Factory, DollarSign, Copy, Layers, Scale
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip as RechartsTooltip, BarChart, Bar, Cell } from 'recharts';
+import { usePersistence } from '../hooks/usePersistence';
 
 // --- Types & Mock Data ---
 
@@ -53,7 +54,6 @@ export interface Shipment {
   milestones: Milestone[];
 }
 
-// Added 'export' here so RestockModule can use it
 export const initialShipments: Shipment[] = [
   { 
     id: '1ZHV2525041299', 
@@ -123,38 +123,14 @@ export const initialShipments: Shipment[] = [
   },
 ];
 
-// Mock Chart Data
-const volumeData = [
-  { name: '周一', air: 400, sea: 2400 },
-  { name: '周二', air: 300, sea: 1398 },
-  { name: '周三', air: 200, sea: 9800 },
-  { name: '周四', air: 278, sea: 3908 },
-  { name: '周五', air: 189, sea: 4800 },
-  { name: '周六', air: 239, sea: 3800 },
-  { name: '周日', air: 349, sea: 4300 },
-];
-
 export const LogisticsModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'map' | 'analytics'>('map');
   const [filterMode, setFilterMode] = useState('all');
   
-  // Initialize from LocalStorage or Fallback to Default
-  const [shipments, setShipments] = useState<Shipment[]>(() => {
-      try {
-          const storedData = localStorage.getItem('AERO_LOGISTICS_DATA');
-          return storedData ? JSON.parse(storedData) : initialShipments;
-      } catch (e) {
-          console.error("Failed to load shipments", e);
-          return initialShipments;
-      }
-  });
+  // Real-time Persistence Hook (Replaces manual localStorage handling)
+  const [shipments, setShipments] = usePersistence<Shipment[]>('AERO_LOGISTICS_DATA', initialShipments);
 
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-
-  // Persistence Effect: Save whenever 'shipments' changes
-  useEffect(() => {
-      localStorage.setItem('AERO_LOGISTICS_DATA', JSON.stringify(shipments));
-  }, [shipments]);
 
   const handleTrackClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -215,7 +191,6 @@ export const LogisticsModule: React.FC = () => {
     setSelectedShipment(newShipment);
   };
 
-  // --- DUPLICATE FUNCTIONALITY ---
   const handleDuplicate = () => {
     if(!selectedShipment) return;
     const copiedShipment: Shipment = {
@@ -285,7 +260,6 @@ export const LogisticsModule: React.FC = () => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-[#080808] border border-white/10 w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-lg shadow-2xl flex flex-col relative">
-                
                 {/* Modal Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 border-b border-white/10 bg-[#0c0c0c] sticky top-0 z-10 gap-4">
                     <div className="flex items-center gap-4">
@@ -324,16 +298,12 @@ export const LogisticsModule: React.FC = () => {
 
                 {/* Modal Body */}
                 <div className="p-8 grid grid-cols-12 gap-8">
-                    
-                    {/* LEFT COLUMN: Main Logistics & Timeline */}
+                    {/* ... (Modal content structure maintained) ... */}
                     <div className="col-span-12 lg:col-span-7 space-y-8">
-                        
-                        {/* Status & Route */}
                         <div className="tech-border p-6 bg-white/5">
                             <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
                                 <Activity size={16} className="text-cyber-cyan" /> 运输状态与进度
                             </h3>
-                            
                             <div className="grid grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label className="lbl">当前状态</label>
@@ -375,13 +345,12 @@ export const LogisticsModule: React.FC = () => {
                                     />
                                 </div>
                             </div>
-
                             <div className="w-full bg-black h-2 rounded-full overflow-hidden border border-white/10">
                                 <div className="h-full bg-cyber-cyan shadow-neon-cyan transition-all duration-500" style={{width: `${selectedShipment.progress}%`}}></div>
                             </div>
                         </div>
-
-                        {/* Milestones */}
+                        
+                        {/* ... Milestones ... */}
                         <div className="tech-border p-6 bg-white/5">
                             <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
                                 <Navigation size={16} className="text-cyber-purple" /> 节点追踪
@@ -415,8 +384,8 @@ export const LogisticsModule: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Details & Costs */}
                     <div className="col-span-12 lg:col-span-5 space-y-8">
+                        {/* ... Right Column Details ... */}
                         <div className="tech-border p-6 bg-white/5">
                             <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
                                 <Box size={16} className="text-cyber-yellow" /> 货物详情
@@ -489,12 +458,12 @@ export const LogisticsModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
       
       {renderEditModal()}
 
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
+      {/* Header - Fixed to pt-6 pb-4 */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
          <div>
             <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
                 物流追踪 <span className="text-cyber-cyan text-sm px-2 py-0.5 border border-cyber-cyan rounded align-top mt-1 font-mono">TRACKING</span>

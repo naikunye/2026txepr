@@ -9,7 +9,8 @@ import {
   ListTodo, 
   Settings, 
   Hexagon,
-  Cpu
+  Cpu,
+  HardDrive
 } from 'lucide-react';
 import { NavItem } from '../types';
 
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { id: 'logistics', label: '物流追踪', icon: PackageSearch },
   { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务看板', icon: ListTodo },
+  { id: 'files', label: '文档金库', icon: HardDrive }, // Added
   { id: 'settings', label: '系统设置', icon: Settings },
 ];
 
@@ -78,15 +80,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
         })}
       </nav>
 
-      {/* User Profile / Footer */}
+      {/* User Profile / Footer - CLICKABLE */}
       <div className="p-4 border-t border-cyber-border bg-cyber-bg/40">
-        <div className="bg-cyber-panel border border-cyber-border p-3 flex items-center gap-3 relative hover:border-cyber-cyan/50 transition-colors cursor-pointer group">
+        <div 
+          onClick={() => onNavigate('settings')}
+          className="bg-cyber-panel border border-cyber-border p-3 flex items-center gap-3 relative hover:border-cyber-cyan/50 transition-colors cursor-pointer group"
+          title="前往系统设置"
+        >
           <div className="w-10 h-10 bg-gray-800 flex items-center justify-center border border-gray-600 group-hover:border-cyber-cyan overflow-hidden relative">
              <Cpu className="text-gray-400 group-hover:text-cyber-cyan z-10" size={20} />
              <div className="absolute inset-0 bg-cyber-cyan/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
           </div>
           <div className="flex-1 text-left">
-             <div className="text-sm font-bold text-cyber-text tracking-wide">管理员</div>
+             <div className="text-sm font-bold text-cyber-text tracking-wide group-hover:text-cyber-cyan transition-colors">管理员</div>
              <div className="text-[10px] text-cyber-cyan font-mono">最高权限_LV99</div>
           </div>
           <Settings size={16} className="text-gray-500 group-hover:text-cyber-cyan group-hover:rotate-90 transition-all duration-500" />

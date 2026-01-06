@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon, CheckSquare, Square, Check, AlertCircle } from 'lucide-react';
+import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon, CheckSquare, Square, Check, AlertCircle, Database } from 'lucide-react';
 import { initialShipments } from './LogisticsModule';
+import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 
+// ... (Keep existing interface and data structure definitions as they were) ...
 // --- World-Class ERP Data Model ---
 interface Variant {
   id: string;
@@ -134,7 +136,7 @@ const initialProducts: Product[] = [
   }
 ];
 
-// --- NUCLEAR OPTION: DATA CLEANING & FUZZY MATCHING ---
+// ... (cleanNumber and sanitizeProduct functions retained) ...
 const cleanNumber = (val: any): number => {
     if (typeof val === 'number') return val;
     if (val === undefined || val === null) return 0;
@@ -142,34 +144,25 @@ const cleanNumber = (val: any): number => {
     const str = String(val).trim();
     if (str === '') return 0;
 
-    // 1. Check for Percentage (e.g., "15%") -> 0.15
     if (str.includes('%')) {
-        const num = parseFloat(str.replace(/[^\d.-]/g, '')); // Strip all but digits/dots/minus
+        const num = parseFloat(str.replace(/[^\d.-]/g, '')); 
         return isNaN(num) ? 0 : num / 100;
     }
 
-    // 2. Standard Cleanup: Remove currency symbols (¥, $, £), commas, letters (kg, cm)
-    // Keep only digits, dots, and minus sign
     const cleanStr = str.replace(/[^\d.-]/g, ''); 
     const num = parseFloat(cleanStr);
     return isNaN(num) ? 0 : num;
 };
 
 const sanitizeProduct = (p: any): Product => {
-  // Helper: Aggressive Fuzzy Finder
   const fuzzyVal = (obj: any, targets: string[], type: 'string'|'number', defaultVal: any) => {
     if (!obj || typeof obj !== 'object') return defaultVal;
-
     const objKeys = Object.keys(obj);
-    
-    // Strategy 1: Exact Match (Highest Priority)
     for (const t of targets) {
         if (obj[t] !== undefined && obj[t] !== null && obj[t] !== '') {
             return type === 'number' ? cleanNumber(obj[t]) : String(obj[t]);
         }
     }
-
-    // Strategy 2: Case-Insensitive Strict Match
     for (const t of targets) {
         const lowerT = t.toLowerCase();
         const foundKey = objKeys.find(k => k.toLowerCase() === lowerT);
@@ -177,8 +170,6 @@ const sanitizeProduct = (p: any): Product => {
              return type === 'number' ? cleanNumber(obj[foundKey]) : String(obj[foundKey]);
         }
     }
-
-    // Strategy 3: "Nuclear" Inclusion Match (Lowest Priority)
     for (const t of targets) {
         if (t.length < 2) continue; 
         const lowerT = t.toLowerCase();
@@ -187,15 +178,12 @@ const sanitizeProduct = (p: any): Product => {
              return type === 'number' ? cleanNumber(obj[foundKey]) : String(obj[foundKey]);
         }
     }
-
     return defaultVal;
   };
 
   const root = p || {};
   const mixedPool = { ...root, ...(root.supplier || {}), ...(root.logistics || {}), ...(root.financials || {}), ...(root.packing || {}), ...(root.inventory || {}) };
 
-  // --- EXHAUSTIVE INBOUND ID KEY LIST ---
-  // Covers: Lingxing, SellerSprite, ERPs, Chinese, English, Mixed Case
   const inboundKeys = [
       'inboundId', 'inbound_id', 'Inbound ID', 
       'shipmentId', 'shipment_id', 'shipment_name', 'Shipment Name', 'Shipment ID',
@@ -213,15 +201,10 @@ const sanitizeProduct = (p: any): Product => {
 
   return {
     id: String(root.id || Date.now() + Math.random()),
-    
     skuCode: fuzzyVal(mixedPool, ['skuCode', 'sku', 'item_no', 'Product ID', 'Item Number', '编码', '货号', 'SKU', 'MSKU', 'FNSKU'], 'string', 'UNKNOWN-SKU'),
-    
     productName: fuzzyVal(mixedPool, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description', '名称', '品名', '标题'], 'string', 'New Product'),
-    
     image: fuzzyVal(mixedPool, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Picture', 'thumbnail', '图片', '缩略图', '主图'], 'string', ''),
-    
     variants: Array.isArray(root.variants) ? root.variants : [],
-
     supplier: {
       name: fuzzyVal(mixedPool, ['supplierName', 'vendor', 'Supplier', 'Factory', '供应商', '厂家'], 'string', ''),
       link: fuzzyVal(mixedPool, ['link', 'url', '1688', 'Link', '链接', '采购链接'], 'string', ''),
@@ -230,11 +213,8 @@ const sanitizeProduct = (p: any): Product => {
       leadTime: fuzzyVal(mixedPool, ['leadTime', 'productionTime', 'Lead Time', '交期', '生产周期', '备货时间'], 'number', 0),
       paymentTerms: fuzzyVal(mixedPool, ['paymentTerms', 'Payment Terms', '付款方式', '账期'], 'string', ''),
     },
-
     logistics: {
-      // UPDATED: Use the exhaustive list for Inbound ID
       inboundId: fuzzyVal(mixedPool, inboundKeys, 'string', ''),
-      
       trackingNo: fuzzyVal(mixedPool, ['trackingNo', 'tracking', 'waybill', 'Tracking Number', '追踪号', '运单号', '快递单号'], 'string', ''),
       mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
@@ -243,14 +223,12 @@ const sanitizeProduct = (p: any): Product => {
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
     },
-
     packing: {
       pcsPerBox: fuzzyVal(mixedPool, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton', '装箱量'], 'number', 0),
       boxCount: fuzzyVal(mixedPool, ['boxCount', 'ctn_count', 'Carton Count', '箱数', '件数', 'CTNS', 'Total Cartons', 'cartons', '总箱数'], 'number', 0),
       boxWeightKg: fuzzyVal(mixedPool, ['boxWeightKg', 'weight', 'Weight (kg)', '重量', '单箱重量', '毛重', 'G.W.', 'gross_weight', '整箱重'], 'number', 0),
       boxVolumeCbm: fuzzyVal(mixedPool, ['boxVolumeCbm', 'volume', 'cbm', 'CBM', '体积', '单箱体积', 'Meas', 'measurement', '外箱体积'], 'number', 0),
     },
-
     financials: {
       sellingPriceUSD: fuzzyVal(mixedPool, ['sellingPriceUSD', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price', '售价', '销售价', '定价'], 'number', 0),
       referralFeeRate: fuzzyVal(mixedPool, ['referralFeeRate', 'commission', 'Platform Fee', '佣金', '平台佣金', 'Fee Rate', '扣点'], 'number', 0),
@@ -265,7 +243,6 @@ const sanitizeProduct = (p: any): Product => {
       returnRate: fuzzyVal(mixedPool, ['returnRate', 'Returns', '退货率', '退款率'], 'number', 0),
       miscCostUSD: fuzzyVal(mixedPool, ['miscCostUSD', 'Misc', '杂费', '其他费用'], 'number', 0),
     },
-    
     inventory: {
         current: fuzzyVal(mixedPool, ['current', 'stock', 'qty', 'Stock', 'Quantity', '库存', '现有库存', '数量', 'available', '在库'], 'number', 0),
         incoming: fuzzyVal(mixedPool, ['incoming', 'Incoming', '在途', '在途库存', 'Shipping'], 'number', 0),
@@ -276,20 +253,8 @@ const sanitizeProduct = (p: any): Product => {
 };
 
 export const RestockModule: React.FC = () => {
-  // Initialize with Persistence
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('AERO_RESTOCK_DATA');
-      return saved ? JSON.parse(saved) : initialProducts;
-    } catch (e) {
-      return initialProducts;
-    }
-  });
-
-  // Save on change
-  useEffect(() => {
-    localStorage.setItem('AERO_RESTOCK_DATA', JSON.stringify(products));
-  }, [products]);
+  // Use Persistence Hook (Debounced)
+  const [products, setProducts] = usePersistence<Product[]>('AERO_RESTOCK_DATA', initialProducts);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -308,20 +273,13 @@ export const RestockModule: React.FC = () => {
   const [variantQty, setVariantQty] = useState('');
 
   // --- Filtered Products Logic (Calculated before render) ---
-  const filteredProducts = products.filter(p => 
+  const safeProducts = Array.isArray(products) ? products : [];
+  const filteredProducts = safeProducts.filter(p => 
       p && (
          (p.skuCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
          (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
       )
   );
-
-  // --- Logic Helpers ---
-  const handleTrackingClick = (e: React.MouseEvent, trackingNo?: string) => {
-    e.stopPropagation();
-    if (trackingNo && trackingNo !== '待填追踪号') {
-        window.open(`https://www.ups.com/track?loc=zh_CN&tracknum=${trackingNo}`, '_blank');
-    }
-  };
 
   // --- Batch Operations ---
   const toggleSelection = (e: React.MouseEvent, id: string) => {
@@ -333,40 +291,70 @@ export const RestockModule: React.FC = () => {
       }
   };
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = React.useCallback(() => {
       if (selectedIds.length === filteredProducts.length && filteredProducts.length > 0) {
           setSelectedIds([]);
       } else {
           setSelectedIds(filteredProducts.map(p => p.id));
       }
-  };
+  }, [selectedIds, filteredProducts]);
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = React.useCallback(() => {
       if (selectedIds.length === 0) return;
       if (confirm(`⚠️ 高危操作确认\n\n您确定要永久删除选中的 ${selectedIds.length} 个 SKU 吗？\n删除后不可恢复。`)) {
           const remaining = products.filter(p => !selectedIds.includes(p.id));
           setProducts(remaining);
           setSelectedIds([]);
-          alert("删除成功。");
       }
+  }, [selectedIds, products, setProducts]);
+
+  // --- Keyboard Shortcuts ---
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        const target = e.target as HTMLElement;
+        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+        if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
+            if (selectedIds.length > 0) {
+                handleBatchDelete();
+            }
+        }
+
+        if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !isInput) {
+            e.preventDefault();
+            toggleSelectAll();
+        }
+
+        if (e.key === 'Escape') {
+            setSelectedProduct(null);
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds, handleBatchDelete, toggleSelectAll]);
+
+
+  // --- Logic Helpers ---
+  const handleTrackingClick = (e: React.MouseEvent, trackingNo?: string) => {
+    e.stopPropagation();
+    if (trackingNo && trackingNo !== '待填追踪号') {
+        window.open(`https://www.ups.com/track?loc=zh_CN&tracknum=${trackingNo}`, '_blank');
+    }
   };
 
-  // --- SYNC TO LOGISTICS LOGIC ---
   const handleSyncToLogistics = (e: React.MouseEvent, p: Product) => {
     e.stopPropagation();
-    
-    // Validation
     if (!p.logistics.trackingNo || p.logistics.trackingNo.trim() === '' || p.logistics.trackingNo.includes('待填')) {
         alert("无法同步：请先在物流信息中填写有效的追踪单号 (Tracking No)。");
         return;
     }
 
-    // Prepare new Shipment object based on Product Data
     const newShipment = {
         id: p.logistics.trackingNo,
         internalRef: p.logistics.inboundId || `AUTO-SYNC-${Date.now().toString().slice(-6)}`,
         originCode: 'CN',
-        originCity: p.supplier.name.substring(0, 4) || 'China', // Heuristic for city
+        originCity: p.supplier.name.substring(0, 4) || 'China', 
         destCode: p.logistics.warehouseDest || 'US',
         destCity: 'Destination',
         status: p.logistics.status === 'Plan' ? 'pending' : 
@@ -390,7 +378,7 @@ export const RestockModule: React.FC = () => {
             totalVolumeCbm: p.packing.boxCount * p.packing.boxVolumeCbm
         },
         fees: {
-            freightCost: 0, // Needs calculation or manual entry
+            freightCost: 0,
             customsDuty: 0,
             insurance: 0,
             misc: p.financials.miscCostUSD
@@ -402,7 +390,6 @@ export const RestockModule: React.FC = () => {
         ]
     };
 
-    // Persistence Logic
     try {
         const storedData = localStorage.getItem('AERO_LOGISTICS_DATA');
         let currentShipments = [];
@@ -410,21 +397,20 @@ export const RestockModule: React.FC = () => {
         if (storedData) {
             currentShipments = JSON.parse(storedData);
         } else {
-            // Seed with default data so we don't lose the demo experience
             currentShipments = [...initialShipments];
         }
 
-        // Duplicate Check
         const exists = currentShipments.find((s: any) => s.id === newShipment.id);
         if (exists) {
             alert(`同步失败：追踪单号 ${newShipment.id} 已存在于物流模块中。`);
             return;
         }
 
-        // Add new shipment to top
         currentShipments.unshift(newShipment);
-        localStorage.setItem('AERO_LOGISTICS_DATA', JSON.stringify(currentShipments));
         
+        const KEY = 'AERO_LOGISTICS_DATA';
+        localStorage.setItem(KEY, JSON.stringify(currentShipments));
+        window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: KEY } }));
         alert(`✅ 同步成功！\n\n追踪号: ${newShipment.id}\n已自动创建物流追踪档案，请前往[物流追踪]模块查看。`);
     } catch (err) {
         console.error(err);
@@ -432,7 +418,6 @@ export const RestockModule: React.FC = () => {
     }
   };
 
-  // --- Import / Export Handlers ---
   const handleExportData = () => {
     const dataStr = JSON.stringify(products, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
@@ -451,40 +436,35 @@ export const RestockModule: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  // --- Enhanced Helper: Smart Deep Search for Data Array ---
   const findBestDataArray = (obj: any): any[] | null => {
     const candidates: { array: any[], score: number }[] = [];
 
     const analyzeArray = (arr: any[]) => {
        if (!Array.isArray(arr) || arr.length === 0) return 0;
        let score = 0;
-       // Check first few items to estimate quality
        const sample = arr.slice(0, 5); 
        for (const item of sample) {
           if (typeof item === 'object' && item !== null) {
-             score += 1; // It's a list of objects
+             score += 1; 
              const keys = Object.keys(item).join(' ').toLowerCase();
-             // Bonus for relevant keywords
              if (keys.includes('sku') || keys.includes('name') || keys.includes('title') || keys.includes('id')) score += 5;
              if (keys.includes('price') || keys.includes('cost') || keys.includes('image')) score += 2;
           }
        }
-       return score + (arr.length * 0.1); // Tie-breaker: longer arrays preferred slightly
+       return score + (arr.length * 0.1); 
     };
 
     const traverse = (node: any, depth: number) => {
-       if (depth > 5) return; // Prevent stack overflow on massive deeply nested JSONs
+       if (depth > 5) return; 
        if (typeof node !== 'object' || node === null) return;
 
        if (Array.isArray(node)) {
           const score = analyzeArray(node);
           if (score > 0) candidates.push({ array: node, score });
-          // Don't traverse inside arrays of objects for other arrays, usually data is leaf-ish
           return; 
        }
 
        for (const key in node) {
-          // Special handling for stringified JSON strings
           if (typeof node[key] === 'string') {
              if (node[key].startsWith('[') || node[key].startsWith('{')) {
                 try {
@@ -499,10 +479,7 @@ export const RestockModule: React.FC = () => {
     };
 
     traverse(obj, 0);
-
-    // Sort by score desc
     candidates.sort((a, b) => b.score - a.score);
-    
     if (candidates.length > 0) return candidates[0].array;
     return null;
   };
@@ -523,11 +500,9 @@ export const RestockModule: React.FC = () => {
             return;
         }
 
-        // Intelligent Search for the BEST array
         const targetData = findBestDataArray(json);
         
         if (Array.isArray(targetData) && targetData.length > 0) {
-          // Normalize data structure with Smart Mapping
           const normalizedData = targetData.map(item => sanitizeProduct(item));
           setProducts(normalizedData);
           alert(`✅ 系统恢复成功！\n\n成功导入 ${normalizedData.length} 个产品 SKU。\n智能字段映射已应用 (自动修复图片、价格、单号)。`);
@@ -545,12 +520,8 @@ export const RestockModule: React.FC = () => {
     event.target.value = '';
   };
 
-  // --- Calculation Engine ---
   const calculateEconomics = (p: Product) => {
-    // 1. Sourcing
     const unitProductCostUSD = (p.supplier?.unitPriceRMB || 0) / exchangeRate;
-    
-    // 2. Logistics (First Leg)
     const boxCount = p.packing?.boxCount || 0;
     const boxWeight = p.packing?.boxWeightKg || 0;
     const boxVol = p.packing?.boxVolumeCbm || 0;
@@ -571,33 +542,26 @@ export const RestockModule: React.FC = () => {
     }
     const unitFreightUSD = (totalFreightRMB / totalUnits) / exchangeRate;
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
-    
-    // COGS (Landed)
     const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
 
-    // 3. Platform Fees
     const sellingPrice = p.financials?.sellingPriceUSD || 0;
     const referralFeeUSD = sellingPrice * (p.financials?.referralFeeRate || 0);
     const transactionFeeUSD = (sellingPrice * (p.financials?.transactionFeeRate || 0)) + (p.financials?.fixedTransactionFeeUSD || 0);
     const affiliateFeeUSD = sellingPrice * (p.financials?.affiliateRate || 0);
     
-    // 4. Fulfillment & Hidden Costs (Updated)
     const fulfillmentTotalUSD = (p.financials?.fulfillmentFeeUSD || 0) + (p.financials?.outboundHandlingFeeUSD || 0);
     const storageCostUSD = p.financials?.storageFeeUSD || 0;
-    const returnLossUSD = sellingPrice * (p.financials?.returnRate || 0); // Est. Loss from returns
+    const returnLossUSD = sellingPrice * (p.financials?.returnRate || 0); 
 
     const totalServiceFees = referralFeeUSD + transactionFeeUSD + affiliateFeeUSD;
     const totalFulfillmentAndStorage = fulfillmentTotalUSD + storageCostUSD;
     
-    // 5. Profitability
-    // Total Cost = COGS + Service Fees + Fulfillment + Storage + Return Allowance + Ads
     const totalCost = landedCostUSD + totalServiceFees + totalFulfillmentAndStorage + returnLossUSD + (p.financials?.adCostUSD || 0);
     
     const netProfit = sellingPrice - totalCost;
     const margin = sellingPrice > 0 ? (netProfit / sellingPrice) * 100 : 0;
     const roi = landedCostUSD > 0 ? (netProfit / landedCostUSD) * 100 : 0; 
     
-    // 6. Restock Logic
     const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
     const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
     
@@ -606,14 +570,13 @@ export const RestockModule: React.FC = () => {
     const reorderQty = Math.max(needed, supplier.moq);
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    // 7. Batch Totals
     const totalFreightBatchUSD = unitFreightUSD * reorderQty;
     const totalProfitBatchUSD = netProfit * reorderQty;
 
     return {
       unitProductCostUSD, unitFreightUSD, unitDutyUSD, landedCostUSD,
       referralFeeUSD, transactionFeeUSD, affiliateFeeUSD, 
-      fulfillmentTotalUSD, storageCostUSD, returnLossUSD, // New Breakdown metrics
+      fulfillmentTotalUSD, storageCostUSD, returnLossUSD, 
       totalServiceFees,
       netProfit, margin, roi,
       daysOfCover, reorderQty, capitalRequiredRMB,
@@ -632,7 +595,6 @@ export const RestockModule: React.FC = () => {
     setSelectedProduct(updateNested(selectedProduct, field.split('.'), value));
   };
 
-  // Quick Clone for Header (Full SPU Copy)
   const handleSkuSplit = () => {
     if (!selectedProduct) return;
     const newSku = {
@@ -641,14 +603,13 @@ export const RestockModule: React.FC = () => {
       skuCode: `${selectedProduct.skuCode}-V2`,
       productName: `${selectedProduct.productName} (Copy)`,
       logistics: { ...selectedProduct.logistics, inboundId: '', trackingNo: '' },
-      variants: [] // Clone doesn't carry over specific variants by default
+      variants: [] 
     };
     setProducts([...products, newSku]);
     setSelectedProduct(newSku);
     alert(`SKU 裂变成功！已生成新变体: ${newSku.skuCode}`);
   };
 
-  // Add Variant (Sub-Item)
   const handleAddVariant = () => {
     if(!selectedProduct) return;
     if(!variantSuffix || !variantName || !variantQty) {
@@ -669,7 +630,6 @@ export const RestockModule: React.FC = () => {
     };
     
     setSelectedProduct(updatedProduct);
-    // Update main list as well
     setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
 
     setVariantSuffix('');
@@ -677,7 +637,6 @@ export const RestockModule: React.FC = () => {
     setVariantQty('');
   };
 
-  // Remove Variant
   const handleRemoveVariant = (variantId: string) => {
       if (!selectedProduct) return;
       const updatedVariants = selectedProduct.variants?.filter(v => v.id !== variantId) || [];
@@ -719,11 +678,9 @@ export const RestockModule: React.FC = () => {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-200 p-0 lg:p-4">
          <div className="w-full h-full lg:max-w-[95vw] lg:h-[95vh] bg-[#080808] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-lg">
-            
             {/* 1. Header Toolbar */}
             <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-[#0a0a0a] gap-4 shrink-0">
                <div className="flex items-center gap-6 w-full lg:w-auto">
-                  {/* Product Thumbnail Upload */}
                   <div 
                     className="group relative w-16 h-16 bg-black border border-white/20 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan transition-colors shrink-0"
                     onClick={() => {
@@ -762,14 +719,12 @@ export const RestockModule: React.FC = () => {
                      </div>
                   </div>
                   
-                  {/* Mobile Close Button */}
                   <button onClick={() => setSelectedProduct(null)} className="lg:hidden text-gray-400 hover:text-white">
                       <X size={24} />
                   </button>
                </div>
                
                <div className="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
-                   {/* SKU Split Button (Legacy / Quick) */}
                    <button 
                      onClick={handleSkuSplit}
                      className="px-4 py-2 bg-purple-900/20 border border-purple-500/50 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-colors flex items-center gap-2 text-xs uppercase tracking-wider whitespace-nowrap"
@@ -798,20 +753,15 @@ export const RestockModule: React.FC = () => {
 
             {/* 2. Main Content Grid - Responsive Scroll Architecture */}
             <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-12 bg-[#0c0c0c]">
-               
-               {/* LEFT PANEL: TABS & INPUTS */}
+               {/* LEFT PANEL */}
                <div className="col-span-12 lg:col-span-8 flex flex-col border-r border-white/10 bg-[#0c0c0c] lg:h-full min-h-0">
-                  {/* Tabs */}
                   <div className="flex border-b border-white/10 bg-black/50 sticky top-0 z-10 lg:static overflow-x-auto no-scrollbar">
                      <TabButton id="supply" label="供应链 (Supply)" icon={Layers} />
                      <TabButton id="logistics" label="物流与清关 (Logistics)" icon={Truck} />
                      <TabButton id="finance" label="财务与定价 (Finance)" icon={DollarSign} />
                   </div>
 
-                  {/* Scrollable Content Form */}
                   <div className="p-8 lg:flex-1 lg:overflow-y-auto custom-scrollbar">
-                     
-                     {/* TAB: SUPPLY CHAIN */}
                      {activeTab === 'supply' && (
                        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
                           {/* ... Supply chain content ... */}
@@ -977,7 +927,6 @@ export const RestockModule: React.FC = () => {
                        </div>
                      )}
 
-                     {/* TAB: LOGISTICS */}
                      {activeTab === 'logistics' && (
                        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
                           <div className="tech-border p-6 bg-white/5">
@@ -1073,7 +1022,6 @@ export const RestockModule: React.FC = () => {
                        </div>
                      )}
 
-                     {/* TAB: FINANCE */}
                      {activeTab === 'finance' && (
                        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
                           {/* ... Finance content ... */}
@@ -1082,7 +1030,6 @@ export const RestockModule: React.FC = () => {
                                 <TrendingUp size={16}/> TikTok 销售定价与费率
                              </h3>
                              
-                             {/* Pricing Header */}
                              <div className="mb-6">
                                 <label className="text-xs text-cyber-pink font-bold uppercase mb-2 block">TikTok 售价 (Selling Price)</label>
                                 <div className="relative">
@@ -1096,10 +1043,7 @@ export const RestockModule: React.FC = () => {
                                 </div>
                              </div>
 
-                             {/* Fee Groups Grid */}
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                
-                                {/* 1. Platform Fees */}
                                 <div className="space-y-4">
                                    <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-2 mb-3">
                                       平台佣金 (Platform Fees)
@@ -1129,7 +1073,6 @@ export const RestockModule: React.FC = () => {
                                    </div>
                                 </div>
 
-                                {/* 2. Fulfillment & Risk (NEW) */}
                                 <div className="space-y-4">
                                    <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-2 mb-3 flex justify-between">
                                       履约与隐形成本 (Fulfillment & Risk)
@@ -1188,30 +1131,25 @@ export const RestockModule: React.FC = () => {
 
                {/* RIGHT PANEL: LIVE ANALYTICS (Fixed) */}
                <div className="col-span-12 lg:col-span-4 bg-[#0F1218] p-6 flex flex-col border-l border-white/5 shadow-2xl lg:h-full lg:overflow-y-auto">
-                  
                   <div className="mb-6">
                      <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
                         <Scale size={20} className="text-cyber-green"/> 利润瀑布 (Waterfall)
                      </h3>
 
                      <div className="space-y-3 font-mono text-sm relative">
-                        {/* Connecting Line */}
                         <div className="absolute left-[7px] top-2 bottom-8 w-[1px] bg-gray-800"></div>
-
-                        {/* Revenue */}
                         <div className="flex justify-between items-center py-2 border-b border-white/10 relative z-10 bg-[#0F1218]">
                            <span className="text-gray-300 font-bold">销售价格 (Price)</span>
                            <span className="text-white font-bold text-lg">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
                         </div>
 
-                        {/* Deductions */}
                         {[
                           { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400' },
                           { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400' },
                           { l: '进口关税', v: eco.unitDutyUSD, c: 'text-gray-400' },
                           { l: '平台费率', v: eco.totalServiceFees, c: 'text-red-400' },
-                          { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, // Includes outbound
-                          { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, // Storage + Returns
+                          { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, 
+                          { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, 
                           { l: '广告支出', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-cyber-purple' },
                         ].map((item, i) => (
                           <div key={i} className="flex justify-between text-xs relative pl-4">
@@ -1221,7 +1159,6 @@ export const RestockModule: React.FC = () => {
                           </div>
                         ))}
 
-                        {/* Bottom Line */}
                         <div className="mt-6 pt-4 border-t-2 border-white/10 bg-white/5 p-4 rounded-lg">
                            <div className="flex justify-between items-center mb-1">
                               <span className="text-white font-bold text-sm uppercase tracking-wider">净利润 (Net Profit)</span>
@@ -1237,7 +1174,6 @@ export const RestockModule: React.FC = () => {
                      </div>
                   </div>
 
-                  {/* Smart Actions */}
                   <div className="bg-cyber-panel border border-cyber-cyan/30 p-5 rounded-lg mt-auto">
                      <h4 className="text-cyber-cyan font-bold text-sm mb-4 flex items-center gap-2">
                         <Calculator size={16}/> 智能备货建议
@@ -1264,7 +1200,6 @@ export const RestockModule: React.FC = () => {
                         生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
                      </button>
                   </div>
-
                </div>
             </div>
          </div>
@@ -1274,7 +1209,7 @@ export const RestockModule: React.FC = () => {
 
   // --- Main List Render ---
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
       <style>{`
         .lbl {
           font-size: 0.7rem;
@@ -1305,21 +1240,19 @@ export const RestockModule: React.FC = () => {
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; }
-        /* Hide scrollbar for Chrome, Safari and Opera */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
-        /* Hide scrollbar for IE, Edge and Firefox */
         .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
       `}</style>
 
       {renderDetailModal()}
 
-      {/* Main Table Header & Tools */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row justify-between items-end gap-6">
+      {/* Main Table Header & Tools - Fixed height */}
+      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row justify-between items-end gap-6">
          <div>
             <h1 className="text-3xl font-black text-white tracking-wider">智能备货中心</h1>
             <p className="text-gray-500 font-mono text-xs mt-2 flex items-center gap-2">
@@ -1327,7 +1260,6 @@ export const RestockModule: React.FC = () => {
             </p>
          </div>
          <div className="flex gap-4">
-            {/* Batch Action Toolbar */}
             {selectedIds.length > 0 ? (
                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right duration-300">
                     <div className="px-4 py-2 bg-red-900/30 border border-red-500/50 text-red-500 rounded text-sm font-bold flex items-center gap-2">
@@ -1358,7 +1290,6 @@ export const RestockModule: React.FC = () => {
                 </div>
             )}
 
-            {/* Hidden Input for File Upload */}
             <input 
                type="file" 
                ref={fileInputRef} 
@@ -1368,7 +1299,6 @@ export const RestockModule: React.FC = () => {
             />
 
             <div className="flex items-center gap-2 bg-black border border-white/20 p-1 rounded">
-                {/* Select All Toggle */}
                 <button
                     onClick={toggleSelectAll}
                     title="全选 / 取消全选"
@@ -1402,150 +1332,183 @@ export const RestockModule: React.FC = () => {
          </div>
       </div>
 
-      {/* Product Grid List */}
-      <div className="grid gap-4">
-         {filteredProducts.map((product) => {
-            const eco = calculateEconomics(product);
-            const isSelected = selectedIds.includes(product.id);
-            return (
-               <div 
-                 key={product.id} 
-                 onClick={() => setSelectedProduct(product)} 
-                 className={`bg-[#0F1218] border p-0 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg ${isSelected ? 'border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-white/5 hover:border-cyber-cyan/50'}`}
+      {/* Product Grid List or Empty State */}
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 border border-white/10 rounded-lg bg-white/5 animate-in fade-in">
+           {/* ... Empty state content ... */}
+           <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center border border-white/10 mb-6 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+             <Package size={32} className="text-gray-600" />
+           </div>
+           
+           <h3 className="text-xl font-bold text-white mb-2">
+             {searchTerm ? '未找到相关产品' : '暂无产品数据'}
+           </h3>
+           <p className="text-gray-500 font-mono text-sm mb-8 text-center max-w-md">
+             {searchTerm 
+               ? `系统未检索到包含 "${searchTerm}" 的 SKU 或物流单号。` 
+               : "数据库当前为空。可能是由于缓存清除或初始化未加载演示数据。"}
+           </p>
+
+           <div className="flex gap-4">
+             {searchTerm ? (
+               <button 
+                 onClick={() => setSearchTerm('')}
+                 className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded transition-colors"
                >
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSelected ? 'bg-cyber-cyan' : 'bg-gray-800 group-hover:bg-cyber-cyan'}`}></div>
-                  
-                  {/* Checkbox Overlay (Top Left) */}
-                  <div 
-                    className="absolute top-4 right-4 z-20"
-                    onClick={(e) => toggleSelection(e, product.id)}
-                  >
-                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black' : 'bg-black/50 border-gray-500 text-transparent hover:border-white'}`}>
-                        <Check size={14} strokeWidth={3} />
-                     </div>
-                  </div>
+                 清除搜索条件
+               </button>
+             ) : (
+               <>
+                 <button 
+                    onClick={() => setProducts(initialProducts)}
+                    className="px-6 py-2 bg-cyber-cyan/10 border border-cyber-cyan text-cyber-cyan font-bold hover:bg-cyber-cyan hover:text-black transition-all shadow-neon-cyan flex items-center gap-2"
+                 >
+                    <RefreshCw size={16} /> 恢复演示数据
+                 </button>
+                 <button 
+                    onClick={handleCreateNew}
+                    className="px-6 py-2 border border-white/20 text-white font-bold hover:bg-white hover:text-black transition-all flex items-center gap-2"
+                 >
+                    <Plus size={16} /> 新建空产品
+                 </button>
+               </>
+             )}
+           </div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+           {filteredProducts.map((product) => {
+              const eco = calculateEconomics(product);
+              const isSelected = selectedIds.includes(product.id);
+              return (
+                 <div 
+                   key={product.id} 
+                   onClick={() => setSelectedProduct(product)} 
+                   className={`bg-[#0F1218] border p-0 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg ${isSelected ? 'border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-white/5 hover:border-cyber-cyan/50'}`}
+                 >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSelected ? 'bg-cyber-cyan' : 'bg-gray-800 group-hover:bg-cyber-cyan'}`}></div>
+                    
+                    <div 
+                      className="absolute top-4 right-4 z-20"
+                      onClick={(e) => toggleSelection(e, product.id)}
+                    >
+                       <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black' : 'bg-black/50 border-gray-500 text-transparent hover:border-white'}`}>
+                          <Check size={14} strokeWidth={3} />
+                       </div>
+                    </div>
 
-                  {/* Top Row: Identity */}
-                  <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
-                     <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
-                        {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <Package className="m-auto text-gray-600"/>}
-                     </div>
-                     <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                           <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
-                           <div className="flex items-center gap-2 pr-8">
-                              {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
-                              <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
-                                 {product.logistics?.status === 'Plan' ? '计划中' : 
-                                  product.logistics?.status === 'Shipped' ? '已发货' :
-                                  product.logistics?.status === 'Customs' ? '清关中' : '已入库'}
-                              </span>
-                           </div>
-                        </div>
-                        
-                        {/* Critical Logistics Identifiers */}
-                        <div className="mt-2 flex flex-col gap-1.5">
-                           <div className="flex items-center gap-3 text-xs font-mono text-gray-500">
-                              <span className="text-cyber-cyan font-bold bg-cyber-cyan/10 px-1.5 py-0.5 rounded border border-cyber-cyan/20">{product.skuCode}</span>
-                              <span className="flex items-center gap-1 text-gray-400"><Warehouse size={12}/> {product.logistics?.warehouseDest || 'N/A'}</span>
-                           </div>
-                           
-                           <div className="flex items-center gap-4 text-[11px] font-mono text-gray-400">
-                              <div className="flex items-center gap-1.5 bg-blue-900/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300">
-                                 <FileText size={12}/> 
-                                 <span>{product.logistics?.inboundId || '待创建入库单'}</span>
-                              </div>
-                              <div 
-                                onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo)}
-                                className="flex items-center gap-1.5 bg-yellow-900/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
-                                title="点击前往 UPS 查询物流"
-                              >
-                                 <Truck size={12}/> 
-                                 <span>{product.logistics?.trackingNo || '待填追踪号'}</span>
-                              </div>
-                              
-                              {/* Sync Button (List Item) */}
-                              <div 
-                                onClick={(e) => handleSyncToLogistics(e, product)}
-                                className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-cyber-cyan/30 text-cyber-cyan cursor-pointer hover:bg-cyber-cyan hover:text-black transition-all group/sync"
-                                title="同步到物流追踪模块"
-                              >
-                                 <RefreshCw size={12} className="group-hover/sync:rotate-180 transition-transform" />
-                                 <span className="hidden lg:inline">同步</span>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
+                    <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
+                       <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
+                          {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <Package className="m-auto text-gray-600"/>}
+                       </div>
+                       <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                             <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
+                             <div className="flex items-center gap-2 pr-8">
+                                {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
+                                <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
+                                   {product.logistics?.status === 'Plan' ? '计划中' : 
+                                    product.logistics?.status === 'Shipped' ? '已发货' :
+                                    product.logistics?.status === 'Customs' ? '清关中' : '已入库'}
+                                </span>
+                             </div>
+                          </div>
+                          
+                          <div className="mt-2 flex flex-col gap-1.5">
+                             <div className="flex items-center gap-3 text-xs font-mono text-gray-500">
+                                <span className="text-cyber-cyan font-bold bg-cyber-cyan/10 px-1.5 py-0.5 rounded border border-cyber-cyan/20">{product.skuCode}</span>
+                                <span className="flex items-center gap-1 text-gray-400"><Warehouse size={12}/> {product.logistics?.warehouseDest || 'N/A'}</span>
+                             </div>
+                             
+                             <div className="flex items-center gap-4 text-[11px] font-mono text-gray-400">
+                                <div className="flex items-center gap-1.5 bg-blue-900/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300">
+                                   <FileText size={12}/> 
+                                   <span>{product.logistics?.inboundId || '待创建入库单'}</span>
+                                </div>
+                                <div 
+                                  onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo)}
+                                  className="flex items-center gap-1.5 bg-yellow-900/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
+                                  title="点击前往 UPS 查询物流"
+                                >
+                                   <Truck size={12}/> 
+                                   <span>{product.logistics?.trackingNo || '待填追踪号'}</span>
+                                </div>
+                                
+                                <div 
+                                  onClick={(e) => handleSyncToLogistics(e, product)}
+                                  className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-cyber-cyan/30 text-cyber-cyan cursor-pointer hover:bg-cyber-cyan hover:text-black transition-all group/sync"
+                                  title="同步到物流追踪模块"
+                                >
+                                   <RefreshCw size={12} className="group-hover/sync:rotate-180 transition-transform" />
+                                   <span className="hidden lg:inline">同步</span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
 
-                  {/* Middle Row: The Nuclear Dashboard (Dense Data) */}
-                  <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/40">
-                     
-                     {/* Column 1: Procurement Plan */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Package size={10} className="text-cyber-yellow"/> 建议备货 (Plan)
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className="text-lg font-bold text-white">{Math.ceil(eco.reorderQty)}</span>
-                           <span className="text-xs text-gray-500">pcs</span>
-                        </div>
-                        <div className="text-xs font-mono text-cyber-yellow mt-1">
-                           ¥{eco.capitalRequiredRMB.toLocaleString()} <span className="text-gray-600 opacity-50">所需资金</span>
-                        </div>
-                     </div>
+                    <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/40">
+                       <div className="p-3 hover:bg-white/5 transition-colors">
+                          <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                             <Package size={10} className="text-cyber-yellow"/> 建议备货 (Plan)
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                             <span className="text-lg font-bold text-white">{Math.ceil(eco.reorderQty)}</span>
+                             <span className="text-xs text-gray-500">pcs</span>
+                          </div>
+                          <div className="text-xs font-mono text-cyber-yellow mt-1">
+                             ¥{eco.capitalRequiredRMB.toLocaleString()} <span className="text-gray-600 opacity-50">所需资金</span>
+                          </div>
+                       </div>
 
-                     {/* Column 2: Freight Estimation */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Plane size={10} className="text-blue-400"/> 头程物流 (Freight)
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className="text-lg font-bold text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                           <span className="text-xs text-gray-500">总计</span>
-                        </div>
-                        <div className="text-xs font-mono text-blue-400 mt-1">
-                           ${eco.unitFreightUSD.toFixed(2)} <span className="text-gray-600 opacity-50">/ 件</span>
-                        </div>
-                     </div>
+                       <div className="p-3 hover:bg-white/5 transition-colors">
+                          <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                             <Plane size={10} className="text-blue-400"/> 头程物流 (Freight)
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                             <span className="text-lg font-bold text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                             <span className="text-xs text-gray-500">总计</span>
+                          </div>
+                          <div className="text-xs font-mono text-blue-400 mt-1">
+                             ${eco.unitFreightUSD.toFixed(2)} <span className="text-gray-600 opacity-50">/ 件</span>
+                          </div>
+                       </div>
 
-                     {/* Column 3: Profit Projection */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Wallet size={10} className="text-cyber-green"/> 预计利润 (Profit)
+                       <div className="p-3 hover:bg-white/5 transition-colors">
+                          <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
+                             <Wallet size={10} className="text-cyber-green"/> 预计利润 (Profit)
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                             <span className={`text-lg font-bold ${eco.totalProfitBatchUSD > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
+                                ${eco.totalProfitBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                             </span>
+                             <span className="text-xs text-gray-500">总计</span>
+                          </div>
+                          <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between">
+                             <span>${eco.netProfit.toFixed(2)}/件</span>
+                             <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
+                          </div>
+                       </div>
+                    </div>
+                    
+                    <div className="px-4 py-2 bg-[#0c0c0c] border-t border-white/5 flex justify-between items-center">
+                        <div className="text-[10px] text-gray-600 font-mono">
+                           生产周期: {product.supplier?.leadTime || 0} 天
                         </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className={`text-lg font-bold ${eco.totalProfitBatchUSD > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
-                              ${eco.totalProfitBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}
-                           </span>
-                           <span className="text-xs text-gray-500">总计</span>
+                        <div className="flex gap-2 pr-8">
+                           <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                             <GitFork size={14}/>
+                           </button>
+                           <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
+                             <Edit2 size={14}/>
+                           </button>
                         </div>
-                        <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between">
-                           <span>${eco.netProfit.toFixed(2)}/件</span>
-                           <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
-                        </div>
-                     </div>
-
-                  </div>
-                  
-                  {/* Bottom Action Strip */}
-                  <div className="px-4 py-2 bg-[#0c0c0c] border-t border-white/5 flex justify-between items-center">
-                      <div className="text-[10px] text-gray-600 font-mono">
-                         生产周期: {product.supplier?.leadTime || 0} 天
-                      </div>
-                      <div className="flex gap-2 pr-8">
-                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
-                           <GitFork size={14}/>
-                         </button>
-                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
-                           <Edit2 size={14}/>
-                         </button>
-                      </div>
-                  </div>
-               </div>
-            );
-         })}
-      </div>
+                    </div>
+                 </div>
+              );
+           })}
+        </div>
+      )}
     </div>
   );
 };
