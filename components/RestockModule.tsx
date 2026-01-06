@@ -105,31 +105,6 @@ const initialProducts: Product[] = [
         miscCostUSD: 0.50 
     },
     inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
-  },
-  { 
-    id: '2', 
-    skuCode: 'K7500-MECH', 
-    productName: 'K7500 机械键盘 (青轴)', 
-    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
-    variants: [],
-    supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
-    packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
-    financials: { 
-        sellingPriceUSD: 69.99, 
-        referralFeeRate: 0.08, 
-        transactionFeeRate: 0.029, 
-        fixedTransactionFeeUSD: 0.3, 
-        affiliateRate: 0.15, 
-        fulfillmentFeeUSD: 9.20, 
-        outboundHandlingFeeUSD: 2.00, // Added
-        storageFeeUSD: 0.50,          // Added
-        adCostUSD: 15.00, 
-        targetRoas: 4.0, 
-        returnRate: 0.08,             // Added
-        miscCostUSD: 1.00 
-    },
-    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
   }
 ];
 
@@ -440,42 +415,59 @@ export const RestockModule: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  // --- Helper: Deep Search for Arrays ---
-  const findDataArray = (obj: any): any[] | null => {
-    if (Array.isArray(obj)) return obj;
-    if (typeof obj !== 'object' || obj === null) return null;
+  // --- Enhanced Helper: Smart Deep Search for Data Array ---
+  const findBestDataArray = (obj: any): any[] | null => {
+    const candidates: { array: any[], score: number }[] = [];
 
-    // Check specific known keys
-    if (Array.isArray(obj.data)) return obj.data;
-    if (obj.data && Array.isArray(obj.data.restock)) return obj.data.restock;
-    if (Array.isArray(obj.restock)) return obj.restock;
-    if (Array.isArray(obj.products)) return obj.products;
-    
-    // Search deeper (Level 1)
-    for (const key in obj) {
-        if (Array.isArray(obj[key])) {
-            const arr = obj[key];
-            // Heuristic: Check if array items look like products (have ID, SKU, Name)
-            if (arr.length > 0) {
-               const first = arr[0];
-               if (first && (typeof first === 'object')) {
-                   // Accept any object array as potential data candidate
-                   return arr;
-               }
-            }
-        }
-    }
-    
-    // Try parsing stringified JSON keys
-    for (const key in obj) {
-        if (typeof obj[key] === 'string') {
-            try {
-                const parsed = JSON.parse(obj[key]);
-                if (Array.isArray(parsed)) return parsed;
-            } catch(e) {}
-        }
-    }
+    const analyzeArray = (arr: any[]) => {
+       if (!Array.isArray(arr) || arr.length === 0) return 0;
+       let score = 0;
+       // Check first few items to estimate quality
+       const sample = arr.slice(0, 5); 
+       for (const item of sample) {
+          if (typeof item === 'object' && item !== null) {
+             score += 1; // It's a list of objects
+             const keys = Object.keys(item).join(' ').toLowerCase();
+             // Bonus for relevant keywords
+             if (keys.includes('sku') || keys.includes('name') || keys.includes('title') || keys.includes('id')) score += 5;
+             if (keys.includes('price') || keys.includes('cost') || keys.includes('image')) score += 2;
+          }
+       }
+       return score + (arr.length * 0.1); // Tie-breaker: longer arrays preferred slightly
+    };
 
+    const traverse = (node: any, depth: number) => {
+       if (depth > 5) return; // Prevent stack overflow on massive deeply nested JSONs
+       if (typeof node !== 'object' || node === null) return;
+
+       if (Array.isArray(node)) {
+          const score = analyzeArray(node);
+          if (score > 0) candidates.push({ array: node, score });
+          // Don't traverse inside arrays of objects for other arrays, usually data is leaf-ish
+          return; 
+       }
+
+       for (const key in node) {
+          // Special handling for stringified JSON strings
+          if (typeof node[key] === 'string') {
+             if (node[key].startsWith('[') || node[key].startsWith('{')) {
+                try {
+                   const parsed = JSON.parse(node[key]);
+                   traverse(parsed, depth + 1);
+                } catch(e) {}
+             }
+          } else {
+             traverse(node[key], depth + 1);
+          }
+       }
+    };
+
+    traverse(obj, 0);
+
+    // Sort by score desc
+    candidates.sort((a, b) => b.score - a.score);
+    
+    if (candidates.length > 0) return candidates[0].array;
     return null;
   };
 
@@ -495,22 +487,22 @@ export const RestockModule: React.FC = () => {
             return;
         }
 
-        // Deep Search for valid array
-        const targetData = findDataArray(json);
+        // Intelligent Search for the BEST array
+        const targetData = findBestDataArray(json);
         
-        if (Array.isArray(targetData)) {
+        if (Array.isArray(targetData) && targetData.length > 0) {
           // Normalize data structure with Smart Mapping
           const normalizedData = targetData.map(item => sanitizeProduct(item));
           setProducts(normalizedData);
-          alert(`系统恢复成功！\n\n✅ 成功导入并映射 ${normalizedData.length} 个 SKU。\n已自动修复字段映射（图片、成本、售价、单号）。`);
+          alert(`✅ 系统恢复成功！\n\n成功导入 ${normalizedData.length} 个产品 SKU。\n智能字段映射已应用 (自动修复图片、价格、单号)。`);
         } else {
           console.error("Import failed. Structure:", json);
           const keys = typeof json === 'object' ? Object.keys(json).join(', ') : 'unknown';
-          alert(`错误：无法在文件中找到有效的数据数组。\n\n检测到的文件包含键值: [${keys}]\n请确认您上传的是正确的产品列表备份。`);
+          alert(`⚠️ 导入中断：虽然文件格式正确，但未能从中找到有效的产品列表数据。\n\n系统扫描了文件中的所有数组，但没有发现符合“产品数据”特征的内容。\n\n检测到的根键值: [${keys}]`);
         }
       } catch (err) {
         console.error(err);
-        alert("严重错误：文件解析过程中发生未知错误。");
+        alert("严重错误：文件解析过程中发生未知错误。请检查控制台日志。");
       }
     };
     reader.readAsText(file);
