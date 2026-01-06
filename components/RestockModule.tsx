@@ -136,7 +136,6 @@ const initialProducts: Product[] = [
   }
 ];
 
-// ... (cleanNumber and sanitizeProduct functions retained) ...
 const cleanNumber = (val: any): number => {
     if (typeof val === 'number') return val;
     if (val === undefined || val === null) return 0;
@@ -789,7 +788,7 @@ export const RestockModule: React.FC = () => {
                                    <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-cyber text-cyber-yellow border-cyber-yellow/30" />
                                 </div>
                                 <div>
-                                   <label className="lbl">起订量 (MOQ)</label>
+                                   <label className="lbl">备货数量</label>
                                    <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-cyber" />
                                 </div>
                                 <div>

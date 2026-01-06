@@ -49,6 +49,7 @@ export interface Shipment {
     customsDuty: number;
     insurance: number;
     misc: number;
+    manualTotal?: number; // Added: Allow Manual Override of Total Cost
   };
   
   milestones: Milestone[];
@@ -255,7 +256,12 @@ export const LogisticsModule: React.FC = () => {
   const renderEditModal = () => {
     if (!selectedShipment) return null;
 
-    const totalCost = (selectedShipment.fees.freightCost + selectedShipment.fees.customsDuty + selectedShipment.fees.insurance + selectedShipment.fees.misc);
+    // Calculate dynamic totals
+    const calculatedSum = selectedShipment.fees.freightCost + selectedShipment.fees.customsDuty + selectedShipment.fees.insurance + selectedShipment.fees.misc;
+    // Prefer manual override if present
+    const finalTotal = (selectedShipment.fees.manualTotal && selectedShipment.fees.manualTotal > 0) 
+        ? selectedShipment.fees.manualTotal 
+        : calculatedSum;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -432,7 +438,7 @@ export const LogisticsModule: React.FC = () => {
                                         type="number" 
                                         value={selectedShipment.fees.freightCost} 
                                         onChange={(e) => handleUpdate('fees.freightCost', parseFloat(e.target.value))}
-                                        className="bg-black border border-white/20 w-24 text-right p-1 text-white"
+                                        className={`bg-black border border-white/20 w-24 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
                                     />
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -441,12 +447,54 @@ export const LogisticsModule: React.FC = () => {
                                         type="number" 
                                         value={selectedShipment.fees.customsDuty} 
                                         onChange={(e) => handleUpdate('fees.customsDuty', parseFloat(e.target.value))}
-                                        className="bg-black border border-white/20 w-24 text-right p-1 text-white"
+                                        className={`bg-black border border-white/20 w-24 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
                                     />
                                 </div>
-                                <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                                    <span className="font-bold text-white">总费用</span>
-                                    <span className="font-bold text-cyber-green text-lg">${totalCost.toFixed(2)}</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-400">保险 & 杂费</span>
+                                    <div className="flex gap-1">
+                                        <input 
+                                            type="number" 
+                                            value={selectedShipment.fees.insurance} 
+                                            onChange={(e) => handleUpdate('fees.insurance', parseFloat(e.target.value))}
+                                            className={`bg-black border border-white/20 w-16 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
+                                            placeholder="Ins"
+                                        />
+                                        <input 
+                                            type="number" 
+                                            value={selectedShipment.fees.misc} 
+                                            onChange={(e) => handleUpdate('fees.misc', parseFloat(e.target.value))}
+                                            className={`bg-black border border-white/20 w-16 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
+                                            placeholder="Misc"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Manual Total Override */}
+                                <div className="w-full h-[1px] bg-white/10 my-4"></div>
+                                
+                                <div className="flex justify-between items-center bg-white/5 p-2 rounded border border-white/10">
+                                    <div className="flex flex-col">
+                                        <span className="text-cyber-yellow font-bold text-xs">总包干费用 (All-in Total)</span>
+                                        <span className="text-[9px] text-gray-500">填写即覆盖分项汇总</span>
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        value={selectedShipment.fees.manualTotal || ''} 
+                                        onChange={(e) => handleUpdate('fees.manualTotal', parseFloat(e.target.value))}
+                                        className="bg-black border border-cyber-yellow/50 w-28 text-right p-2 text-cyber-yellow font-bold text-lg"
+                                        placeholder="Optional"
+                                    />
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2">
+                                    <span className="font-bold text-white">最终核算成本</span>
+                                    <div className="text-right">
+                                        <span className="font-bold text-cyber-green text-lg">${finalTotal.toFixed(2)}</span>
+                                        {selectedShipment.fees.manualTotal ? (
+                                            <div className="text-[10px] text-gray-500 line-through decoration-gray-500">分项: ${calculatedSum.toFixed(2)}</div>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </div>
                         </div>
