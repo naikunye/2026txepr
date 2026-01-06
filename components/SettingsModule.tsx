@@ -14,51 +14,66 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPwd, setShowPwd] = useState(false);
   const [serverStatus, setServerStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
-  const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS Terminal initialized...', '> Waiting for connection...']);
+  const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS Terminal initialized...', '> System ready.']);
 
   const addLog = (msg: string) => {
-    setConsoleLogs(prev => [...prev.slice(-6), msg]);
+    setConsoleLogs(prev => [...prev.slice(-8), msg]);
+  };
+
+  // --- Helper: Safely Parse JSON from Storage ---
+  const getStorageData = (key: string) => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      // Try to parse it to see if it's valid JSON
+      return JSON.parse(raw);
+    } catch (e) {
+      // If parsing fails, it might be a simple string (like theme='cyber')
+      return raw;
+    }
   };
 
   // --- Handlers ---
 
   const handleExport = () => {
     try {
-      // Check if data actually exists before export to warn user
-      const logisticsData = localStorage.getItem('AERO_LOGISTICS_DATA');
-      const financeData = localStorage.getItem('AERO_FINANCE_DATA');
+      addLog('> Starting FULL SYSTEM DUMP...');
       
-      if (!logisticsData && !financeData) {
-         addLog('> WARN: Detecting empty local storage.');
-         alert('⚠️ 注意：检测到本地数据为空。\n\n如果您刚打开系统，请先点击访问一下【物流】、【财务】等模块，待数据初始化后再进行导出。否则导出的备份将是空的。');
-      }
-
+      // Clean Export: We parse the strings back to objects so the JSON file is clean
       const data = {
         meta: {
           exportedAt: new Date().toISOString(),
-          version: '2.2.0',
+          version: '3.0.0', // Bumped version
           user: 'Admin_01'
         },
         data: {
-          logistics: logisticsData,
-          finance: financeData,
-          restock: localStorage.getItem('AERO_RESTOCK_DATA'),
-          theme: localStorage.getItem('AERO_THEME')
+          logistics: getStorageData('AERO_LOGISTICS_DATA'),
+          finance: getStorageData('AERO_FINANCE_DATA'),
+          restock: getStorageData('AERO_RESTOCK_DATA'),
+          theme: localStorage.getItem('AERO_THEME') || 'cyber',
+          // Add future modules here
+          tasks: getStorageData('AERO_TASKS_DATA'), 
         }
       };
+
+      // Check if critical data is empty
+      if (!data.data.logistics && !data.data.finance && !data.data.restock) {
+         addLog('> WARNING: Primary datasets are empty.');
+         alert('⚠️ 警告：检测到关键业务数据（物流/财务/备货）为空。\n导出文件将不包含业务记录。');
+      }
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `AERO_OS_FULL_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `AERO_OS_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      addLog('> FULL_DUMP: Export sequence complete.');
+      addLog('> EXPORT SUCCESSFUL.');
     } catch (e) {
-      addLog('> ERROR: Data export failed.');
+      addLog('> ERROR: Export failed.');
       console.error(e);
     }
   };
@@ -67,7 +82,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     const file = e.target.files?.[0];
     if (!file) return;
     
-    addLog(`> Reading: ${file.name}...`);
+    addLog(`> Analyzing file: ${file.name}...`);
     
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -75,71 +90,87 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         const rawContent = ev.target?.result as string;
         const json = JSON.parse(rawContent);
 
-        // 1. Check for Array format (Single Module Export)
+        // 1. Safety Check: Is it an Array? (Single Module Export)
         if (Array.isArray(json)) {
-            addLog('> ERROR: Format Mismatch (Array).');
-            alert('导入失败：\n\n您上传的是【单模块数据】，请前往对应模块（如智能备货）进行导入。\n此处仅支持系统级全量备份文件。');
+            addLog('> ERR: Detected Array format.');
+            alert('导入失败：\n该文件是单模块列表（Array），请前往“智能备货”等特定模块进行导入。此处仅接受系统级全量备份。');
             return;
         }
 
+        // 2. Resolve Payload (Handle wrapped structure vs flat)
         const payload = json.data || json;
-        const keysFound = Object.keys(payload);
-        addLog(`> Keys found: [${keysFound.join(', ')}]`);
+        const keysInFile = Object.keys(payload);
+        addLog(`> File Structure Keys: [${keysInFile.join(', ')}]`);
 
         let restoreCount = 0;
-        const restoredModules: string[] = [];
+        const logs: string[] = [];
 
-        // Definition of restorable modules
-        const targets = [
-            { key: 'logistics', storage: 'AERO_LOGISTICS_DATA' },
-            { key: 'finance', storage: 'AERO_FINANCE_DATA' },
-            { key: 'restock', storage: 'AERO_RESTOCK_DATA' },
-            { key: 'theme', storage: 'AERO_THEME' }
-        ];
+        // 3. Robust Restore Map
+        const restoreMap: Record<string, string> = {
+            'logistics': 'AERO_LOGISTICS_DATA',
+            'finance': 'AERO_FINANCE_DATA',
+            'restock': 'AERO_RESTOCK_DATA',
+            'theme': 'AERO_THEME',
+            'tasks': 'AERO_TASKS_DATA'
+        };
 
-        targets.forEach(({ key, storage }) => {
+        // 4. Execution Loop
+        Object.keys(restoreMap).forEach(key => {
             if (payload.hasOwnProperty(key)) {
-                const val = payload[key];
-                
-                // Diagnostic log for nulls
-                if (val === null || val === undefined) {
-                    addLog(`> SKIP: '${key}' is null in file.`);
+                const rawVal = payload[key];
+                const storageKey = restoreMap[key];
+
+                // Check for explicit null/undefined in file
+                if (rawVal === null || rawVal === undefined) {
+                    addLog(`> SKIP: ${key} is null.`);
                     return;
                 }
 
-                const valueToStore = typeof val === 'string' ? val : JSON.stringify(val);
-                
-                // Filter out literal "null" strings
-                if (valueToStore === 'null' || valueToStore === 'undefined' || valueToStore === '[]') {
-                    addLog(`> SKIP: '${key}' is empty/null.`);
+                // Determine how to store it
+                let valueToStore: string;
+
+                if (typeof rawVal === 'object') {
+                    // New Format: It's a real JS Object/Array, needs stringify for localStorage
+                    valueToStore = JSON.stringify(rawVal);
+                    addLog(`> PARSE: ${key} -> Object detected.`);
+                } else {
+                    // Old Format: It's likely already a string
+                    valueToStore = String(rawVal);
+                    addLog(`> PARSE: ${key} -> String detected.`);
+                }
+
+                // Final sanity check before writing
+                if (valueToStore === 'null' || valueToStore === 'undefined') {
+                    addLog(`> SKIP: ${key} converted to null.`);
                     return;
                 }
 
-                localStorage.setItem(storage, valueToStore);
-                restoredModules.push(key);
+                // EXECUTE WRITE
+                localStorage.setItem(storageKey, valueToStore);
                 restoreCount++;
-                addLog(`> RESTORE: ${key} -> OK`);
+                logs.push(key);
             }
         });
 
+        // 5. Final Report
         if (restoreCount > 0) {
-            addLog(`> DONE: ${restoreCount} modules updated.`);
-            if (confirm(`导入成功！\n\n已恢复以下模块数据：\n${restoredModules.join(', ')}\n\n是否立即刷新页面以加载数据？`)) {
+            addLog(`> SUCCESS: Restored ${restoreCount} modules.`);
+            if (confirm(`✅ 导入成功！\n\n已覆盖/更新以下模块：\n${logs.join(', ')}\n\n点击“确定”刷新页面以加载数据。`)) {
               window.location.reload();
             }
         } else {
-            addLog('> WARN: 0 items imported.');
-            alert(`导入完成，但没有数据被写入 (0 items)。\n\n原因诊断：\n备份文件中的数据字段为空 (null)。\n\n这通常是因为导出时未访问过相关模块导致缓存未建立。`);
+            addLog('> FAILED: 0 items imported.');
+            alert(`导入完成，但没有数据被写入。\n\n诊断报告：\n1. 文件中包含的 Key: ${keysInFile.join(', ')}\n2. 匹配到的 Key: 0\n3. 可能原因：备份文件中的数据字段为 null，或者文件结构不符合 AERO.OS 标准。`);
         }
 
       } catch (err) {
-        addLog('> FATAL: JSON Parse Error.');
-        alert('文件解析失败：文件格式错误或已损坏。');
+        addLog('> CRITICAL: JSON Parse Error.');
+        alert('文件严重损坏或格式错误，无法解析。');
         console.error(err);
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
+    e.target.value = ''; // Reset input
   };
 
   const handleTestConnection = () => {
@@ -165,11 +196,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             <p className="text-cyber-dim mt-1 font-mono text-xs">CONFIGURATION // SYSTEM CONTROL</p>
          </div>
          <div className="flex gap-2">
-            <button className="px-4 py-2 border border-cyber-border text-cyber-text text-xs font-bold hover:bg-cyber-text hover:text-cyber-bg transition-all">
-               重置默认
+            <button 
+                onClick={() => {
+                    if(confirm('确定要清空所有本地缓存数据吗？此操作不可逆。')) {
+                        localStorage.clear();
+                        window.location.reload();
+                    }
+                }}
+                className="px-4 py-2 border border-red-900 text-red-500 text-xs font-bold hover:bg-red-900 hover:text-white transition-all"
+            >
+               FACTORY RESET (清空)
             </button>
             <button className="px-4 py-2 bg-cyber-cyan text-black text-xs font-bold hover:bg-white transition-all shadow-neon-cyan flex items-center gap-2">
-               <Save size={14} /> 保存更改
+               <Save size={14} /> 保存配置
             </button>
          </div>
       </div>
@@ -242,7 +281,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                <div className="bg-cyber-bg p-4 rounded border border-cyber-border flex items-center justify-between">
                   <div>
                      <div className="text-cyber-text font-bold text-sm">数据恢复/导入</div>
-                     <div className="text-cyber-dim text-xs mt-1">导入后系统将自动刷新以应用数据</div>
+                     <div className="text-cyber-dim text-xs mt-1">支持 V2.0/V3.0 格式，导入后自动刷新</div>
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
                   <button 
