@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, MoreVertical, Calendar, ArrowRight, ArrowLeft, Trash2, CheckCircle } from 'lucide-react';
 
 interface Task { id: string; title: string; status: 'todo' | 'progress' | 'done'; tag: string; sub: string; user: string; date: string; }
@@ -8,7 +8,21 @@ const initialTasks: Task[] = [
 ];
 
 export const TaskModule: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  // Initialize with Persistence
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    try {
+      const saved = localStorage.getItem('AERO_TASKS_DATA');
+      return saved ? JSON.parse(saved) : initialTasks;
+    } catch (e) {
+      return initialTasks;
+    }
+  });
+
+  // Save on change
+  useEffect(() => {
+    localStorage.setItem('AERO_TASKS_DATA', JSON.stringify(tasks));
+  }, [tasks]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showAddInput, setShowAddInput] = useState<string | null>(null);
@@ -19,6 +33,12 @@ export const TaskModule: React.FC = () => {
     if (!newTaskTitle) return;
     setTasks([...tasks, { id: Date.now().toString(), title: newTaskTitle, status, tag: 'NEW', sub: 'Gen', user: 'Me', date: 'Today' }]);
     setNewTaskTitle(''); setShowAddInput(null);
+  };
+
+  const deleteTask = (id: string) => {
+      if(confirm('Delete task?')) {
+          setTasks(tasks.filter(t => t.id !== id));
+      }
   };
 
   const Column = ({ status, title, color, border }: { status: string, title: string, color: string, border: string }) => (
@@ -56,7 +76,12 @@ export const TaskModule: React.FC = () => {
                    <span className={`text-[10px] font-bold px-1 py-0.5 border ${task.tag === 'HIGH' ? 'border-cyber-pink text-cyber-pink' : 'border-cyber-cyan text-cyber-cyan'}`}>
                       {task.tag}
                    </span>
-                   <button className="text-gray-600 hover:text-white opacity-0 group-hover:opacity-100"><MoreVertical size={14} /></button>
+                   <button 
+                    onClick={() => deleteTask(task.id)}
+                    className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                   >
+                       <Trash2 size={14} />
+                   </button>
                 </div>
                 <div className="text-sm font-bold text-white mb-3">{task.title}</div>
                 
