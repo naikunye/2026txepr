@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon } from 'lucide-react';
+import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon, CheckSquare, Square, Check } from 'lucide-react';
 
 // --- World-Class ERP Data Model ---
 interface Variant {
@@ -284,6 +284,9 @@ export const RestockModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'supply' | 'logistics' | 'finance'>('finance'); // Modal tabs
   const [exchangeRate, setExchangeRate] = useState(7.25);
   
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
   // File Import Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -292,12 +295,48 @@ export const RestockModule: React.FC = () => {
   const [variantName, setVariantName] = useState('');
   const [variantQty, setVariantQty] = useState('');
 
+  // --- Filtered Products Logic (Calculated before render) ---
+  const filteredProducts = products.filter(p => 
+      p && (
+         (p.skuCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+         (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
+
   // --- Logic Helpers ---
   const handleTrackingClick = (e: React.MouseEvent, trackingNo?: string) => {
     e.stopPropagation();
     if (trackingNo && trackingNo !== '待填追踪号') {
         window.open(`https://www.ups.com/track?loc=zh_CN&tracknum=${trackingNo}`, '_blank');
     }
+  };
+
+  // --- Batch Operations ---
+  const toggleSelection = (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      if (selectedIds.includes(id)) {
+          setSelectedIds(selectedIds.filter(sid => sid !== id));
+      } else {
+          setSelectedIds([...selectedIds, id]);
+      }
+  };
+
+  const toggleSelectAll = () => {
+      if (selectedIds.length === filteredProducts.length && filteredProducts.length > 0) {
+          setSelectedIds([]);
+      } else {
+          setSelectedIds(filteredProducts.map(p => p.id));
+      }
+  };
+
+  const handleBatchDelete = () => {
+      if (selectedIds.length === 0) return;
+      if (confirm(`⚠️ 高危操作确认\n\n您确定要永久删除选中的 ${selectedIds.length} 个 SKU 吗？\n删除后不可恢复。`)) {
+          const remaining = products.filter(p => !selectedIds.includes(p.id));
+          setProducts(remaining);
+          setSelectedIds([]);
+          alert("删除成功。");
+      }
   };
 
   // --- SYNC TO LOGISTICS LOGIC ---
@@ -566,6 +605,23 @@ export const RestockModule: React.FC = () => {
       const updatedProduct = { ...selectedProduct, variants: updatedVariants };
       setSelectedProduct(updatedProduct);
       setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+  };
+
+  const handleCreateNew = () => {
+      const newProduct: Product = {
+          id: Date.now().toString(),
+          skuCode: 'NEW-SKU-001',
+          productName: '新建产品 (New Product)',
+          image: '',
+          variants: [],
+          supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
+          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan' },
+          packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
+          financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
+          inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
+      };
+      setProducts([newProduct, ...products]);
+      setSelectedProduct(newProduct);
   };
 
   const renderDetailModal = () => {
@@ -1192,15 +1248,36 @@ export const RestockModule: React.FC = () => {
             </p>
          </div>
          <div className="flex gap-4">
-            <div className="relative">
-               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-               <input 
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="搜索 SKU, 追踪号, 入库单..." 
-                  className="bg-black border border-white/20 pl-10 pr-4 py-2 text-sm text-white focus:border-cyber-cyan outline-none font-mono w-72"
-               />
-            </div>
+            {/* Batch Action Toolbar */}
+            {selectedIds.length > 0 ? (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right duration-300">
+                    <div className="px-4 py-2 bg-red-900/30 border border-red-500/50 text-red-500 rounded text-sm font-bold flex items-center gap-2">
+                        <span>已选 {selectedIds.length} 项</span>
+                    </div>
+                    <button 
+                        onClick={handleBatchDelete}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center gap-2 text-sm"
+                    >
+                        <Trash2 size={16} /> 批量删除
+                    </button>
+                    <button 
+                        onClick={() => setSelectedIds([])}
+                        className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white rounded text-sm font-bold"
+                    >
+                        取消
+                    </button>
+                </div>
+            ) : (
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                    <input 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="搜索 SKU, 追踪号, 入库单..." 
+                        className="bg-black border border-white/20 pl-10 pr-4 py-2 text-sm text-white focus:border-cyber-cyan outline-none font-mono w-72"
+                    />
+                </div>
+            )}
 
             {/* Hidden Input for File Upload */}
             <input 
@@ -1212,23 +1289,35 @@ export const RestockModule: React.FC = () => {
             />
 
             <div className="flex items-center gap-2 bg-black border border-white/20 p-1 rounded">
-               <button 
-                  onClick={handleExportData}
-                  title="导出数据备份 (Export JSON)"
-                  className="p-2 text-gray-400 hover:text-cyber-cyan hover:bg-white/10 rounded transition-colors"
-               >
-                  <Download size={16} />
-               </button>
-               <button 
-                  onClick={handleImportClick}
-                  title="导入数据 (Import JSON)"
-                  className="p-2 text-gray-400 hover:text-cyber-purple hover:bg-white/10 rounded transition-colors"
-               >
-                  <Upload size={16} />
-               </button>
+                {/* Select All Toggle */}
+                <button
+                    onClick={toggleSelectAll}
+                    title="全选 / 取消全选"
+                    className={`p-2 rounded transition-colors ${selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? 'text-cyber-cyan bg-cyber-cyan/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                >
+                    {selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                <div className="w-[1px] h-4 bg-gray-700 mx-1"></div>
+                <button 
+                    onClick={handleExportData}
+                    title="导出数据备份 (Export JSON)"
+                    className="p-2 text-gray-400 hover:text-cyber-cyan hover:bg-white/10 rounded transition-colors"
+                >
+                    <Download size={16} />
+                </button>
+                <button 
+                    onClick={handleImportClick}
+                    title="导入数据 (Import JSON)"
+                    className="p-2 text-gray-400 hover:text-cyber-purple hover:bg-white/10 rounded transition-colors"
+                >
+                    <Upload size={16} />
+                </button>
             </div>
 
-            <button className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan">
+            <button 
+                onClick={handleCreateNew}
+                className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan"
+            >
                <Plus size={16} /> 新建产品
             </button>
          </div>
@@ -1236,17 +1325,27 @@ export const RestockModule: React.FC = () => {
 
       {/* Product Grid List */}
       <div className="grid gap-4">
-         {products.filter(p => 
-            p && (
-               (p.skuCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-               (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
-            )
-         ).map((product) => {
+         {filteredProducts.map((product) => {
             const eco = calculateEconomics(product);
+            const isSelected = selectedIds.includes(product.id);
             return (
-               <div key={product.id} onClick={() => setSelectedProduct(product)} className="bg-[#0F1218] border border-white/5 p-0 hover:border-cyber-cyan/50 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-800 group-hover:bg-cyber-cyan transition-colors"></div>
+               <div 
+                 key={product.id} 
+                 onClick={() => setSelectedProduct(product)} 
+                 className={`bg-[#0F1218] border p-0 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg ${isSelected ? 'border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-white/5 hover:border-cyber-cyan/50'}`}
+               >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSelected ? 'bg-cyber-cyan' : 'bg-gray-800 group-hover:bg-cyber-cyan'}`}></div>
                   
+                  {/* Checkbox Overlay (Top Left) */}
+                  <div 
+                    className="absolute top-4 right-4 z-20"
+                    onClick={(e) => toggleSelection(e, product.id)}
+                  >
+                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black' : 'bg-black/50 border-gray-500 text-transparent hover:border-white'}`}>
+                        <Check size={14} strokeWidth={3} />
+                     </div>
+                  </div>
+
                   {/* Top Row: Identity */}
                   <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
                      <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
@@ -1255,7 +1354,7 @@ export const RestockModule: React.FC = () => {
                      <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                            <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
-                           <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-2 pr-8">
                               {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
                               <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
                                  {product.logistics?.status === 'Plan' ? '计划中' : 
@@ -1355,7 +1454,7 @@ export const RestockModule: React.FC = () => {
                       <div className="text-[10px] text-gray-600 font-mono">
                          生产周期: {product.supplier?.leadTime || 0} 天
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pr-8">
                          <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
                            <GitFork size={14}/>
                          </button>
