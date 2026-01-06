@@ -168,7 +168,12 @@ const sanitizeProduct = (p: any): Product => {
     // 1. Try exact matches first
     for (const k of keys) {
       if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
-        return type === 'number' ? Number(obj[k]) : String(obj[k]);
+        const val = obj[k];
+        if (type === 'number') {
+            const num = Number(val);
+            return isNaN(num) ? defaultVal : num;
+        }
+        return String(val);
       }
     }
     
@@ -178,7 +183,12 @@ const sanitizeProduct = (p: any): Product => {
        const lowerK = k.toLowerCase();
        const foundKey = objKeys.find(ok => ok.toLowerCase() === lowerK);
        if (foundKey && obj[foundKey] !== undefined && obj[foundKey] !== null && obj[foundKey] !== '') {
-          return type === 'number' ? Number(obj[foundKey]) : String(obj[foundKey]);
+          const val = obj[foundKey];
+          if (type === 'number') {
+              const num = Number(val);
+              return isNaN(num) ? defaultVal : num;
+          }
+          return String(val);
        }
     }
 
@@ -193,30 +203,40 @@ const sanitizeProduct = (p: any): Product => {
   const pak = root.packing || {};
   const inv = root.inventory || {};
 
+  // -- Helper for Percentage --
+  const getPercent = (obj: any, keys: string[], defaultVal: number) => {
+      let val = getVal(obj, keys, 'number', defaultVal);
+      // Heuristic: If value > 1, assume it's a whole number (e.g. 15 for 15%), convert to decimal 0.15
+      if (val > 1) return val / 100;
+      return val;
+  };
+
   // Expanded Aliases for Compatibility
   return {
     id: String(root.id || Date.now() + Math.random()),
     skuCode: getVal(root, ['skuCode', 'sku', 'SKU', 'item_no', 'Product ID', 'Item Number'], 'string', 'UNKNOWN-SKU'),
-    productName: getVal(root, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description'], 'string', 'New Product'),
+    productName: getVal(root, ['productName', 'name', 'title', 'desc', 'Product Name', 'Description', '中文名称', '产品名称'], 'string', 'New Product'),
     
     // Image Fix: Added 'thumbnail', 'Photo', 'Picture'
-    image: getVal(root, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Image', 'Picture', 'thumbnail'], 'string', ''),
+    image: getVal(root, ['image', 'img', 'thumb', 'pic', 'url', 'imageUrl', 'Photo', 'Image', 'Picture', 'thumbnail', '图片', '缩略图'], 'string', ''),
     
     variants: Array.isArray(root.variants) ? root.variants : [],
 
     supplier: {
-      name: getVal(sup, ['name', 'supplierName', 'vendor', 'Supplier', 'Factory'], 'string', ''),
-      link: getVal(sup, ['link', 'url', '1688', 'Link'], 'string', ''),
-      moq: getVal(sup, ['moq', 'MOQ'], 'number', 0),
-      // Cost Fix: Added 'Purchase Price', 'Cost RMB'
-      unitPriceRMB: getVal(sup, ['unitPriceRMB', 'price', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'RMB Cost', 'factory_price'], 'number', 
-                    getVal(root, ['cost', 'purchasePrice', 'Cost'], 'number', 0)), 
-      leadTime: getVal(sup, ['leadTime', 'productionTime', 'Lead Time'], 'number', 0),
-      paymentTerms: getVal(sup, ['paymentTerms', 'Payment Terms'], 'string', ''),
+      name: getVal(sup, ['name', 'supplierName', 'vendor', 'Supplier', 'Factory', '供应商'], 'string', ''),
+      link: getVal(sup, ['link', 'url', '1688', 'Link', '链接'], 'string', ''),
+      moq: getVal(sup, ['moq', 'MOQ', '起订量'], 'number', 0),
+      
+      // COST FIX: Added Chinese aliases
+      unitPriceRMB: getVal(sup, ['unitPriceRMB', 'price', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'RMB Cost', 'factory_price', '采购价', '成本', '含税价', '单价', 'RMB', 'cost_price'], 'number', 
+                    getVal(root, ['cost', 'purchasePrice', 'Cost', '采购价', '成本', '单价', 'Cost(RMB)'], 'number', 0)), 
+      
+      leadTime: getVal(sup, ['leadTime', 'productionTime', 'Lead Time', '交期', '生产周期'], 'number', 0),
+      paymentTerms: getVal(sup, ['paymentTerms', 'Payment Terms', '付款方式'], 'string', ''),
     },
 
     logistics: {
-      // INBOUND ID FIX: Added Lingxing variants (shipment_name, fba_shipment_id, etc.) and Chinese keys
+      // INBOUND ID FIX: Added Lingxing variants
       inboundId: getVal(log, 
         ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID', 'fba_shipment_id', 'shipment_name', 'plan_no', 'local_shipment_id', '入库单号', 'FBA单号'], 
         'string', 
@@ -225,47 +245,60 @@ const sanitizeProduct = (p: any): Product => {
           'string', '')
       ),
       
-      trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill', 'Tracking Number'], 'string', 
-                  getVal(root, ['Tracking', 'Waybill'], 'string', '')),
-      mode: getVal(log, ['mode', 'transportMode', 'Method'], 'string', 'sea') as any,
-      warehouseDest: getVal(log, ['warehouseDest', 'warehouse', 'destination', 'Dest'], 'string', ''),
-      // Freight Fix: Added 'Freight Cost', 'Shipping Fee'
-      unitRateRMB: getVal(log, ['unitRateRMB', 'freight', 'shippingRate', 'headFee', 'Freight Cost', 'Shipping Fee'], 'number', 
-                   getVal(root, ['Freight', 'Shipping'], 'number', 0)),
-      dutyRate: getVal(log, ['dutyRate', 'taxRate', 'Duty'], 'number', 0),
-      hsCode: getVal(log, ['hsCode', 'HS Code'], 'string', ''),
-      status: getVal(log, ['status', 'Status'], 'string', 'Plan') as any,
+      trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill', 'Tracking Number', '追踪号', '运单号'], 'string', 
+                  getVal(root, ['Tracking', 'Waybill', '追踪号'], 'string', '')),
+      mode: getVal(log, ['mode', 'transportMode', 'Method', '运输方式'], 'string', 'sea') as any,
+      warehouseDest: getVal(log, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓'], 'string', ''),
+      
+      unitRateRMB: getVal(log, ['unitRateRMB', 'freight', 'shippingRate', 'headFee', 'Freight Cost', 'Shipping Fee', '头程', '运费单价'], 'number', 
+                   getVal(root, ['Freight', 'Shipping', '头程运费'], 'number', 0)),
+      dutyRate: getPercent(log, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 0),
+      hsCode: getVal(log, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
+      status: getVal(log, ['status', 'Status', '状态'], 'string', 'Plan') as any,
     },
 
     packing: {
-      pcsPerBox: getVal(pak, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn'], 'number', 0),
-      boxCount: getVal(pak, ['boxCount', 'ctn_count', 'Carton Count'], 'number', 0),
-      boxWeightKg: getVal(pak, ['boxWeightKg', 'weight', 'Weight (kg)'], 'number', 0),
-      boxVolumeCbm: getVal(pak, ['boxVolumeCbm', 'volume', 'cbm', 'CBM'], 'number', 0),
+      // PACKING FIX: Added '装箱数', '箱数', '重量', '体积'
+      pcsPerBox: getVal(pak, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton'], 'number', 
+                 getVal(root, ['装箱数', '每箱数量', 'Packing', '装箱量'], 'number', 0)),
+      
+      boxCount: getVal(pak, ['boxCount', 'ctn_count', 'Carton Count', '箱数', '件数', 'CTNS', 'Total Cartons', 'cartons'], 'number', 
+                getVal(root, ['箱数', '件数', 'CTNS', '总箱数'], 'number', 0)),
+      
+      boxWeightKg: getVal(pak, ['boxWeightKg', 'weight', 'Weight (kg)', '重量', '单箱重量', '毛重', 'G.W.', 'G.W', 'gross_weight'], 'number', 
+                   getVal(root, ['重量', '单箱重量', '毛重', 'G.W'], 'number', 0)),
+      
+      boxVolumeCbm: getVal(pak, ['boxVolumeCbm', 'volume', 'cbm', 'CBM', '体积', '单箱体积', 'Meas', 'measurement'], 'number', 
+                    getVal(root, ['体积', '单箱体积', 'CBM'], 'number', 0)),
     },
 
     financials: {
-      // Selling Price Fix: Added 'Retail Price', 'USD Price'
-      sellingPriceUSD: getVal(fin, ['sellingPriceUSD', 'price', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price'], 'number', 
-                       getVal(root, ['price', 'sellingPrice', 'Price'], 'number', 0)),
-      referralFeeRate: getVal(fin, ['referralFeeRate', 'commission', 'Platform Fee'], 'number', 0),
-      transactionFeeRate: getVal(fin, ['transactionFeeRate'], 'number', 0),
-      fixedTransactionFeeUSD: getVal(fin, ['fixedTransactionFeeUSD'], 'number', 0),
-      affiliateRate: getVal(fin, ['affiliateRate', 'Affiliate'], 'number', 0),
-      fulfillmentFeeUSD: getVal(fin, ['fulfillmentFeeUSD', 'fbaFee', 'Fulfillment'], 'number', 0),
-      outboundHandlingFeeUSD: getVal(fin, ['outboundHandlingFeeUSD'], 'number', 0),
-      storageFeeUSD: getVal(fin, ['storageFeeUSD', 'Storage'], 'number', 0),
-      adCostUSD: getVal(fin, ['adCostUSD', 'cpa', 'Ads', 'Marketing'], 'number', 0),
+      // SELLING PRICE FIX
+      sellingPriceUSD: getVal(fin, ['sellingPriceUSD', 'price', 'sellingPrice', 'tkPrice', 'Selling Price', 'Retail Price', 'USD Price', '售价', '销售价'], 'number', 
+                       getVal(root, ['price', 'sellingPrice', 'Price', '售价'], 'number', 0)),
+      
+      // FEE FIX: Auto-convert percentage (e.g. 15 -> 0.15)
+      referralFeeRate: getPercent(fin, ['referralFeeRate', 'commission', 'Platform Fee', '佣金', '平台佣金', 'Fee Rate'], 0),
+      
+      transactionFeeRate: getPercent(fin, ['transactionFeeRate', '手续费'], 0),
+      fixedTransactionFeeUSD: getVal(fin, ['fixedTransactionFeeUSD', '固定费'], 'number', 0),
+      affiliateRate: getPercent(fin, ['affiliateRate', 'Affiliate', '达人佣金'], 0),
+      fulfillmentFeeUSD: getVal(fin, ['fulfillmentFeeUSD', 'fbaFee', 'Fulfillment', '尾程', '配送费'], 'number', 0),
+      outboundHandlingFeeUSD: getVal(fin, ['outboundHandlingFeeUSD', '操作费'], 'number', 0),
+      storageFeeUSD: getVal(fin, ['storageFeeUSD', 'Storage', '仓储费'], 'number', 0),
+      adCostUSD: getVal(fin, ['adCostUSD', 'cpa', 'Ads', 'Marketing', '广告费', 'CPA'], 'number', 0),
       targetRoas: getVal(fin, ['targetRoas', 'roas', 'ROAS'], 'number', 0),
-      returnRate: getVal(fin, ['returnRate', 'Returns'], 'number', 0),
-      miscCostUSD: getVal(fin, ['miscCostUSD', 'Misc'], 'number', 0),
+      returnRate: getPercent(fin, ['returnRate', 'Returns', '退货率'], 0),
+      miscCostUSD: getVal(fin, ['miscCostUSD', 'Misc', '杂费'], 'number', 0),
     },
     
     inventory: {
-        current: getVal(inv, ['current', 'stock', 'qty', 'Stock', 'Quantity'], 'number', 0),
-        incoming: getVal(inv, ['incoming', 'Incoming'], 'number', 0),
-        dailyVelocity: getVal(inv, ['dailyVelocity', 'sales_velocity', 'Velocity'], 'number', 0),
-        safetyDays: getVal(inv, ['safetyDays', 'Safety Days'], 'number', 0),
+        // QUANTITY FIX: Added '库存', '数量'
+        current: getVal(inv, ['current', 'stock', 'qty', 'Stock', 'Quantity', '库存', '现有库存', '数量', 'available'], 'number', 
+                 getVal(root, ['库存', '现有库存', '数量', 'Qty', 'Stock'], 'number', 0)),
+        incoming: getVal(inv, ['incoming', 'Incoming', '在途', '在途库存'], 'number', 0),
+        dailyVelocity: getVal(inv, ['dailyVelocity', 'sales_velocity', 'Velocity', '日销'], 'number', 0),
+        safetyDays: getVal(inv, ['safetyDays', 'Safety Days', '安全库存天数'], 'number', 0),
     }
   };
 };
