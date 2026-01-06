@@ -120,7 +120,7 @@ export default function App() {
         {/* Top Decorative Line */}
         <div className="fixed top-0 left-[260px] right-0 h-[1px] bg-gradient-to-r from-cyber-cyan via-cyber-purple to-transparent opacity-30 z-40 pointer-events-none"></div>
 
-        <div className="w-full min-h-screen">
+        <div className="w-full max-w-[1800px] mx-auto min-h-screen">
           {renderContent()}
         </div>
         
