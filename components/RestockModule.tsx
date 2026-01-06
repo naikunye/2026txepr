@@ -105,6 +105,31 @@ const initialProducts: Product[] = [
         miscCostUSD: 0.50 
     },
     inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
+  },
+  { 
+    id: '2', 
+    skuCode: 'K7500-MECH', 
+    productName: 'K7500 机械键盘 (青轴)', 
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
+    variants: [],
+    supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
+    packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
+    financials: { 
+        sellingPriceUSD: 69.99, 
+        referralFeeRate: 0.08, 
+        transactionFeeRate: 0.029, 
+        fixedTransactionFeeUSD: 0.3, 
+        affiliateRate: 0.15, 
+        fulfillmentFeeUSD: 9.20, 
+        outboundHandlingFeeUSD: 2.00, // Added
+        storageFeeUSD: 0.50,          // Added
+        adCostUSD: 15.00, 
+        targetRoas: 4.0, 
+        returnRate: 0.08,             // Added
+        miscCostUSD: 1.00 
+    },
+    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
   }
 ];
 
@@ -191,9 +216,15 @@ const sanitizeProduct = (p: any): Product => {
     },
 
     logistics: {
-      // Inbound ID Fix: Added 'FBA ID', 'Reference'
-      inboundId: getVal(log, ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID'], 'string', 
-                 getVal(root, ['Inbound ID', 'Reference ID'], 'string', '')), 
+      // INBOUND ID FIX: Added Lingxing variants (shipment_name, fba_shipment_id, etc.) and Chinese keys
+      inboundId: getVal(log, 
+        ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID', 'fba_shipment_id', 'shipment_name', 'plan_no', 'local_shipment_id', '入库单号', 'FBA单号'], 
+        'string', 
+        getVal(root, 
+          ['inboundId', 'inboundNo', 'shipmentId', 'lx_id', 'ref_no', 'Reference', 'Inbound ID', 'FBA ID', 'Reference ID', 'Shipment Name', 'fba_shipment_id', 'shipment_name', 'plan_no', '入库单号', 'FBA单号', '单号'], 
+          'string', '')
+      ),
+      
       trackingNo: getVal(log, ['trackingNo', 'tracking', 'trackNo', 'waybill', 'Tracking Number'], 'string', 
                   getVal(root, ['Tracking', 'Waybill'], 'string', '')),
       mode: getVal(log, ['mode', 'transportMode', 'Method'], 'string', 'sea') as any,
@@ -1235,281 +1266,3 @@ export const RestockModule: React.FC = () => {
       </div>
     );
   };
-
-  // --- Main List Render ---
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <style>{`
-        .lbl {
-          font-size: 0.7rem;
-          color: #9CA3AF;
-          text-transform: uppercase;
-          font-weight: 700;
-          margin-bottom: 0.35rem;
-          display: block;
-          font-family: 'JetBrains Mono', monospace;
-          letter-spacing: 0.05em;
-        }
-        .input-cyber {
-          width: 100%;
-          background-color: #050505;
-          border: 1px solid #27272a;
-          padding: 0.6rem;
-          color: white;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 0.85rem;
-          outline: none;
-          transition: all 0.2s;
-          border-radius: 2px;
-        }
-        .input-cyber:focus {
-          border-color: #00F0FF;
-          box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; }
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-      `}</style>
-
-      {renderDetailModal()}
-
-      {/* Main Table Header & Tools */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-6 pt-2 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex flex-col md:flex-row justify-between items-end gap-6">
-         <div>
-            <h1 className="text-3xl font-black text-white tracking-wider">智能备货中心</h1>
-            <p className="text-gray-500 font-mono text-xs mt-2 flex items-center gap-2">
-               <Info size={12}/> 全球汇率基准: USD/RMB = {exchangeRate}
-            </p>
-         </div>
-         <div className="flex gap-4">
-            {/* Batch Action Toolbar */}
-            {selectedIds.length > 0 ? (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right duration-300">
-                    <div className="px-4 py-2 bg-red-900/30 border border-red-500/50 text-red-500 rounded text-sm font-bold flex items-center gap-2">
-                        <span>已选 {selectedIds.length} 项</span>
-                    </div>
-                    <button 
-                        onClick={handleBatchDelete}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all flex items-center gap-2 text-sm"
-                    >
-                        <Trash2 size={16} /> 批量删除
-                    </button>
-                    <button 
-                        onClick={() => setSelectedIds([])}
-                        className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white rounded text-sm font-bold"
-                    >
-                        取消
-                    </button>
-                </div>
-            ) : (
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                    <input 
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="搜索 SKU, 追踪号, 入库单..." 
-                        className="bg-black border border-white/20 pl-10 pr-4 py-2 text-sm text-white focus:border-cyber-cyan outline-none font-mono w-72"
-                    />
-                </div>
-            )}
-
-            {/* Hidden Input for File Upload */}
-            <input 
-               type="file" 
-               ref={fileInputRef} 
-               onChange={handleFileUpload} 
-               className="hidden" 
-               accept=".json" 
-            />
-
-            <div className="flex items-center gap-2 bg-black border border-white/20 p-1 rounded">
-                {/* Select All Toggle */}
-                <button
-                    onClick={toggleSelectAll}
-                    title="全选 / 取消全选"
-                    className={`p-2 rounded transition-colors ${selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? 'text-cyber-cyan bg-cyber-cyan/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-                >
-                    {selectedIds.length > 0 && selectedIds.length === filteredProducts.length ? <CheckSquare size={16} /> : <Square size={16} />}
-                </button>
-                <div className="w-[1px] h-4 bg-gray-700 mx-1"></div>
-                <button 
-                    onClick={handleExportData}
-                    title="导出数据备份 (Export JSON)"
-                    className="p-2 text-gray-400 hover:text-cyber-cyan hover:bg-white/10 rounded transition-colors"
-                >
-                    <Download size={16} />
-                </button>
-                <button 
-                    onClick={handleImportClick}
-                    title="导入数据 (Import JSON)"
-                    className="p-2 text-gray-400 hover:text-cyber-purple hover:bg-white/10 rounded transition-colors"
-                >
-                    <Upload size={16} />
-                </button>
-            </div>
-
-            <button 
-                onClick={handleCreateNew}
-                className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan"
-            >
-               <Plus size={16} /> 新建产品
-            </button>
-         </div>
-      </div>
-
-      {/* Product Grid List */}
-      <div className="grid gap-4">
-         {filteredProducts.map((product) => {
-            const eco = calculateEconomics(product);
-            const isSelected = selectedIds.includes(product.id);
-            return (
-               <div 
-                 key={product.id} 
-                 onClick={() => setSelectedProduct(product)} 
-                 className={`bg-[#0F1218] border p-0 cursor-pointer transition-all group relative overflow-hidden rounded-md shadow-lg ${isSelected ? 'border-cyber-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)]' : 'border-white/5 hover:border-cyber-cyan/50'}`}
-               >
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isSelected ? 'bg-cyber-cyan' : 'bg-gray-800 group-hover:bg-cyber-cyan'}`}></div>
-                  
-                  {/* Checkbox Overlay (Top Left) */}
-                  <div 
-                    className="absolute top-4 right-4 z-20"
-                    onClick={(e) => toggleSelection(e, product.id)}
-                  >
-                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black' : 'bg-black/50 border-gray-500 text-transparent hover:border-white'}`}>
-                        <Check size={14} strokeWidth={3} />
-                     </div>
-                  </div>
-
-                  {/* Top Row: Identity */}
-                  <div className="p-4 flex gap-5 items-center border-b border-white/5 bg-[#12151b]">
-                     <div className="w-16 h-16 bg-black border border-white/10 flex-shrink-0 overflow-hidden relative group-hover:border-cyber-cyan transition-colors">
-                        {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <Package className="m-auto text-gray-600"/>}
-                     </div>
-                     <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                           <div className="text-sm font-bold text-white truncate max-w-[300px]">{product.productName}</div>
-                           <div className="flex items-center gap-2 pr-8">
-                              {product.logistics?.mode === 'air' ? <Plane size={12} className="text-blue-400"/> : <Ship size={12} className="text-blue-600"/>}
-                              <span className={`text-[10px] px-2 py-0.5 rounded border ${product.logistics?.status === 'Shipped' ? 'border-green-500 text-green-500' : 'border-gray-600 text-gray-500'}`}>
-                                 {product.logistics?.status === 'Plan' ? '计划中' : 
-                                  product.logistics?.status === 'Shipped' ? '已发货' :
-                                  product.logistics?.status === 'Customs' ? '清关中' : '已入库'}
-                              </span>
-                           </div>
-                        </div>
-                        
-                        {/* Critical Logistics Identifiers */}
-                        <div className="mt-2 flex flex-col gap-1.5">
-                           <div className="flex items-center gap-3 text-xs font-mono text-gray-500">
-                              <span className="text-cyber-cyan font-bold bg-cyber-cyan/10 px-1.5 py-0.5 rounded border border-cyber-cyan/20">{product.skuCode}</span>
-                              <span className="flex items-center gap-1 text-gray-400"><Warehouse size={12}/> {product.logistics?.warehouseDest || 'N/A'}</span>
-                           </div>
-                           
-                           <div className="flex items-center gap-4 text-[11px] font-mono text-gray-400">
-                              <div className="flex items-center gap-1.5 bg-blue-900/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300">
-                                 <FileText size={12}/> 
-                                 <span>{product.logistics?.inboundId || '待创建入库单'}</span>
-                              </div>
-                              <div 
-                                onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo)}
-                                className="flex items-center gap-1.5 bg-yellow-900/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
-                                title="点击前往 UPS 查询物流"
-                              >
-                                 <Truck size={12}/> 
-                                 <span>{product.logistics?.trackingNo || '待填追踪号'}</span>
-                              </div>
-                              
-                              {/* Sync Button (List Item) */}
-                              <div 
-                                onClick={(e) => handleSyncToLogistics(e, product)}
-                                className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-cyber-cyan/30 text-cyber-cyan cursor-pointer hover:bg-cyber-cyan hover:text-black transition-all group/sync"
-                                title="同步到物流追踪模块"
-                              >
-                                 <RefreshCw size={12} className="group-hover/sync:rotate-180 transition-transform" />
-                                 <span className="hidden lg:inline">同步</span>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Middle Row: The Nuclear Dashboard (Dense Data) */}
-                  <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/40">
-                     
-                     {/* Column 1: Procurement Plan */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Package size={10} className="text-cyber-yellow"/> 建议备货 (Plan)
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className="text-lg font-bold text-white">{Math.ceil(eco.reorderQty)}</span>
-                           <span className="text-xs text-gray-500">pcs</span>
-                        </div>
-                        <div className="text-xs font-mono text-cyber-yellow mt-1">
-                           ¥{eco.capitalRequiredRMB.toLocaleString()} <span className="text-gray-600 opacity-50">所需资金</span>
-                        </div>
-                     </div>
-
-                     {/* Column 2: Freight Estimation */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Plane size={10} className="text-blue-400"/> 头程物流 (Freight)
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className="text-lg font-bold text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                           <span className="text-xs text-gray-500">总计</span>
-                        </div>
-                        <div className="text-xs font-mono text-blue-400 mt-1">
-                           ${eco.unitFreightUSD.toFixed(2)} <span className="text-gray-600 opacity-50">/ 件</span>
-                        </div>
-                     </div>
-
-                     {/* Column 3: Profit Projection */}
-                     <div className="p-3 hover:bg-white/5 transition-colors">
-                        <div className="text-[10px] text-gray-500 uppercase font-mono mb-1 flex items-center gap-1">
-                           <Wallet size={10} className="text-cyber-green"/> 预计利润 (Profit)
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                           <span className={`text-lg font-bold ${eco.totalProfitBatchUSD > 0 ? 'text-cyber-green' : 'text-cyber-pink'}`}>
-                              ${eco.totalProfitBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}
-                           </span>
-                           <span className="text-xs text-gray-500">总计</span>
-                        </div>
-                        <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between">
-                           <span>${eco.netProfit.toFixed(2)}/件</span>
-                           <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
-                        </div>
-                     </div>
-
-                  </div>
-                  
-                  {/* Bottom Action Strip */}
-                  <div className="px-4 py-2 bg-[#0c0c0c] border-t border-white/5 flex justify-between items-center">
-                      <div className="text-[10px] text-gray-600 font-mono">
-                         生产周期: {product.supplier?.leadTime || 0} 天
-                      </div>
-                      <div className="flex gap-2 pr-8">
-                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
-                           <GitFork size={14}/>
-                         </button>
-                         <button className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors">
-                           <Edit2 size={14}/>
-                         </button>
-                      </div>
-                  </div>
-               </div>
-            );
-         })}
-      </div>
-    </div>
-  );
-};
