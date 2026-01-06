@@ -610,7 +610,7 @@ export const RestockModule: React.FC = () => {
       logistics: { ...selectedProduct.logistics, inboundId: '', trackingNo: '' },
       variants: [] 
     };
-    setProducts([...products, newSku]);
+    setProducts([newSku, ...products]);
     setSelectedProduct(newSku);
     alert(`SKU 裂变成功！已生成新变体: ${newSku.skuCode}`);
   };
