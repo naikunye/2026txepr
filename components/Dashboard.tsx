@@ -40,8 +40,8 @@ export const Dashboard: React.FC = () => {
 
   const formatDate = (zone: string) => {
     try {
-        return now.toLocaleDateString('en-US', { timeZone: zone, month: 'short', day: 'numeric', weekday: 'short' });
-    } catch(e) { return "Jan 01"; }
+        return now.toLocaleDateString('zh-CN', { timeZone: zone, month: 'numeric', day: 'numeric', weekday: 'short' });
+    } catch(e) { return "1月1日"; }
   };
 
   // --- Reactive Metrics Calculation ---
@@ -62,13 +62,13 @@ export const Dashboard: React.FC = () => {
     // Generate Mock Chart Data shaped by real totals
     const avgDaily = totalRevCNY / 30; 
     const chartData = [
-       { name: 'Mon', value: avgDaily * 0.8 },
-       { name: 'Tue', value: avgDaily * 1.1 },
-       { name: 'Wed', value: avgDaily * 0.9 },
-       { name: 'Thu', value: avgDaily * 1.2 },
-       { name: 'Fri', value: avgDaily * 1.0 },
-       { name: 'Sat', value: avgDaily * 1.3 },
-       { name: 'Sun', value: avgDaily * 1.5 },
+       { name: '周一', value: avgDaily * 0.8 },
+       { name: '周二', value: avgDaily * 1.1 },
+       { name: '周三', value: avgDaily * 0.9 },
+       { name: '周四', value: avgDaily * 1.2 },
+       { name: '周五', value: avgDaily * 1.0 },
+       { name: '周六', value: avgDaily * 1.3 },
+       { name: '周日', value: avgDaily * 1.5 },
     ];
 
     // 2. Logistics Processing
@@ -108,7 +108,7 @@ export const Dashboard: React.FC = () => {
   }, [metrics]);
 
   return (
-    <div className="px-6 pb-6 space-y-8 animate-in fade-in duration-700">
+    <div className="px-6 pb-6 space-y-8 animate-in fade-in duration-700 w-full">
       
       {/* Sticky Header Section - Updated padding/margins */}
       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-cyber-border pb-4 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col xl:flex-row justify-between items-end xl:items-center gap-6">
@@ -119,7 +119,7 @@ export const Dashboard: React.FC = () => {
                 全域指挥中心 <span className="px-2 py-0.5 rounded bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/50 text-[10px] font-mono tracking-widest">LIVE</span>
             </h1>
             <p className="text-cyber-dim mt-1 font-mono text-xs hidden md:block">
-               AERO.OS OPERATIONAL DASHBOARD // v3.3.0 (Reactive)
+               AERO.OS 运营仪表盘 // v3.3.0 (实时)
             </p>
          </div>
 
@@ -163,9 +163,9 @@ export const Dashboard: React.FC = () => {
                 {/* System Status Pills (Compact) */}
                 <div className="pl-4 ml-auto xl:border-l xl:border-white/10 flex items-center gap-3">
                     <div className="flex flex-col items-end">
-                        <span className="text-[9px] text-gray-500 font-mono">CNY BASE</span>
+                        <span className="text-[9px] text-gray-500 font-mono">CNY 本位</span>
                         <div className="flex items-center gap-1 text-[10px] text-cyber-dim">
-                            <RefreshCcw size={10} className="animate-spin-slow"/> REAL-TIME
+                            <RefreshCcw size={10} className="animate-spin-slow"/> 实时同步
                         </div>
                     </div>
                     <div className={`w-2 h-2 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-red-500 animate-ping' : 'bg-cyber-green'}`}></div>
@@ -217,7 +217,7 @@ export const Dashboard: React.FC = () => {
          <div className="col-span-1 md:col-span-1 lg:col-span-2 row-span-1 tech-border p-6 relative overflow-hidden bg-cyber-panel">
             <div className="flex justify-between items-start relative z-10">
                <div>
-                  <div className="text-xs font-mono text-cyber-dim uppercase tracking-widest">总营收 (Total Revenue CNY)</div>
+                  <div className="text-xs font-mono text-cyber-dim uppercase tracking-widest">总营收 (CNY)</div>
                   <div className="text-3xl font-bold text-cyber-text mt-1 text-glow font-mono">
                      ¥{metrics.revenue.toLocaleString(undefined, {maximumFractionDigits: 0})}
                   </div>
@@ -255,7 +255,7 @@ export const Dashboard: React.FC = () => {
                   <Package size={20} />
                </div>
                {metrics.lowStockCount > 0 && (
-                   <span className="text-[10px] font-bold bg-cyber-pink/20 text-cyber-pink px-2 py-1 border border-cyber-pink/50 animate-pulse">ACTION REQUIRED</span>
+                   <span className="text-[10px] font-bold bg-cyber-pink/20 text-cyber-pink px-2 py-1 border border-cyber-pink/50 animate-pulse">需立即行动</span>
                )}
             </div>
             <div>

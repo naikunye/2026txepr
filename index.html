@@ -26,8 +26,9 @@
               }
             },
             fontFamily: {
-              sans: ['"JetBrains Mono"', '"Noto Sans SC"', 'sans-serif'],
-              mono: ['"JetBrains Mono"', 'monospace'],
+              // FORCE Monospace as the default 'sans' stack to achieve the "All fonts equal-width" look
+              sans: ['"JetBrains Mono"', '"Noto Sans SC"', 'monospace'],
+              mono: ['"JetBrains Mono"', '"Noto Sans SC"', 'monospace'],
             },
             boxShadow: {
               'neon-cyan': 'var(--shadow-cyan)',
@@ -89,7 +90,8 @@
           linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
         background-size: 40px 40px;
         color: var(--text);
-        font-family: "JetBrains Mono", "Noto Sans SC", sans-serif;
+        /* Enforce monospace font family globally */
+        font-family: "JetBrains Mono", "Noto Sans SC", monospace;
         font-weight: 500;
         transition: background-color 0.5s ease, color 0.5s ease;
       }

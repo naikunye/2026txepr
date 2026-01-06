@@ -207,7 +207,7 @@ const sanitizeProduct = (p: any): Product => {
     variants: Array.isArray(root.variants) ? root.variants : [],
     supplier: {
       name: fuzzyVal(mixedPool, ['supplierName', 'vendor', 'Supplier', 'Factory', '供应商', '厂家'], 'string', ''),
-      link: fuzzyVal(mixedPool, ['link', 'url', '1688', 'Link', '链接', '采购链接'], 'string', ''),
+      link: fuzzyVal(mixedPool, ['link', 'url', '1688', 'Link', '链接', '采购链接'], 'string', '').substring(0, 1000), // CAP LENGTH to prevent lags
       moq: fuzzyVal(mixedPool, ['moq', 'MOQ', '起订量', '最小起订'], 'number', 0),
       unitPriceRMB: fuzzyVal(mixedPool, ['unitPriceRMB', 'cost', 'unitCost', 'Purchase Price', 'Cost RMB', 'factory_price', '采购价', '成本', '含税价', '单价', 'RMB', '进货价', 'price'], 'number', 0), 
       leadTime: fuzzyVal(mixedPool, ['leadTime', 'productionTime', 'Lead Time', '交期', '生产周期', '备货时间'], 'number', 0),
@@ -595,6 +595,12 @@ export const RestockModule: React.FC = () => {
     setSelectedProduct(updateNested(selectedProduct, field.split('.'), value));
   };
 
+  const handleSave = () => {
+    if (!selectedProduct) return;
+    setProducts(products.map(p => p.id === selectedProduct.id ? selectedProduct : p));
+    alert("SKU 信息保存成功！");
+  };
+
   const handleSkuSplit = () => {
     if (!selectedProduct) return;
     const newSku = {
@@ -745,7 +751,10 @@ export const RestockModule: React.FC = () => {
                       />
                    </div>
                    <button onClick={() => setSelectedProduct(null)} className="hidden lg:block px-6 py-2 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-colors text-sm font-bold whitespace-nowrap">ESC 关闭</button>
-                   <button className="px-6 py-2 bg-cyber-cyan text-black font-bold shadow-neon-cyan hover:bg-white transition-colors flex items-center gap-2 text-sm whitespace-nowrap">
+                   <button 
+                      onClick={handleSave}
+                      className="px-6 py-2 bg-cyber-cyan text-black font-bold shadow-neon-cyan hover:bg-white transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+                   >
                       <Save size={16} /> 保存
                    </button>
                </div>
@@ -793,7 +802,22 @@ export const RestockModule: React.FC = () => {
                                 </div>
                                 <div className="col-span-2">
                                    <label className="lbl">1688 / Supplier Link</label>
-                                   <input value={selectedProduct.supplier?.link || ''} onChange={e => handleUpdate('supplier.link', e.target.value)} className="input-cyber text-blue-400 cursor-pointer" />
+                                   <div className="relative flex items-center">
+                                      <input 
+                                        value={selectedProduct.supplier?.link || ''} 
+                                        onChange={e => handleUpdate('supplier.link', e.target.value)} 
+                                        className="input-cyber text-blue-400 cursor-pointer pr-10" 
+                                      />
+                                      {selectedProduct.supplier?.link && (
+                                        <button 
+                                          onClick={() => handleUpdate('supplier.link', '')}
+                                          className="absolute right-2 text-gray-500 hover:text-white p-1"
+                                          title="清空链接"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      )}
+                                   </div>
                                 </div>
                              </div>
                           </div>
