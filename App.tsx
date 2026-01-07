@@ -16,21 +16,16 @@ export default function App() {
   const [theme, setTheme] = useState('cyber');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
 
-  // Load theme from localStorage on boot
   useEffect(() => {
     const savedTheme = localStorage.getItem('AERO_THEME');
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
+    if (savedTheme) setTheme(savedTheme);
   }, []);
 
-  // Apply theme to document body/root
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('AERO_THEME', theme);
   }, [theme]);
 
-  // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -57,47 +52,38 @@ export default function App() {
     }
   };
 
-  // --- Command Palette Component ---
   const CommandPalette = () => {
     if (!isCommandOpen) return null;
-    const commands = [
-      { id: 'nav-finance', label: '记一笔账 (Record Transaction)', icon: CreditCard, action: () => setActiveTab('finance') },
-      { id: 'nav-logistics', label: '查询物流 (Track Shipment)', icon: Package, action: () => setActiveTab('logistics') },
-      { id: 'nav-influencer', label: '添加达人 (Add Influencer)', icon: Users, action: () => setActiveTab('influencers') },
-      { id: 'nav-settings', label: '系统设置 (Settings)', icon: Settings, action: () => setActiveTab('settings') },
-    ];
-
     return (
-      <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsCommandOpen(false)}>
+      <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh] bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setIsCommandOpen(false)}>
          <div 
-           className="w-full max-w-xl bg-[#0c0c0c] border border-cyber-cyan/50 shadow-[0_0_50px_rgba(0,240,255,0.2)] rounded-lg overflow-hidden flex flex-col"
+           className="w-full max-w-xl bg-[#1c1c1e]/90 border border-white/10 shadow-2xl rounded-2xl overflow-hidden flex flex-col backdrop-blur-xl transform transition-all"
            onClick={e => e.stopPropagation()}
          >
             <div className="flex items-center gap-3 p-4 border-b border-white/10">
-               <Command size={20} className="text-cyber-cyan" />
+               <Command size={20} className="text-gray-400" />
                <input 
                  autoFocus
-                 placeholder="输入指令或跳转..." 
-                 className="flex-1 bg-transparent text-white outline-none font-mono text-lg placeholder:text-gray-600"
+                 placeholder="输入指令或搜索..." 
+                 className="flex-1 bg-transparent text-white outline-none text-lg placeholder:text-gray-500"
                />
-               <span className="text-xs text-gray-500 border border-gray-700 px-2 py-1 rounded">ESC</span>
+               <span className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">ESC</span>
             </div>
             <div className="p-2">
-               <div className="text-[10px] text-gray-500 font-mono uppercase px-3 py-2">Quick Actions</div>
-               {commands.map((cmd, i) => (
+               {[
+                 { label: '记一笔账 (Record Transaction)', icon: CreditCard, action: () => setActiveTab('finance') },
+                 { label: '查询物流 (Track Shipment)', icon: Package, action: () => setActiveTab('logistics') },
+                 { label: '录入达人 (Add Creator)', icon: Users, action: () => setActiveTab('influencers') },
+               ].map((cmd, i) => (
                  <button 
-                   key={cmd.id}
+                   key={i}
                    onClick={() => { cmd.action(); setIsCommandOpen(false); }}
-                   className="w-full flex items-center gap-4 p-3 hover:bg-white/10 rounded transition-colors text-left group"
+                   className="w-full flex items-center gap-4 p-3 hover:bg-blue-600/20 hover:text-blue-400 rounded-xl transition-all text-left group"
                  >
-                    <div className="text-gray-400 group-hover:text-cyber-cyan"><cmd.icon size={18} /></div>
-                    <span className="flex-1 text-gray-300 group-hover:text-white font-mono text-sm">{cmd.label}</span>
-                    <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 text-cyber-cyan -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    <div className="text-gray-400 group-hover:text-blue-400"><cmd.icon size={18} /></div>
+                    <span className="flex-1 text-gray-300 group-hover:text-white font-medium">{cmd.label}</span>
                  </button>
                ))}
-            </div>
-            <div className="p-3 bg-black border-t border-white/10 text-center text-[10px] text-gray-600 font-mono">
-               AERO.OS COMMAND LINE // v3.1.0
             </div>
          </div>
       </div>
@@ -105,31 +91,23 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-cyber-bg text-cyber-text font-sans transition-colors duration-500">
+    <div className="flex min-h-screen overflow-hidden text-cyber-text font-sans antialiased selection:bg-cyber-cyan/30">
       <Sidebar activeTab={activeTab} onNavigate={setActiveTab} />
       
-      {/* Command Palette Overlay */}
       <CommandPalette />
 
-      {/* Main Content Area - REMOVED Global Padding (p-6 pr-8) to allow true sticky headers */}
-      <main className="flex-1 ml-[260px] h-screen overflow-y-auto relative scroll-smooth">
-        
-        {/* Top Decorative Line */}
-        <div className="fixed top-0 left-[260px] right-0 h-[1px] bg-gradient-to-r from-cyber-cyan via-cyber-purple to-transparent opacity-30 z-40 pointer-events-none"></div>
-
-        <div className="w-full max-w-[1800px] mx-auto min-h-screen">
-          {renderContent()}
+      <main className="flex-1 ml-[260px] h-screen overflow-y-auto relative scroll-smooth px-4 pt-4">
+        <div className="w-full h-full rounded-3xl bg-black/20 border border-white/5 backdrop-blur-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
+           {renderContent()}
         </div>
         
-        {/* Floating Action Button (Triggers Command Palette) */}
+        {/* Floating Action Button (Round) */}
         <div className="fixed bottom-8 right-8 z-50">
           <button 
             onClick={() => setIsCommandOpen(true)}
-            className="w-16 h-16 bg-black border border-cyber-cyan/50 text-cyber-cyan flex items-center justify-center shadow-neon-cyan hover:scale-110 hover:bg-cyber-cyan hover:text-black transition-all duration-300 group clip-path-hexagon relative"
-            title="Open Command Palette (Cmd+K)"
+            className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300 group"
           >
-             <div className="absolute inset-0 bg-cyber-cyan opacity-0 group-hover:opacity-100 transition-opacity"></div>
-             <Sparkles className="w-7 h-7 z-10 animate-pulse" />
+             <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform text-blue-600" />
           </button>
         </div>
       </main>

@@ -1,626 +1,386 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Truck, Ship, Plane, Search, Plus, MapPin, Calendar, ArrowRight, 
-  Box, ExternalLink, Anchor, Clock, AlertTriangle, CheckCircle2, 
-  TrendingUp, BarChart3, Globe, Filter, MoreHorizontal, PackageOpen,
-  Navigation, Zap, Activity, X, Save, Trash2, Edit3, Sliders,
-  Factory, DollarSign, Copy, Layers, Scale
+  Truck, Ship, Plane, Search, Plus, MapPin, Calendar, ExternalLink, 
+  Box, Scale, Layers, DollarSign, Anchor, AlertTriangle, Map, 
+  PieChart as PieIcon, Trash2, ArrowRight, MoreHorizontal, CheckCircle2,
+  Clock, Activity, Container
 } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip as RechartsTooltip, BarChart, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, Cell, Tooltip, XAxis, CartesianGrid, AreaChart, Area } from 'recharts';
 import { usePersistence } from '../hooks/usePersistence';
 
-// --- Types & Mock Data ---
-
-export interface Milestone {
-  label: string;
-  date: string;
-  status: 'completed' | 'current' | 'pending';
-}
-
+// --- Types ---
 export interface Shipment {
-  id: string; // Tracking No
-  internalRef: string; // LX Ref
+  id: string;
+  internalRef?: string;
   originCode: string;
   originCity: string;
   destCode: string;
   destCity: string;
-  status: 'pending' | 'transport' | 'customs' | 'delivered' | 'exception';
+  status: 'pending' | 'transport' | 'customs' | 'exception' | 'delivered';
   carrier: string;
   mode: 'air' | 'sea' | 'rail';
   etd: string;
   eta: string;
   progress: number;
-  
-  // Extended Data for "Detail View"
-  skuCount: number;
-  supplier: {
-    name: string;
-    contact: string;
-    phone: string;
-  };
-  packing: {
-    totalCartons: number;
-    pcsPerCarton: number;
-    totalWeightKg: number;
-    totalVolumeCbm: number;
-  };
-  fees: {
-    freightCost: number;
-    customsDuty: number;
-    insurance: number;
-    misc: number;
-    manualTotal?: number; // Added: Allow Manual Override of Total Cost
-  };
-  
-  milestones: Milestone[];
+  skuCount?: number;
+  supplier?: { name: string; contact?: string; phone?: string; };
+  packing?: { totalCartons: number; pcsPerCarton?: number; totalWeightKg: number; totalVolumeCbm?: number; };
+  fees?: { freightCost: number; customsDuty?: number; insurance?: number; misc?: number; };
+  milestones: { label: string; date: string; status: 'completed' | 'current' | 'pending' }[];
 }
 
+// --- Mock Data ---
 export const initialShipments: Shipment[] = [
-  { 
-    id: '1ZHV2525041299', 
-    internalRef: 'LX-240105-01',
-    originCode: 'SZX', originCity: '深圳',
-    destCode: 'ONT8', destCity: 'Moreno Valley',
-    status: 'transport',
-    carrier: 'Matson Express',
-    mode: 'sea',
-    etd: 'Jan 05', eta: 'Jan 22',
-    progress: 65,
-    skuCount: 1200,
-    supplier: { name: 'YiWu BlackRock Outdoor', contact: 'Mr. Wang', phone: '+86 138-0000-0000' },
-    packing: { totalCartons: 60, pcsPerCarton: 20, totalWeightKg: 1250, totalVolumeCbm: 4.5 },
-    fees: { freightCost: 850, customsDuty: 120, insurance: 50, misc: 30 },
+  {
+    id: 'TRK-98212102',
+    originCode: 'SZX', originCity: 'Shenzhen', destCode: 'LAX', destCity: 'Los Angeles',
+    status: 'transport', carrier: 'DHL Aviation', mode: 'air',
+    etd: 'Jan 04', eta: 'Jan 08', progress: 65,
+    packing: { totalCartons: 45, totalWeightKg: 520, totalVolumeCbm: 1.2 },
+    fees: { freightCost: 2400 },
     milestones: [
-        { label: '已订舱', date: '01/02', status: 'completed' },
-        { label: '已离港', date: '01/05', status: 'completed' },
-        { label: '运输中', date: 'Now', status: 'current' },
-        { label: '清关中', date: '01/20', status: 'pending' },
-        { label: '已送达', date: '01/22', status: 'pending' },
+        { label: '已揽收 (Picked Up)', date: 'Jan 04 14:00', status: 'completed' },
+        { label: '离开起运港 (Departed)', date: 'Jan 05 02:30', status: 'completed' },
+        { label: '到达中转站 (Transit)', date: 'Jan 06 10:15', status: 'current' },
+        { label: '清关 (Customs)', date: 'Jan 07', status: 'pending' },
+        { label: '派送 (Delivery)', date: 'Jan 08', status: 'pending' }
     ]
   },
-  { 
-    id: '7822991022', 
-    internalRef: 'LX-240108-AIR',
-    originCode: 'PVG', originCity: '上海',
-    destCode: 'LHR', destCity: 'London',
-    status: 'customs',
-    carrier: 'DHL Aviation',
-    mode: 'air',
-    etd: 'Jan 08', eta: 'Jan 11',
-    progress: 85,
-    skuCount: 450,
-    supplier: { name: 'Dongguan Tech Electronics', contact: 'Lisa Zhang', phone: '+86 139-1111-2222' },
-    packing: { totalCartons: 15, pcsPerCarton: 30, totalWeightKg: 320, totalVolumeCbm: 0.8 },
-    fees: { freightCost: 2100, customsDuty: 450, insurance: 80, misc: 20 },
+  {
+    id: 'TRK-SEA-002',
+    originCode: 'NGB', originCity: 'Ningbo', destCode: 'LGB', destCity: 'Long Beach',
+    status: 'customs', carrier: 'Cosco Shipping', mode: 'sea',
+    etd: 'Dec 12', eta: 'Jan 15', progress: 85,
+    packing: { totalCartons: 1200, totalWeightKg: 15000, totalVolumeCbm: 28.5 },
+    fees: { freightCost: 4500 },
     milestones: [
-        { label: '已揽收', date: '01/08', status: 'completed' },
-        { label: '已离港', date: '01/08', status: 'completed' },
-        { label: '已抵达', date: '01/10', status: 'completed' },
-        { label: '清关中', date: 'Now', status: 'current' },
-        { label: '尾程派送', date: '01/11', status: 'pending' },
+        { label: '装船 (Loaded)', date: 'Dec 12', status: 'completed' },
+        { label: '离港 (Departed)', date: 'Dec 13', status: 'completed' },
+        { label: '海上运输 (At Sea)', date: 'Dec 14 - Jan 10', status: 'completed' },
+        { label: '到港 (Arrived)', date: 'Jan 12', status: 'completed' },
+        { label: '海关查验 (Customs)', date: 'Jan 13', status: 'current' }
     ]
   },
-  { 
-    id: 'MSCU9988221', 
-    internalRef: 'LX-240101-SEA',
-    originCode: 'NGB', originCity: '宁波',
-    destCode: 'LGB3', destCity: 'Long Beach',
-    status: 'exception',
-    carrier: 'MSC Line',
-    mode: 'sea',
-    etd: 'Jan 01', eta: 'Jan 28',
-    progress: 40,
-    skuCount: 5000,
-    supplier: { name: 'Ningbo Home Goods Co.', contact: 'Manager Li', phone: '+86 137-3333-4444' },
-    packing: { totalCartons: 200, pcsPerCarton: 25, totalWeightKg: 4500, totalVolumeCbm: 12 },
-    fees: { freightCost: 1200, customsDuty: 300, insurance: 100, misc: 50 },
+  {
+    id: 'TRK-EX-009',
+    originCode: 'HKG', originCity: 'Hong Kong', destCode: 'JFK', destCity: 'New York',
+    status: 'exception', carrier: 'FedEx', mode: 'air',
+    etd: 'Jan 02', eta: 'Jan 05', progress: 40,
+    packing: { totalCartons: 10, totalWeightKg: 120, totalVolumeCbm: 0.5 },
+    fees: { freightCost: 850 },
     milestones: [
-        { label: '进闸', date: '12/30', status: 'completed' },
-        { label: '装船', date: '01/01', status: 'completed' },
-        { label: '海上运输', date: 'Now', status: 'current' },
-        { label: '靠港', date: '01/25', status: 'pending' },
-        { label: '已送达', date: '01/28', status: 'pending' },
+        { label: '已揽收', date: 'Jan 02', status: 'completed' },
+        { label: '航班延误', date: 'Jan 03', status: 'current' }
     ]
-  },
+  }
 ];
 
-export const LogisticsModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'map' | 'analytics'>('map');
-  const [filterMode, setFilterMode] = useState('all');
-  
-  // Real-time Persistence Hook (Replaces manual localStorage handling)
-  const [shipments, setShipments] = usePersistence<Shipment[]>('AERO_LOGISTICS_DATA', initialShipments);
+// --- Helpers & Sub-components ---
+const getModeColor = (mode: string) => {
+  if (mode === 'air') return { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/20', gradient: 'from-purple-600 to-pink-600' };
+  if (mode === 'sea') return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', gradient: 'from-blue-600 to-cyan-500' };
+  return { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20', gradient: 'from-yellow-500 to-orange-500' };
+};
 
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+const ModeIcon = ({ mode, className }: { mode: string, className?: string }) => {
+  if(mode === 'air') return <Plane className={className} />;
+  if(mode === 'sea') return <Ship className={className} />;
+  return <Truck className={className} />;
+};
 
-  const handleTrackClick = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    window.open(`https://www.ups.com/track?loc=zh_CN&tracknum=${id}`, '_blank');
-  };
+interface ShipmentCardProps {
+  data: Shipment;
+  isSelected: boolean;
+  onSelect: (s: Shipment) => void;
+}
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'transport': return 'text-cyber-cyan border-cyber-cyan';
-      case 'customs': return 'text-cyber-yellow border-cyber-yellow';
-      case 'exception': return 'text-cyber-pink border-cyber-pink';
-      case 'delivered': return 'text-cyber-green border-cyber-green';
-      default: return 'text-gray-500 border-gray-500';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'transport': return '运输中';
-      case 'customs': return '清关中';
-      case 'exception': return '异常/滞留';
-      case 'delivered': return '已送达';
-      case 'pending': return '待处理';
-      default: return status;
-    }
-  };
-
-  const ModeIcon = ({ mode, className }: { mode: string, className?: string }) => {
-    if(mode === 'air') return <Plane size={16} className={className} />;
-    if(mode === 'sea') return <Ship size={16} className={className} />;
-    return <Truck size={16} className={className} />;
-  };
-
-  // --- CRUD Handlers ---
-
-  const handleCreateNew = () => {
-    const newShipment: Shipment = {
-        id: `TRK-${Date.now().toString().slice(-6)}`,
-        internalRef: 'LX-NEW-DRAFT',
-        originCode: 'SZX', originCity: '深圳',
-        destCode: 'LAX', destCity: 'Los Angeles',
-        status: 'pending',
-        carrier: 'UPS',
-        mode: 'air',
-        etd: 'Pending', eta: 'Pending',
-        progress: 0,
-        skuCount: 0,
-        supplier: { name: '', contact: '', phone: '' },
-        packing: { totalCartons: 0, pcsPerCarton: 0, totalWeightKg: 0, totalVolumeCbm: 0 },
-        fees: { freightCost: 0, customsDuty: 0, insurance: 0, misc: 0 },
-        milestones: [
-            { label: '已创建', date: 'Today', status: 'current' },
-            { label: '已离港', date: '-', status: 'pending' },
-            { label: '已送达', date: '-', status: 'pending' },
-        ]
-    };
-    setShipments([newShipment, ...shipments]);
-    setSelectedShipment(newShipment);
-  };
-
-  const handleDuplicate = () => {
-    if(!selectedShipment) return;
-    const copiedShipment: Shipment = {
-        ...selectedShipment,
-        id: `COPY-${Date.now().toString().slice(-4)}`,
-        internalRef: `${selectedShipment.internalRef}-COPY`,
-        status: 'pending',
-        progress: 0,
-        etd: 'Pending',
-        eta: 'Pending',
-        milestones: [
-            { label: '已创建 (复制)', date: 'Today', status: 'current' },
-            { label: '已离港', date: '-', status: 'pending' },
-            { label: '已送达', date: '-', status: 'pending' },
-        ]
-    };
-    setShipments([copiedShipment, ...shipments]);
-    setSelectedShipment(copiedShipment);
-    alert('SKU / 运单记录复制成功！');
-  };
-
-  const handleDelete = () => {
-      if(!selectedShipment) return;
-      if(confirm('确定要删除此运单记录吗？')) {
-          setShipments(shipments.filter(s => s.id !== selectedShipment.id));
-          setSelectedShipment(null);
-      }
-  };
-
-  const handleUpdate = (field: string, value: any) => {
-      if(!selectedShipment) return;
-      const keys = field.split('.');
-      if (keys.length === 2) {
-          // Handle nested updates (e.g. supplier.name)
-          setSelectedShipment({
-              ...selectedShipment,
-              [keys[0]]: {
-                  // @ts-ignore
-                  ...selectedShipment[keys[0]],
-                  [keys[1]]: value
-              }
-          });
-      } else {
-          setSelectedShipment({ ...selectedShipment, [field]: value });
-      }
-  };
-
-  const handleMilestoneUpdate = (idx: number, field: keyof Milestone, value: any) => {
-      if(!selectedShipment) return;
-      const newMilestones = [...selectedShipment.milestones];
-      newMilestones[idx] = { ...newMilestones[idx], [field]: value };
-      setSelectedShipment({ ...selectedShipment, milestones: newMilestones });
-  };
-
-  const handleSave = () => {
-      if(!selectedShipment) return;
-      setShipments(shipments.map(s => s.id === selectedShipment.id ? selectedShipment : s));
-      setSelectedShipment(null); // Close modal
-  };
-
-  // --- Modal Renderer ---
-  const renderEditModal = () => {
-    if (!selectedShipment) return null;
-
-    // Calculate dynamic totals
-    const calculatedSum = selectedShipment.fees.freightCost + selectedShipment.fees.customsDuty + selectedShipment.fees.insurance + selectedShipment.fees.misc;
-    // Prefer manual override if present
-    const finalTotal = (selectedShipment.fees.manualTotal && selectedShipment.fees.manualTotal > 0) 
-        ? selectedShipment.fees.manualTotal 
-        : calculatedSum;
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-[#080808] border border-white/10 w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-lg shadow-2xl flex flex-col relative">
-                {/* Modal Header */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-6 border-b border-white/10 bg-[#0c0c0c] sticky top-0 z-10 gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-black border border-white/10 flex items-center justify-center rounded text-cyber-cyan shadow-neon-cyan">
-                           <ModeIcon mode={selectedShipment.mode} className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <div className="text-xs font-mono text-gray-500 uppercase tracking-widest">追踪单号 (Tracking No)</div>
-                            <input 
-                                value={selectedShipment.id}
-                                onChange={(e) => handleUpdate('id', e.target.value)}
-                                className="bg-transparent text-2xl font-black text-white outline-none border-b border-transparent focus:border-cyber-cyan transition-all w-64"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <button 
-                            onClick={handleDuplicate} 
-                            className="px-4 py-2 bg-purple-900/30 border border-purple-500/50 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-all flex items-center gap-2 text-sm uppercase"
-                            title="复制此运单记录"
-                        >
-                            <Copy size={16} /> 复制 SKU/运单
-                        </button>
-                        <div className="w-[1px] h-10 bg-white/10 mx-2 hidden md:block"></div>
-                        <button onClick={handleDelete} className="p-2 text-red-500 hover:bg-red-500/10 rounded border border-transparent hover:border-red-500/30 transition-all">
-                            <Trash2 size={20} />
-                        </button>
-                        <button onClick={() => setSelectedShipment(null)} className="px-6 py-2 text-gray-400 hover:text-white font-bold">
-                            取消
-                        </button>
-                        <button onClick={handleSave} className="px-6 py-2 bg-cyber-cyan text-black font-bold hover:bg-white transition-all shadow-neon-cyan flex items-center gap-2">
-                            <Save size={18} /> 保存更改
-                        </button>
-                    </div>
+const ShipmentCard: React.FC<ShipmentCardProps> = ({ data, isSelected, onSelect }) => {
+  const colors = getModeColor(data.mode);
+  return (
+      <div 
+         onClick={() => onSelect(data)}
+         className={`
+            group relative p-5 rounded-3xl border transition-all duration-300 cursor-pointer overflow-hidden
+            ${isSelected 
+                ? `bg-white/10 border-white/20 shadow-2xl scale-[1.02]` 
+                : `bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10`
+            }
+         `}
+      >
+          {/* Active Indicator Bar */}
+          {isSelected && <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${colors.gradient}`}></div>}
+          
+          <div className="flex justify-between items-start mb-4 pl-2">
+             <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${colors.bg} ${colors.text} border ${colors.border}`}>
+                   <ModeIcon mode={data.mode} className="w-5 h-5" />
                 </div>
-
-                {/* Modal Body */}
-                <div className="p-8 grid grid-cols-12 gap-8">
-                    {/* ... (Modal content structure maintained) ... */}
-                    <div className="col-span-12 lg:col-span-7 space-y-8">
-                        <div className="tech-border p-6 bg-white/5">
-                            <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                                <Activity size={16} className="text-cyber-cyan" /> 运输状态与进度
-                            </h3>
-                            <div className="grid grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label className="lbl">当前状态</label>
-                                    <select 
-                                        value={selectedShipment.status}
-                                        onChange={(e) => handleUpdate('status', e.target.value)}
-                                        className="w-full bg-black border border-white/20 p-2 text-white outline-none focus:border-cyber-cyan"
-                                    >
-                                        <option value="pending">待处理</option>
-                                        <option value="transport">运输中</option>
-                                        <option value="customs">清关中</option>
-                                        <option value="exception">异常</option>
-                                        <option value="delivered">已送达</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="lbl">当前进度 (%)</label>
-                                    <input 
-                                        type="number"
-                                        value={selectedShipment.progress}
-                                        onChange={(e) => handleUpdate('progress', parseInt(e.target.value))}
-                                        className="w-full bg-black border border-white/20 p-2 text-white outline-none focus:border-cyber-cyan"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="lbl">出发地 (Code)</label>
-                                    <input 
-                                        value={selectedShipment.originCode}
-                                        onChange={(e) => handleUpdate('originCode', e.target.value)}
-                                        className="w-full bg-black border border-white/20 p-2 text-white outline-none focus:border-cyber-cyan"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="lbl">目的地 (Code)</label>
-                                    <input 
-                                        value={selectedShipment.destCode}
-                                        onChange={(e) => handleUpdate('destCode', e.target.value)}
-                                        className="w-full bg-black border border-white/20 p-2 text-white outline-none focus:border-cyber-cyan"
-                                    />
-                                </div>
-                            </div>
-                            <div className="w-full bg-black h-2 rounded-full overflow-hidden border border-white/10">
-                                <div className="h-full bg-cyber-cyan shadow-neon-cyan transition-all duration-500" style={{width: `${selectedShipment.progress}%`}}></div>
-                            </div>
-                        </div>
-                        
-                        {/* ... Milestones ... */}
-                        <div className="tech-border p-6 bg-white/5">
-                            <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                                <Navigation size={16} className="text-cyber-purple" /> 节点追踪
-                            </h3>
-                            <div className="space-y-4">
-                                {selectedShipment.milestones.map((m, i) => (
-                                    <div key={i} className="flex items-center gap-4">
-                                        <div className={`w-3 h-3 rounded-full ${m.status === 'completed' ? 'bg-cyber-green' : m.status === 'current' ? 'bg-cyber-cyan animate-pulse' : 'bg-gray-600'}`}></div>
-                                        <input 
-                                            value={m.label}
-                                            onChange={(e) => handleMilestoneUpdate(i, 'label', e.target.value)}
-                                            className="bg-transparent border-b border-transparent focus:border-white/20 text-white text-sm outline-none w-32"
-                                        />
-                                        <input 
-                                            value={m.date}
-                                            onChange={(e) => handleMilestoneUpdate(i, 'date', e.target.value)}
-                                            className="bg-transparent border-b border-transparent focus:border-white/20 text-gray-400 font-mono text-xs outline-none w-24"
-                                        />
-                                        <select
-                                            value={m.status}
-                                            onChange={(e) => handleMilestoneUpdate(i, 'status', e.target.value)}
-                                            className="bg-black text-xs text-gray-400 border border-white/10 p-1"
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="current">Current</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-span-12 lg:col-span-5 space-y-8">
-                        {/* ... Right Column Details ... */}
-                        <div className="tech-border p-6 bg-white/5">
-                            <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                                <Box size={16} className="text-cyber-yellow" /> 货物详情
-                            </h3>
-                            <div className="space-y-4 text-sm">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">总箱数</span>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.packing.totalCartons} 
-                                        onChange={(e) => handleUpdate('packing.totalCartons', parseInt(e.target.value))}
-                                        className="bg-black border border-white/20 w-20 text-right p-1 text-white"
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">总重量 (KG)</span>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.packing.totalWeightKg} 
-                                        onChange={(e) => handleUpdate('packing.totalWeightKg', parseFloat(e.target.value))}
-                                        className="bg-black border border-white/20 w-20 text-right p-1 text-white"
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">总体积 (CBM)</span>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.packing.totalVolumeCbm} 
-                                        onChange={(e) => handleUpdate('packing.totalVolumeCbm', parseFloat(e.target.value))}
-                                        className="bg-black border border-white/20 w-20 text-right p-1 text-white"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="tech-border p-6 bg-white/5">
-                            <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                                <DollarSign size={16} className="text-cyber-green" /> 费用清单 (USD)
-                            </h3>
-                            <div className="space-y-4 text-sm">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">头程运费</span>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.fees.freightCost} 
-                                        onChange={(e) => handleUpdate('fees.freightCost', parseFloat(e.target.value))}
-                                        className={`bg-black border border-white/20 w-24 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">关税</span>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.fees.customsDuty} 
-                                        onChange={(e) => handleUpdate('fees.customsDuty', parseFloat(e.target.value))}
-                                        className={`bg-black border border-white/20 w-24 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-400">保险 & 杂费</span>
-                                    <div className="flex gap-1">
-                                        <input 
-                                            type="number" 
-                                            value={selectedShipment.fees.insurance} 
-                                            onChange={(e) => handleUpdate('fees.insurance', parseFloat(e.target.value))}
-                                            className={`bg-black border border-white/20 w-16 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
-                                            placeholder="Ins"
-                                        />
-                                        <input 
-                                            type="number" 
-                                            value={selectedShipment.fees.misc} 
-                                            onChange={(e) => handleUpdate('fees.misc', parseFloat(e.target.value))}
-                                            className={`bg-black border border-white/20 w-16 text-right p-1 text-white ${selectedShipment.fees.manualTotal ? 'opacity-50' : ''}`}
-                                            placeholder="Misc"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Manual Total Override */}
-                                <div className="w-full h-[1px] bg-white/10 my-4"></div>
-                                
-                                <div className="flex justify-between items-center bg-white/5 p-2 rounded border border-white/10">
-                                    <div className="flex flex-col">
-                                        <span className="text-cyber-yellow font-bold text-xs">总包干费用 (All-in Total)</span>
-                                        <span className="text-[9px] text-gray-500">填写即覆盖分项汇总</span>
-                                    </div>
-                                    <input 
-                                        type="number" 
-                                        value={selectedShipment.fees.manualTotal || ''} 
-                                        onChange={(e) => handleUpdate('fees.manualTotal', parseFloat(e.target.value))}
-                                        className="bg-black border border-cyber-yellow/50 w-28 text-right p-2 text-cyber-yellow font-bold text-lg"
-                                        placeholder="Optional"
-                                    />
-                                </div>
-
-                                <div className="flex justify-between items-center pt-2">
-                                    <span className="font-bold text-white">最终核算成本</span>
-                                    <div className="text-right">
-                                        <span className="font-bold text-cyber-green text-lg">${finalTotal.toFixed(2)}</span>
-                                        {selectedShipment.fees.manualTotal ? (
-                                            <div className="text-[10px] text-gray-500 line-through decoration-gray-500">分项: ${calculatedSum.toFixed(2)}</div>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                   <div className="text-white font-bold text-sm tracking-tight">{data.id}</div>
+                   <div className="text-xs text-gray-500 font-mono">{data.carrier}</div>
                 </div>
-            </div>
-        </div>
-    );
-  };
+             </div>
+             <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                 data.status === 'exception' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+                 data.status === 'delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
+                 'bg-white/5 text-gray-300 border-white/10'
+             }`}>
+                 {data.status}
+             </div>
+          </div>
+
+          {/* Route Visual Mini */}
+          <div className="flex items-center justify-between pl-2 mb-4">
+             <div>
+                <div className="text-xl font-black text-white">{data.originCode}</div>
+                <div className="text-[10px] text-gray-500 uppercase">{data.originCity}</div>
+             </div>
+             <div className="flex-1 px-4 flex flex-col items-center">
+                <div className="text-[9px] text-gray-500 mb-1">{data.progress}%</div>
+                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                   <div className={`h-full bg-gradient-to-r ${colors.gradient}`} style={{width: `${data.progress}%`}}></div>
+                </div>
+             </div>
+             <div className="text-right">
+                <div className="text-xl font-black text-white">{data.destCode}</div>
+                <div className="text-[10px] text-gray-500 uppercase">{data.destCity}</div>
+             </div>
+          </div>
+          
+          <div className="flex justify-between items-center pl-2 pt-3 border-t border-white/5 text-[10px] font-mono text-gray-400">
+              <span className="flex items-center gap-1"><Calendar size={10}/> ETA: {data.eta}</span>
+              <span className="flex items-center gap-1"><Scale size={10}/> {data.packing?.totalWeightKg}kg</span>
+          </div>
+      </div>
+  );
+};
+
+const DetailView = ({ data }: { data: Shipment | null }) => {
+  if(!data) return <div className="h-full flex items-center justify-center text-gray-500">Select a shipment</div>;
+  const colors = getModeColor(data.mode);
 
   return (
-    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
-      
-      {renderEditModal()}
-
-      {/* Header - Fixed to pt-6 pb-4 */}
-      <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-[0_4px_30px_rgba(0,0,0,0.5)] mb-6 flex justify-between items-end">
-         <div>
-            <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
-                物流追踪 <span className="text-cyber-cyan text-sm px-2 py-0.5 border border-cyber-cyan rounded align-top mt-1 font-mono">TRACKING</span>
-            </h1>
-            <p className="text-gray-400 font-mono text-xs mt-1">跨境物流全链路监控</p>
-         </div>
-         <div className="flex gap-4">
-             <div className="flex bg-black border border-white/20 p-1 rounded">
-                 <button 
-                    onClick={() => setFilterMode('all')}
-                    className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'all' ? 'bg-white/20 text-white' : 'text-gray-500'}`}
-                 >全部</button>
-                 <button 
-                    onClick={() => setFilterMode('transport')}
-                    className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'transport' ? 'bg-cyber-cyan/20 text-cyber-cyan' : 'text-gray-500'}`}
-                 >运输中</button>
-                 <button 
-                    onClick={() => setFilterMode('exception')}
-                    className={`px-3 py-1 text-xs font-bold rounded ${filterMode === 'exception' ? 'bg-red-500/20 text-red-500' : 'text-gray-500'}`}
-                 >异常</button>
-             </div>
-             <button 
-                onClick={handleCreateNew}
-                className="bg-cyber-cyan text-black px-5 py-2 font-bold hover:bg-white transition-colors flex items-center gap-2 text-sm shadow-neon-cyan"
-             >
-                <Plus size={16} /> 创建运单
-             </button>
-         </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-         {[
-           { title: '在途运单', val: shipments.filter(s => s.status === 'transport').length, icon: Truck, color: 'text-cyber-cyan' },
-           { title: '预计到港 (7天)', val: '12', icon: Anchor, color: 'text-cyber-purple' },
-           { title: '异常/滞留', val: shipments.filter(s => s.status === 'exception').length, icon: AlertTriangle, color: 'text-cyber-pink' },
-           { title: '本月物流费', val: '$12.4k', icon: DollarSign, color: 'text-cyber-green' },
-         ].map((item, i) => (
-             <div key={i} className="bg-cyber-panel border border-white/10 p-4 flex items-center justify-between group hover:border-white/30 transition-all">
+      <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-8 duration-500">
+          {/* Top Banner (Ticket Header) */}
+          <div className={`relative p-8 rounded-t-3xl overflow-hidden border-b border-white/10`}>
+             <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-10`}></div>
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+             
+             <div className="relative z-10 flex justify-between items-start">
                  <div>
-                     <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">{item.title}</div>
-                     <div className={`text-2xl font-black ${item.color}`}>{item.val}</div>
+                    <div className="flex items-center gap-2 mb-2">
+                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${colors.border} ${colors.text} bg-black/20 uppercase`}>
+                          International {data.mode === 'air' ? 'Priority' : 'Freight'}
+                       </span>
+                       {data.status === 'exception' && <span className="flex items-center gap-1 text-red-400 text-xs font-bold"><AlertTriangle size={12}/> DELAY REPORTED</span>}
+                    </div>
+                    <h2 className="text-4xl font-black text-white tracking-tighter mb-1">{data.originCode} <span className="text-white/20 mx-2">→</span> {data.destCode}</h2>
+                    <div className="text-sm text-gray-400 flex items-center gap-4">
+                        <span>{data.originCity}</span>
+                        <ArrowRight size={12}/>
+                        <span>{data.destCity}</span>
+                    </div>
                  </div>
-                 <div className={`p-3 bg-black border border-white/10 rounded-full ${item.color} group-hover:scale-110 transition-transform`}>
-                     <item.icon size={20} />
+                 <div className="text-right">
+                    <div className="text-3xl font-bold text-white tabular-nums">{data.progress}%</div>
+                    <div className="text-xs text-cyber-cyan font-mono">IN TRANSIT</div>
                  </div>
              </div>
-         ))}
-      </div>
 
-      {/* Main List */}
-      <div className="grid gap-4">
-          {shipments
-            .filter(s => filterMode === 'all' || s.status === filterMode)
-            .map((s) => (
-              <div 
-                key={s.id} 
-                onClick={() => setSelectedShipment(s)}
-                className="bg-cyber-panel border border-white/5 p-4 flex flex-col md:flex-row items-center gap-6 hover:border-cyber-cyan/50 transition-all cursor-pointer group relative overflow-hidden"
-              >
-                  {/* Left Status Bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusColor(s.status).split(' ')[0].replace('text-', 'bg-')}`}></div>
+             {/* Big Progress Visual */}
+             <div className="mt-8 relative h-2 bg-white/10 rounded-full overflow-visible">
+                 <div className={`absolute left-0 top-0 h-full rounded-full bg-gradient-to-r ${colors.gradient} shadow-[0_0_15px_rgba(255,255,255,0.3)]`} style={{width: `${data.progress}%`}}>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black border-2 border-white rounded-full flex items-center justify-center shadow-xl transform translate-x-1/2">
+                       <ModeIcon mode={data.mode} className="w-4 h-4 text-white" />
+                    </div>
+                 </div>
+             </div>
+             <div className="flex justify-between mt-4 text-xs font-mono font-bold text-gray-500">
+                <span>Dep: {data.etd}</span>
+                <span className="text-white">Est. Arrival: {data.eta}</span>
+             </div>
+          </div>
 
-                  {/* Icon */}
-                  <div className="w-12 h-12 bg-black border border-white/10 flex items-center justify-center rounded-lg shrink-0">
-                      <ModeIcon mode={s.mode} className="text-gray-400 group-hover:text-white" />
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0C0C0C]">
+              <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Timeline */}
+                  <div>
+                     <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
+                        <Activity size={16} className="text-cyber-cyan"/> Tracking Events
+                     </h3>
+                     <div className="space-y-0 relative border-l border-white/10 ml-3">
+                        {data.milestones.map((m, i) => (
+                           <div key={i} className="pl-8 pb-8 relative group">
+                              <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full border-2 transition-all ${
+                                  m.status === 'completed' ? 'bg-cyber-cyan border-cyber-cyan shadow-[0_0_8px_#00F0FF]' : 
+                                  m.status === 'current' ? 'bg-black border-white animate-pulse' : 'bg-black border-gray-700'
+                              }`}></div>
+                              <div className="flex justify-between items-start">
+                                  <div>
+                                      <div className={`text-sm font-bold ${m.status === 'pending' ? 'text-gray-500' : 'text-white'}`}>{m.label}</div>
+                                      <div className="text-xs text-gray-500 mt-0.5 font-mono">{m.date}</div>
+                                  </div>
+                                  {m.status === 'completed' && <CheckCircle2 size={14} className="text-cyber-green opacity-50"/>}
+                              </div>
+                           </div>
+                        ))}
+                     </div>
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                      <div>
-                          <div className="text-[10px] text-gray-500 uppercase font-mono">Tracking No.</div>
-                          <div className="font-bold text-white text-sm font-mono flex items-center gap-2">
-                              {s.id}
-                              <ExternalLink size={12} className="text-gray-600 hover:text-cyber-cyan" onClick={(e) => handleTrackClick(e, s.id)} />
-                          </div>
-                      </div>
-                      <div>
-                          <div className="text-[10px] text-gray-500 uppercase font-mono">Route</div>
-                          <div className="font-bold text-white text-sm">{s.originCode} <span className="text-gray-600">→</span> {s.destCode}</div>
-                      </div>
-                      <div>
-                          <div className="text-[10px] text-gray-500 uppercase font-mono">Status</div>
-                          <div className={`font-bold text-xs px-2 py-0.5 inline-block rounded border ${getStatusColor(s.status)}`}>
-                              {getStatusLabel(s.status)}
-                          </div>
-                      </div>
-                      <div>
-                          <div className="text-[10px] text-gray-500 uppercase font-mono">ETA</div>
-                          <div className="font-bold text-cyber-yellow text-sm">{s.eta}</div>
-                      </div>
-                  </div>
+                  {/* Info Grid */}
+                  <div className="space-y-6">
+                     {/* Packing Info */}
+                     <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><Box size={14}/> Cargo Specs</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="p-3 bg-black rounded-xl">
+                              <div className="text-[10px] text-gray-500 uppercase">Weight</div>
+                              <div className="text-lg font-bold text-white">{data.packing?.totalWeightKg} <span className="text-xs text-gray-600">kg</span></div>
+                           </div>
+                           <div className="p-3 bg-black rounded-xl">
+                              <div className="text-[10px] text-gray-500 uppercase">Volume</div>
+                              <div className="text-lg font-bold text-white">{data.packing?.totalVolumeCbm} <span className="text-xs text-gray-600">cbm</span></div>
+                           </div>
+                           <div className="p-3 bg-black rounded-xl">
+                              <div className="text-[10px] text-gray-500 uppercase">Cartons</div>
+                              <div className="text-lg font-bold text-white">{data.packing?.totalCartons} <span className="text-xs text-gray-600">boxes</span></div>
+                           </div>
+                           <div className="p-3 bg-black rounded-xl">
+                              <div className="text-[10px] text-gray-500 uppercase">Carrier</div>
+                              <div className="text-sm font-bold text-white truncate">{data.carrier}</div>
+                           </div>
+                        </div>
+                     </div>
 
-                  {/* Progress */}
-                  <div className="w-full md:w-32 shrink-0">
-                      <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                          <span>进度</span>
-                          <span>{s.progress}%</span>
-                      </div>
-                      <div className="w-full bg-black h-1.5 rounded-full overflow-hidden">
-                          <div className="h-full bg-cyber-cyan" style={{width: `${s.progress}%`}}></div>
-                      </div>
-                  </div>
-
-                  <div className="text-gray-500 group-hover:text-cyber-cyan transition-colors">
-                      <Edit3 size={18} />
+                     {/* Cost Info */}
+                     <div className="bg-white/5 border border-white/10 rounded-2xl p-5 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 p-4 opacity-5"><DollarSign size={64}/></div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><DollarSign size={14}/> Logistics Cost</h4>
+                        <div className="flex justify-between items-end mb-2">
+                           <div className="text-sm text-gray-400">Freight Charge</div>
+                           <div className="text-xl font-bold text-white font-mono">${data.fees?.freightCost}</div>
+                        </div>
+                        <div className="w-full bg-black h-1 rounded-full mb-2">
+                           <div className="w-3/4 h-full bg-cyber-green rounded-full"></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                           <span>Paid: 75%</span>
+                           <span>Pending: 25%</span>
+                        </div>
+                     </div>
+                     
+                     <div className="flex gap-2">
+                        <button className="flex-1 py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-gray-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all">
+                           Download Invoice
+                        </button>
+                        <button className="flex-1 py-3 bg-cyber-cyan/10 border border-cyber-cyan/50 hover:bg-cyber-cyan hover:text-black text-cyber-cyan font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(0,240,255,0.1)]">
+                           Track on Carrier
+                        </button>
+                     </div>
                   </div>
               </div>
-          ))}
+          </div>
+      </div>
+  );
+};
+
+export const LogisticsModule: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'track' | 'analytics'>('track');
+  const [filterMode, setFilterMode] = useState('all');
+  const [shipments, setShipments] = usePersistence<Shipment[]>('AERO_LOGISTICS_DATA', initialShipments);
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(shipments[0] || null);
+
+  return (
+    <div className="px-6 pb-6 h-screen flex flex-col animate-in fade-in duration-500 overflow-hidden">
+      
+      {/* 1. Header Area - Slim & Sticky */}
+      <div className="flex-shrink-0 pt-6 pb-4">
+          <div className="flex justify-between items-end mb-6">
+             <div>
+                <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
+                   <Map className="text-cyber-cyan" size={32} />
+                   物流指挥中心
+                </h1>
+                <p className="text-gray-500 font-mono text-xs mt-1">GLOBAL LOGISTICS TRACKER</p>
+             </div>
+             
+             {/* Stats Pills */}
+             <div className="hidden lg:flex gap-4">
+                 {[
+                     { label: 'In Transit', val: shipments.filter(s=>s.status==='transport').length, c: 'text-cyber-cyan' },
+                     { label: 'Customs', val: shipments.filter(s=>s.status==='customs').length, c: 'text-cyber-yellow' },
+                     { label: 'Exceptions', val: shipments.filter(s=>s.status==='exception').length, c: 'text-red-500 animate-pulse' },
+                 ].map((stat, i) => (
+                     <div key={i} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3 backdrop-blur-md">
+                        <div className="text-[10px] text-gray-400 uppercase font-bold">{stat.label}</div>
+                        <div className={`text-xl font-black ${stat.c}`}>{stat.val}</div>
+                     </div>
+                 ))}
+                 <button 
+                    onClick={() => {}} // Hook up create
+                    className="bg-white text-black px-4 py-2 rounded-xl font-bold hover:scale-105 transition-transform shadow-lg flex items-center gap-2"
+                 >
+                    <Plus size={18} /> New Shipment
+                 </button>
+             </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+              <div className="relative flex-1 max-w-sm group">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyber-cyan transition-colors" size={16} />
+                  <input 
+                    placeholder="Search Tracking ID / Origin / Dest..." 
+                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-cyber-cyan outline-none transition-all font-mono"
+                  />
+              </div>
+              <div className="flex gap-2">
+                 {['all', 'transport', 'customs', 'exception', 'delivered'].map(f => (
+                     <button 
+                        key={f}
+                        onClick={() => setFilterMode(f)}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
+                            filterMode === f 
+                            ? 'bg-white/10 border-white text-white shadow-lg' 
+                            : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                        }`}
+                     >
+                        {f}
+                     </button>
+                 ))}
+              </div>
+          </div>
+      </div>
+
+      {/* 2. Main Workspace (Split View) */}
+      <div className="flex-1 min-h-0 grid grid-cols-12 gap-6">
+          
+          {/* List Column */}
+          <div className="col-span-12 lg:col-span-4 flex flex-col min-h-0 bg-[#0A0A0A] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+             <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Shipment List</span>
+                <span className="text-xs font-mono text-gray-600">{shipments.length} Records</span>
+             </div>
+             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+                 {shipments
+                    .filter(s => filterMode === 'all' || s.status === filterMode)
+                    .map(s => (
+                     <ShipmentCard 
+                        key={s.id} 
+                        data={s} 
+                        isSelected={selectedShipment?.id === s.id} 
+                        onSelect={setSelectedShipment}
+                     />
+                 ))}
+             </div>
+          </div>
+
+          {/* Detail Column (The "Ticket" View) */}
+          <div className="hidden lg:block col-span-8 bg-[#0F0F0F] rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
+              <DetailView data={selectedShipment} />
+          </div>
+
       </div>
     </div>
   );
