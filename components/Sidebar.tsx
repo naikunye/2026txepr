@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
          </div>
          <div>
            <h1 className="font-bold text-lg text-white tracking-tight leading-none">AERO<span className="opacity-50">.OS</span></h1>
-           <span className="text-[10px] font-medium text-gray-400">Pro Max</span>
+           <span className="text-[10px] font-medium text-gray-400">旗舰版 Pro Max</span>
          </div>
       </div>
 
@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {
           </div>
           <div className="flex-1 text-left overflow-hidden">
              <div className="text-sm font-semibold text-white truncate">系统管理员</div>
-             <div className="text-[10px] text-gray-400 truncate">System Config</div>
+             <div className="text-[10px] text-gray-400 truncate">系统配置中心</div>
           </div>
           <Settings size={16} className="text-gray-500" />
         </button>

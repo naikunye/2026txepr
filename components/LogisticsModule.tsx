@@ -207,7 +207,7 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                   {/* Timeline */}
                   <div>
                      <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                        <Activity size={16} className="text-cyber-cyan"/> Tracking Events
+                        <Activity size={16} className="text-cyber-cyan"/> 追踪节点 (Tracking Events)
                      </h3>
                      <div className="space-y-0 relative border-l border-white/10 ml-3">
                         {data.milestones.map((m, i) => (
@@ -232,7 +232,7 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                   <div className="space-y-6">
                      {/* Packing Info */}
                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><Box size={14}/> Cargo Specs</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><Box size={14}/> 货物规格 (Cargo Specs)</h4>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="p-3 bg-black rounded-xl">
                               <div className="text-[10px] text-gray-500 uppercase">Weight</div>
@@ -256,9 +256,9 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                      {/* Cost Info */}
                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 relative overflow-hidden">
                         <div className="absolute right-0 top-0 p-4 opacity-5"><DollarSign size={64}/></div>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><DollarSign size={14}/> Logistics Cost</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><DollarSign size={14}/> 物流成本 (Logistics Cost)</h4>
                         <div className="flex justify-between items-end mb-2">
-                           <div className="text-sm text-gray-400">Freight Charge</div>
+                           <div className="text-sm text-gray-400">Freight Charge (运费)</div>
                            <div className="text-xl font-bold text-white font-mono">${data.fees?.freightCost}</div>
                         </div>
                         <div className="w-full bg-black h-1 rounded-full mb-2">
@@ -272,10 +272,10 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                      
                      <div className="flex gap-2">
                         <button className="flex-1 py-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-gray-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all">
-                           Download Invoice
+                           下载发票
                         </button>
                         <button className="flex-1 py-3 bg-cyber-cyan/10 border border-cyber-cyan/50 hover:bg-cyber-cyan hover:text-black text-cyber-cyan font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(0,240,255,0.1)]">
-                           Track on Carrier
+                           承运商官网查询
                         </button>
                      </div>
                   </div>
@@ -321,7 +321,7 @@ export const LogisticsModule: React.FC = () => {
                     onClick={() => {}} // Hook up create
                     className="bg-white text-black px-4 py-2 rounded-xl font-bold hover:scale-105 transition-transform shadow-lg flex items-center gap-2"
                  >
-                    <Plus size={18} /> New Shipment
+                    <Plus size={18} /> 新建运单
                  </button>
              </div>
           </div>
@@ -331,7 +331,7 @@ export const LogisticsModule: React.FC = () => {
               <div className="relative flex-1 max-w-sm group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyber-cyan transition-colors" size={16} />
                   <input 
-                    placeholder="Search Tracking ID / Origin / Dest..." 
+                    placeholder="搜索追踪号 / 起始地 / 目的地..." 
                     className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:border-cyber-cyan outline-none transition-all font-mono"
                   />
               </div>

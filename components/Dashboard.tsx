@@ -41,13 +41,13 @@ export const Dashboard: React.FC = () => {
     
     const avgDaily = totalRevCNY / 30; 
     const chartData = [
-       { name: 'Mon', value: avgDaily * 0.8 },
-       { name: 'Tue', value: avgDaily * 1.1 },
-       { name: 'Wed', value: avgDaily * 0.9 },
-       { name: 'Thu', value: avgDaily * 1.2 },
-       { name: 'Fri', value: avgDaily * 1.0 },
-       { name: 'Sat', value: avgDaily * 1.3 },
-       { name: 'Sun', value: avgDaily * 1.5 },
+       { name: '周一', value: avgDaily * 0.8 },
+       { name: '周二', value: avgDaily * 1.1 },
+       { name: '周三', value: avgDaily * 0.9 },
+       { name: '周四', value: avgDaily * 1.2 },
+       { name: '周五', value: avgDaily * 1.0 },
+       { name: '周六', value: avgDaily * 1.3 },
+       { name: '周日', value: avgDaily * 1.5 },
     ];
 
     const activeShipments = shipments.filter(s => s.status === 'transport' || s.status === 'customs').length;
@@ -85,7 +85,7 @@ export const Dashboard: React.FC = () => {
                 仪表盘 (Dashboard)
             </h1>
             <p className="text-cyber-dim mt-1 text-sm font-medium">
-               实时全域监控 • {now.toLocaleDateString()}
+               全域实时监控 • {now.toLocaleDateString()}
             </p>
          </div>
 
@@ -94,21 +94,21 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center gap-6 bg-white/5 border border-white/10 backdrop-blur-md px-6 py-3 rounded-full shadow-lg">
                 <div className="flex items-center gap-3 border-r border-white/10 pr-6">
                     <div className="text-right">
-                        <div className="text-[10px] text-cyber-blue font-bold uppercase">Los Angeles</div>
+                        <div className="text-[10px] text-cyber-blue font-bold uppercase">洛杉矶 (LAX)</div>
                         <div className="text-2xl font-semibold text-white leading-none tracking-tight">
                             {formatTime('America/Los_Angeles')}
                         </div>
                     </div>
                 </div>
                 <div className="hidden sm:block text-right border-r border-white/10 pr-6">
-                    <div className="text-[10px] text-cyber-purple font-bold uppercase">New York</div>
+                    <div className="text-[10px] text-cyber-purple font-bold uppercase">纽约 (NYC)</div>
                     <div className="text-lg font-medium text-gray-300 leading-none">
                         {formatTime('America/New_York')}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red animate-pulse' : 'bg-cyber-green'}`}></div>
-                    <span className="text-xs font-medium text-gray-300">在线</span>
+                    <span className="text-xs font-medium text-gray-300">系统在线</span>
                 </div>
             </div>
          </div>

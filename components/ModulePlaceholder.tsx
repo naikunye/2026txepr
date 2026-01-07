@@ -28,7 +28,7 @@ export const ModulePlaceholder: React.FC<ModulePlaceholderProps> = ({ title }) =
           </h2>
           
           <p className="text-gray-400 font-mono text-sm max-w-md mx-auto mb-8 leading-relaxed">
-            系统错误：访问拒绝。<br/>
+            系统错误：访问拒绝 (Access Denied)。<br/>
             该模块正在进行神经元网络升级，请稍后访问。
           </p>
 

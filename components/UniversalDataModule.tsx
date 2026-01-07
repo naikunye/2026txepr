@@ -23,7 +23,7 @@ export const UniversalDataModule: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDelete = (id: string) => {
-      if(confirm('确定要永久销毁此文档吗？\n(Simulated Delete)')) {
+      if(confirm('确定要永久销毁此文档吗？\n(模拟删除操作)')) {
           setFiles(files.filter(f => f.id !== id));
       }
   };
@@ -73,7 +73,7 @@ export const UniversalDataModule: React.FC = () => {
                数据文档库
             </h1>
             <p className="text-gray-400 mt-1 font-mono text-xs flex items-center gap-2">
-                <Lock size={10} /> SECURE DATA VAULT // ENCRYPTED
+                <Lock size={10} /> 安全数据保险库 // SECURE VAULT
             </p>
          </div>
          <div className="relative">

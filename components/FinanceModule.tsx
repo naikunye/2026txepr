@@ -84,8 +84,7 @@ export const FinanceModule: React.FC = () => {
           try {
               const d = new Date(t.date);
               if(isNaN(d.getTime())) return;
-              const key = d.toLocaleString('zh-CN', { month: 'short' }); // Changed to CN format logic if needed, but 'short' returns numbers often
-              // Using numeric month for simpler sorting in Chinese context usually, but let's stick to English month names or standard format for chart
+              const key = d.toLocaleString('zh-CN', { month: 'short' }); 
               const m = d.getMonth() + 1 + '月';
               if (!monthMap[m]) monthMap[m] = { revenue: 0, expenses: 0 };
               if (t.type === 'in') monthMap[m].revenue += t.amount;

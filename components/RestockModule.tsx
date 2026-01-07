@@ -741,7 +741,7 @@ export const RestockModule: React.FC = () => {
 
                    <div className="flex items-center gap-2 px-4 py-2 bg-black border border-white/20 rounded whitespace-nowrap">
                       <DollarSign size={14} className="text-gray-400"/>
-                      <span className="text-xs text-gray-500 font-mono">USD/RMB:</span>
+                      <span className="text-xs text-gray-500 font-mono">全球汇率:</span>
                       <input 
                         type="number" 
                         value={exchangeRate} 
@@ -788,7 +788,7 @@ export const RestockModule: React.FC = () => {
                                    <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-cyber text-cyber-yellow border-cyber-yellow/30" />
                                 </div>
                                 <div>
-                                   <label className="lbl">备货数量</label>
+                                   <label className="lbl">备货数量 (MOQ)</label>
                                    <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-cyber" />
                                 </div>
                                 <div>
@@ -1156,7 +1156,7 @@ export const RestockModule: React.FC = () => {
                <div className="col-span-12 lg:col-span-4 bg-[#0F1218] p-6 flex flex-col border-l border-white/5 shadow-2xl lg:h-full lg:overflow-y-auto">
                   <div className="mb-6">
                      <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-                        <Scale size={20} className="text-cyber-green"/> 利润瀑布 (Waterfall)
+                        <Scale size={20} className="text-cyber-green"/> 利润瀑布 (Profit Waterfall)
                      </h3>
 
                      <div className="space-y-3 font-mono text-sm relative">

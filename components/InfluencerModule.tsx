@@ -395,7 +395,7 @@ export const InfluencerModule: React.FC = () => {
                  </h3>
                  <div className="flex-1 flex flex-col justify-center gap-3">
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Tracking #:</span>
+                        <span className="text-gray-400">追踪单号:</span>
                         <input 
                             value={selectedInf.sampleTracking || ''}
                             onChange={(e) => handleUpdate('sampleTracking', e.target.value)}
