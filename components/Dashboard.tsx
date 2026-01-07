@@ -183,6 +183,23 @@ export const Dashboard: React.FC = () => {
                            <stop offset="95%" stopColor={metrics.profit >= 0 ? "#30D158" : "#FF453A"} stopOpacity={0}/>
                         </linearGradient>
                      </defs>
+                     <XAxis dataKey="name" hide />
+                     <Tooltip 
+                        content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                            return (
+                                <div className="bg-black/90 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl text-xs animate-in fade-in zoom-in-95 duration-200 min-w-[100px]">
+                                    <div className="text-gray-400 mb-1 font-medium tracking-wide">{label}</div>
+                                    <div className={`font-black font-mono text-lg ${metrics.profit >= 0 ? 'text-cyber-green text-glow-green' : 'text-cyber-red text-glow-red'}`}>
+                                        ¥{Number(payload[0].value).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                    </div>
+                                </div>
+                            );
+                            }
+                            return null;
+                        }}
+                        cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                     />
                      <Area type="monotone" dataKey="value" stroke={metrics.profit >= 0 ? "#30D158" : "#FF453A"} strokeWidth={3} fill="url(#colorVal)" />
                   </AreaChart>
                </ResponsiveContainer>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon, CheckSquare, Square, Check, AlertCircle, Database, Clock } from 'lucide-react';
 import { initialShipments } from './LogisticsModule';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
@@ -6,42 +7,38 @@ import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersiste
 // --- World-Class ERP Data Model ---
 interface Variant {
   id: string;
-  suffix: string;      // e.g., "-BLK"
-  variantName: string; // e.g., "Black Color"
-  quantity: number;    // e.g., 200
+  suffix: string;      
+  variantName: string; 
+  quantity: number;    
 }
 
 interface Product {
   id: string;
   skuCode: string;
   productName: string;
-  image: string; // Product Thumbnail URL
-  
-  variants?: Variant[]; // SUB-SKU Matrix
+  image: string; 
+  variants?: Variant[]; 
 
-  // 1. Sourcing & Supply Chain
   supplier: {
     name: string;
     link: string;
-    moq: number; // Minimum Order Quantity
-    unitPriceRMB: number; // Ex-Factory Price
-    leadTime: number; // Days
-    paymentTerms: string; // e.g., "30% Deposit, 70% Ship"
+    moq: number; 
+    unitPriceRMB: number; 
+    leadTime: number; 
+    paymentTerms: string; 
   };
 
-  // 2. Logistics & Compliance
   logistics: {
-    inboundId: string; // Lingxing / FBA Inbound ID
+    inboundId: string; 
     trackingNo: string;
     mode: 'air' | 'sea' | 'rail';
-    warehouseDest: string; // e.g., "ONT8", "LGB3"
-    unitRateRMB: number; // Rate per KG/CBM
-    dutyRate: number; // Tax Rate
-    hsCode: string; // Customs Code
+    warehouseDest: string; 
+    unitRateRMB: number; 
+    dutyRate: number; 
+    hsCode: string; 
     status: 'Plan' | 'Shipped' | 'Customs' | 'Received';
   };
 
-  // 3. Packing Specs
   packing: {
     pcsPerBox: number;
     boxCount: number;
@@ -49,30 +46,21 @@ interface Product {
     boxVolumeCbm: number;
   };
 
-  // 4. TikTok Financials & Fulfillment
   financials: {
     sellingPriceUSD: number;
-    
-    // Platform Fees
     referralFeeRate: number;
     transactionFeeRate: number;
     fixedTransactionFeeUSD: number;
     affiliateRate: number;
-    
-    // Fulfillment & 3PL Costs
-    fulfillmentFeeUSD: number;     // FBA/FBT Shipping Fee (Tail-end)
-    outboundHandlingFeeUSD: number; // NEW: Overseas Warehouse Pick & Pack / Outbound
-    storageFeeUSD: number;          // NEW: Est. Monthly Storage Cost per unit
-    
-    // Marketing & Risk
-    adCostUSD: number; // CPA
-    targetRoas: number; // Strategic Goal
-    returnRate: number; // NEW: Est. Return Rate % (Cost allowance)
-    
+    fulfillmentFeeUSD: number;     
+    outboundHandlingFeeUSD: number; 
+    storageFeeUSD: number;          
+    adCostUSD: number; 
+    targetRoas: number; 
+    returnRate: number; 
     miscCostUSD: number;
   };
 
-  // 5. Inventory Intelligence
   inventory: {
     current: number;
     incoming: number;
@@ -99,11 +87,11 @@ const initialProducts: Product[] = [
         fixedTransactionFeeUSD: 0.3, 
         affiliateRate: 0.10, 
         fulfillmentFeeUSD: 5.80, 
-        outboundHandlingFeeUSD: 1.50, // Added
-        storageFeeUSD: 0.20,          // Added
+        outboundHandlingFeeUSD: 1.50, 
+        storageFeeUSD: 0.20,          
         adCostUSD: 8.00, 
         targetRoas: 3.5, 
-        returnRate: 0.05,             // Added (5% returns)
+        returnRate: 0.05,             
         miscCostUSD: 0.50 
     },
     inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
@@ -124,11 +112,11 @@ const initialProducts: Product[] = [
         fixedTransactionFeeUSD: 0.3, 
         affiliateRate: 0.15, 
         fulfillmentFeeUSD: 9.20, 
-        outboundHandlingFeeUSD: 2.00, // Added
-        storageFeeUSD: 0.50,          // Added
+        outboundHandlingFeeUSD: 2.00, 
+        storageFeeUSD: 0.50,          
         adCostUSD: 15.00, 
         targetRoas: 4.0, 
-        returnRate: 0.08,             // Added
+        returnRate: 0.08,             
         miscCostUSD: 1.00 
     },
     inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
@@ -679,8 +667,8 @@ export const RestockModule: React.FC = () => {
       </button>
     );
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
+    const content = (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
          <div className="w-full h-full lg:max-w-[95vw] lg:h-[90vh] bg-[#0A0A0A] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-3xl apple-glass">
             
             {/* Ambient Noise Overlay */}
@@ -1253,6 +1241,8 @@ export const RestockModule: React.FC = () => {
          </div>
       </div>
     );
+
+    return createPortal(content, document.body);
   };
 
   // --- Main List Render ---
