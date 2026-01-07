@@ -81,104 +81,105 @@ export const Dashboard: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col xl:flex-row justify-between items-end xl:items-center gap-6">
          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-                仪表盘 (Dashboard)
+            <h1 className="text-4xl font-black text-white tracking-tight text-glow">
+                指挥中心
             </h1>
-            <p className="text-cyber-dim mt-1 text-sm font-medium">
-               全域实时监控 • {now.toLocaleDateString()}
+            <p className="text-cyber-dim mt-2 text-sm font-medium tracking-wide flex items-center gap-2">
+               <span className="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
+               全域实时监控系统 • {now.toLocaleDateString()}
             </p>
          </div>
 
          {/* Glass Clock Pill */}
          <div className="flex-1 w-full xl:w-auto flex justify-end">
-            <div className="flex items-center gap-6 bg-white/5 border border-white/10 backdrop-blur-md px-6 py-3 rounded-full shadow-lg">
-                <div className="flex items-center gap-3 border-r border-white/10 pr-6">
+            <div className="flex items-center gap-6 bg-white/5 border border-white/10 backdrop-blur-2xl px-8 py-4 rounded-full shadow-2xl">
+                <div className="flex items-center gap-4 border-r border-white/10 pr-8">
                     <div className="text-right">
-                        <div className="text-[10px] text-cyber-blue font-bold uppercase">洛杉矶 (LAX)</div>
-                        <div className="text-2xl font-semibold text-white leading-none tracking-tight">
+                        <div className="text-[10px] text-cyber-blue font-bold uppercase tracking-widest mb-1">洛杉矶 (LAX)</div>
+                        <div className="text-3xl font-bold text-white leading-none tracking-tight font-mono text-glow-blue">
                             {formatTime('America/Los_Angeles')}
                         </div>
                     </div>
                 </div>
-                <div className="hidden sm:block text-right border-r border-white/10 pr-6">
-                    <div className="text-[10px] text-cyber-purple font-bold uppercase">纽约 (NYC)</div>
-                    <div className="text-lg font-medium text-gray-300 leading-none">
+                <div className="hidden sm:block text-right border-r border-white/10 pr-8">
+                    <div className="text-[10px] text-cyber-purple font-bold uppercase tracking-widest mb-1">纽约 (NYC)</div>
+                    <div className="text-xl font-medium text-gray-300 leading-none font-mono">
                         {formatTime('America/New_York')}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red animate-pulse' : 'bg-cyber-green'}`}></div>
-                    <span className="text-xs font-medium text-gray-300">系统在线</span>
+                    <div className={`w-3 h-3 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red animate-pulse shadow-[0_0_10px_#FF453A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
+                    <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Online</span>
                 </div>
             </div>
          </div>
       </div>
 
       {/* BENTO GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[200px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[220px]">
          
          {/* Widget 1: Global Status (Rich Dark Blue/Purple Mesh) */}
-         <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 tech-border p-8 relative overflow-hidden group">
-            {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-cyber-indigo/20 via-transparent to-cyber-blue/10 pointer-events-none"></div>
+         <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 apple-glass p-10 relative overflow-hidden group">
+            {/* Background Gradient Animation */}
+            <div className="absolute inset-0 bg-gradient-to-br from-cyber-indigo/30 via-transparent to-cyber-blue/10 pointer-events-none animate-pulse-slow"></div>
+            <div className="absolute top-[-50%] right-[-20%] w-[400px] h-[400px] bg-cyber-blue/20 rounded-full blur-[100px] pointer-events-none"></div>
             
             <div className="relative z-10 h-full flex flex-col justify-between">
                <div>
-                  <div className="w-12 h-12 bg-cyber-blue/20 rounded-2xl flex items-center justify-center text-cyber-blue mb-4 border border-cyber-blue/20 shadow-lg shadow-cyber-blue/10">
-                     <Globe size={24} />
+                  <div className="w-14 h-14 bg-gradient-to-br from-cyber-blue to-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-glow-blue">
+                     <Globe size={28} />
                   </div>
-                  <h3 className="text-2xl font-bold text-white tracking-tight">
+                  <h3 className="text-3xl font-bold text-white tracking-tight text-glow">
                      全球运营状态
                   </h3>
-                  <p className="text-cyber-dim mt-2 text-sm max-w-md leading-relaxed">
-                     正在实时监控 <span className="text-white font-semibold">{metrics.totalProducts}</span> 个活跃 SKU，跨越 <span className="text-white font-semibold">{metrics.activeShipments}</span> 个国际物流单。系统核心模块运行状态最佳。
+                  <p className="text-gray-300 mt-3 text-sm max-w-lg leading-relaxed font-light">
+                     正在实时监控 <span className="text-white font-bold">{metrics.totalProducts}</span> 个活跃 SKU，跨越 <span className="text-white font-bold">{metrics.activeShipments}</span> 个国际物流单。系统核心神经网络运行平稳。
                   </p>
                </div>
                
-               <div className="grid grid-cols-2 gap-4 mt-8">
-                  <div className={`p-4 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md flex items-center gap-3 transition-colors ${metrics.exceptionShipments > 0 ? 'border-cyber-red/30 bg-cyber-red/5' : 'hover:bg-white/5'}`}>
-                     <div className={`w-2 h-2 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red' : 'bg-cyber-green'}`}></div>
+               <div className="grid grid-cols-2 gap-6 mt-8">
+                  <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
+                     <div className={`w-3 h-3 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red shadow-[0_0_10px_#FF453A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
                      <div>
-                        <div className="text-xs text-gray-400 font-medium uppercase">物流运输</div>
-                        <div className="text-sm font-semibold text-white">{metrics.exceptionShipments > 0 ? `${metrics.exceptionShipments} 个异常` : '运转正常'}</div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">物流运输</div>
+                        <div className="text-base font-bold text-white">{metrics.exceptionShipments > 0 ? `${metrics.exceptionShipments} 个异常` : '运转正常'}</div>
                      </div>
                   </div>
-                  <div className={`p-4 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md flex items-center gap-3 transition-colors ${metrics.lowStockCount > 0 ? 'border-cyber-orange/30 bg-cyber-orange/5' : 'hover:bg-white/5'}`}>
-                     <div className={`w-2 h-2 rounded-full ${metrics.lowStockCount > 0 ? 'bg-cyber-orange' : 'bg-cyber-green'}`}></div>
+                  <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
+                     <div className={`w-3 h-3 rounded-full ${metrics.lowStockCount > 0 ? 'bg-cyber-orange shadow-[0_0_10px_#FF9F0A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
                      <div>
-                        <div className="text-xs text-gray-400 font-medium uppercase">库存状况</div>
-                        <div className="text-sm font-semibold text-white">{metrics.lowStockCount > 0 ? `${metrics.lowStockCount} 个告急` : '健康'}</div>
+                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">库存状况</div>
+                        <div className="text-base font-bold text-white">{metrics.lowStockCount > 0 ? `${metrics.lowStockCount} 个告急` : '健康'}</div>
                      </div>
                   </div>
                </div>
             </div>
-            
-            {/* Soft decorative blob */}
-            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-cyber-blue/10 rounded-full blur-[80px] pointer-events-none"></div>
          </div>
 
          {/* Widget 2: Revenue (Emerald/Green Gradient) */}
-         <div className="col-span-1 md:col-span-1 lg:col-span-2 row-span-1 tech-border p-6 relative overflow-hidden flex flex-col justify-between">
-             <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/10 to-transparent pointer-events-none"></div>
+         <div className="col-span-1 md:col-span-1 lg:col-span-2 row-span-1 apple-glass p-8 relative overflow-hidden flex flex-col justify-between group">
+             <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/10 to-transparent pointer-events-none group-hover:opacity-70 transition-opacity"></div>
              
             <div className="flex justify-between items-start z-10">
                <div>
-                  <div className="text-xs font-bold text-cyber-dim uppercase tracking-wide">总营收 (CNY)</div>
-                  <div className="text-3xl font-bold text-white mt-1 tracking-tight">
+                  <div className="text-xs font-bold text-cyber-green uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-cyber-green rounded-full"></div> 总营收 (CNY)
+                  </div>
+                  <div className="text-4xl font-black text-white tracking-tight font-mono text-glow">
                      ¥{metrics.revenue.toLocaleString(undefined, {maximumFractionDigits: 0})}
                   </div>
                </div>
-               <div className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 ${metrics.profit >= 0 ? 'bg-cyber-green/20 text-cyber-green' : 'bg-cyber-red/20 text-cyber-red'}`}>
+               <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 backdrop-blur-md border ${metrics.profit >= 0 ? 'bg-cyber-green/10 text-cyber-green border-cyber-green/20' : 'bg-cyber-red/10 text-cyber-red border-cyber-red/20'}`}>
                   {metrics.profit >= 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />}
                   {metrics.profit >= 0 ? '+12.5%' : '-2.1%'}
                </div>
             </div>
-            <div className="h-20 w-full mt-4 -mx-2 opacity-80">
+            <div className="h-24 w-full mt-4 -mx-4 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={metrics.chartData}>
                      <defs>
                         <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                           <stop offset="5%" stopColor={metrics.profit >= 0 ? "#30D158" : "#FF453A"} stopOpacity={0.4}/>
+                           <stop offset="5%" stopColor={metrics.profit >= 0 ? "#30D158" : "#FF453A"} stopOpacity={0.6}/>
                            <stop offset="95%" stopColor={metrics.profit >= 0 ? "#30D158" : "#FF453A"} stopOpacity={0}/>
                         </linearGradient>
                      </defs>
@@ -189,50 +190,50 @@ export const Dashboard: React.FC = () => {
          </div>
 
          {/* Widget 3: Inventory (Pink/Purple) */}
-         <div className="tech-border p-6 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyber-pink/10 to-transparent pointer-events-none"></div>
+         <div className="apple-glass p-8 flex flex-col justify-between relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyber-pink/20 to-transparent pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
             
             <div className="flex justify-between items-start relative z-10">
-               <div className="w-10 h-10 bg-cyber-pink/20 rounded-xl flex items-center justify-center text-cyber-pink border border-cyber-pink/20">
-                  <Package size={20} />
+               <div className="w-12 h-12 bg-gradient-to-br from-cyber-pink to-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Package size={22} />
                </div>
-               {metrics.lowStockCount > 0 && <span className="w-2 h-2 bg-cyber-red rounded-full shadow-[0_0_8px_#FF453A]"></span>}
+               {metrics.lowStockCount > 0 && <span className="w-3 h-3 bg-cyber-red rounded-full shadow-[0_0_10px_#FF453A] animate-pulse"></span>}
             </div>
-            <div className="relative z-10">
-               <div className="text-2xl font-bold text-white">
-                  {metrics.lowStockCount} SKU
+            <div className="relative z-10 mt-4">
+               <div className="text-4xl font-black text-white font-mono tracking-tight text-glow-purple">
+                  {metrics.lowStockCount} <span className="text-base font-bold text-gray-400">SKU</span>
                </div>
-               <div className="text-xs text-gray-400 font-medium">需补货</div>
+               <div className="text-xs text-cyber-pink font-bold mt-2 uppercase tracking-widest">需紧急补货</div>
             </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2 relative z-10">
-               <div className="h-full bg-cyber-pink rounded-full shadow-[0_0_10px_rgba(255,55,95,0.5)]" style={{ width: `${Math.min(100, (metrics.lowStockCount / Math.max(1, metrics.totalProducts))*100)}%` }}></div>
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-4 relative z-10">
+               <div className="h-full bg-cyber-pink rounded-full shadow-[0_0_10px_rgba(255,55,95,0.8)]" style={{ width: `${Math.min(100, (metrics.lowStockCount / Math.max(1, metrics.totalProducts))*100)}%` }}></div>
             </div>
          </div>
 
          {/* Widget 4: Logistics (Blue/Teal) */}
-         <div className="tech-border p-6 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyber-cyan/10 to-transparent pointer-events-none"></div>
+         <div className="apple-glass p-8 flex flex-col justify-between relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyber-cyan/20 to-transparent pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
 
             <div className="flex justify-between items-start relative z-10">
-               <div className="w-10 h-10 bg-cyber-cyan/20 rounded-xl flex items-center justify-center text-cyber-cyan border border-cyber-cyan/20">
-                  <Map size={20} />
+               <div className="w-12 h-12 bg-gradient-to-br from-cyber-cyan to-blue-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Map size={22} />
                </div>
-               <ArrowUpRight size={16} className="text-gray-500" />
+               <ArrowUpRight size={20} className="text-cyber-cyan" />
             </div>
-            <div className="relative z-10">
-               <div className="text-2xl font-bold text-white">{metrics.activeShipments}</div>
-               <div className="text-xs text-gray-400 font-medium">运输中</div>
+            <div className="relative z-10 mt-4">
+               <div className="text-4xl font-black text-white font-mono tracking-tight text-glow-blue">{metrics.activeShipments}</div>
+               <div className="text-xs text-cyber-cyan font-bold mt-2 uppercase tracking-widest">正在运输中</div>
             </div>
          </div>
       </div>
 
       {/* AI Insights Bar */}
-      <div className="tech-border p-1.5 bg-white/5 rounded-full flex items-center backdrop-blur-3xl shadow-lg border border-white/10">
-         <div className="bg-gradient-to-r from-cyber-blue to-cyber-indigo text-white px-4 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-blue-900/50">
-            <Zap size={16} fill="currentColor" />
-            <span className="font-bold text-sm">AI 洞察</span>
+      <div className="apple-glass p-2 rounded-full flex items-center backdrop-blur-3xl shadow-2xl border border-white/20 animate-float">
+         <div className="bg-gradient-to-r from-cyber-blue to-cyber-indigo text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(94,92,230,0.5)]">
+            <Zap size={18} fill="currentColor" />
+            <span className="font-bold text-sm tracking-wide">AI 洞察</span>
          </div>
-         <div className="px-6 py-2 text-sm font-medium text-gray-200 truncate">
+         <div className="px-8 py-2 text-sm font-medium text-white truncate drop-shadow-md">
             {aiInsight}
          </div>
       </div>
