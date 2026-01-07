@@ -661,9 +661,9 @@ export const RestockModule: React.FC = () => {
     const TabButton = ({ id, label, icon: Icon }: any) => (
       <button 
         onClick={() => setActiveTab(id)}
-        className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all flex-shrink-0 font-mono tracking-wide ${activeTab === id ? 'border-cyber-cyan text-cyber-cyan bg-cyber-cyan/5' : 'border-transparent text-gray-500 hover:text-white'}`}
+        className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all flex-shrink-0 font-mono tracking-wide ${activeTab === id ? 'border-cyber-cyan text-cyber-cyan bg-cyber-cyan/5' : 'border-transparent text-gray-500 hover:text-white'}`}
       >
-        <Icon size={16} /> {label}
+        <Icon size={14} /> {label}
       </button>
     );
 
@@ -674,11 +674,11 @@ export const RestockModule: React.FC = () => {
             {/* Ambient Noise Overlay */}
             <div className="absolute inset-0 bg-noise pointer-events-none opacity-20"></div>
 
-            {/* 1. Header Toolbar */}
-            <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 bg-white/5 gap-4 shrink-0 relative z-10">
-               <div className="flex items-center gap-6 w-full lg:w-auto">
+            {/* 1. Header Toolbar (Compacted) */}
+            <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white/5 gap-4 shrink-0 relative z-10">
+               <div className="flex items-center gap-4 w-full lg:w-auto">
                   <div 
-                    className="group relative w-20 h-20 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan/50 transition-all shrink-0 shadow-lg"
+                    className="group relative w-14 h-14 bg-black/50 border border-white/10 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan/50 transition-all shrink-0 shadow-lg"
                     onClick={() => {
                         const url = prompt("请输入图片URL:", selectedProduct.image);
                         if (url) handleUpdate('image', url);
@@ -687,16 +687,16 @@ export const RestockModule: React.FC = () => {
                      {selectedProduct.image ? (
                        <img src={selectedProduct.image} alt="Product" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                      ) : (
-                       <ImageIcon size={28} className="text-gray-600 group-hover:text-cyber-cyan transition-colors" />
+                       <ImageIcon size={20} className="text-gray-600 group-hover:text-cyber-cyan transition-colors" />
                      )}
                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                        <UploadCloud size={24} className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+                        <UploadCloud size={16} className="text-white" />
                      </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                     <div className="flex items-center gap-3">
-                        <h2 className="text-white font-black text-2xl leading-tight tracking-tight truncate max-w-[400px]">
+                     <div className="flex items-center gap-2">
+                        <h2 className="text-white font-black text-lg leading-tight tracking-tight truncate max-w-[300px]">
                             {selectedProduct.productName}
                         </h2>
                         <button 
@@ -706,48 +706,48 @@ export const RestockModule: React.FC = () => {
                                 if (newName) handleUpdate('productName', newName);
                             }}
                         >
-                            <Edit2 size={16}/>
+                            <Edit2 size={14}/>
                         </button>
                      </div>
-                     <div className="text-gray-400 text-xs font-mono mt-3 flex gap-3 items-center flex-wrap">
-                        <span className="bg-white/10 px-2 py-1 rounded text-cyber-cyan font-bold tracking-wider border border-white/5 shadow-inner">{selectedProduct.skuCode}</span>
-                        <span className="text-gray-400 border border-white/10 px-2 py-1 rounded flex items-center gap-1.5 bg-black/30">
-                           <Warehouse size={12} className="text-cyber-purple"/> {selectedProduct.logistics?.warehouseDest || 'N/A'}
+                     <div className="text-gray-400 text-[10px] font-mono mt-1 flex gap-2 items-center flex-wrap">
+                        <span className="bg-white/10 px-1.5 py-0.5 rounded text-cyber-cyan font-bold tracking-wider border border-white/5">{selectedProduct.skuCode}</span>
+                        <span className="text-gray-400 border border-white/10 px-1.5 py-0.5 rounded flex items-center gap-1 bg-black/30">
+                           <Warehouse size={10} className="text-cyber-purple"/> {selectedProduct.logistics?.warehouseDest || 'N/A'}
                         </span>
                      </div>
                   </div>
                   
                   <button onClick={() => setSelectedProduct(null)} className="lg:hidden text-gray-400 hover:text-white p-2">
-                      <X size={24} />
+                      <X size={20} />
                   </button>
                </div>
                
-               <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
+               <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
                    <button 
                      onClick={handleSkuSplit}
-                     className="px-4 py-2.5 bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-all rounded-xl flex items-center gap-2 text-xs uppercase tracking-wider whitespace-nowrap shadow-[0_0_15px_rgba(192,38,211,0.1)] hover:shadow-[0_0_25px_rgba(192,38,211,0.4)]"
+                     className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-all rounded-lg flex items-center gap-2 text-xs uppercase tracking-wider whitespace-nowrap"
                    >
-                      <GitFork size={14} /> 快速复制 (Clone)
+                      <GitFork size={12} /> 复制
                    </button>
 
-                   <div className="h-8 w-[1px] bg-white/10 mx-2 hidden lg:block"></div>
+                   <div className="h-6 w-[1px] bg-white/10 mx-2 hidden lg:block"></div>
 
-                   <div className="flex items-center gap-2 px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl whitespace-nowrap backdrop-blur-md">
-                      <DollarSign size={14} className="text-cyber-green"/>
-                      <span className="text-xs text-gray-400 font-mono uppercase">Rate:</span>
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg whitespace-nowrap backdrop-blur-md">
+                      <DollarSign size={12} className="text-cyber-green"/>
+                      <span className="text-[10px] text-gray-400 font-mono uppercase">Rate:</span>
                       <input 
                         type="number" 
                         value={exchangeRate} 
                         onChange={e => setExchangeRate(parseFloat(e.target.value))}
-                        className="w-16 bg-transparent text-white font-bold outline-none text-right font-mono border-b border-transparent focus:border-cyber-green transition-all"
+                        className="w-12 bg-transparent text-white font-bold text-xs outline-none text-right font-mono border-b border-transparent focus:border-cyber-green transition-all"
                       />
                    </div>
-                   <button onClick={() => setSelectedProduct(null)} className="hidden lg:block px-6 py-2.5 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-all rounded-xl text-sm font-bold whitespace-nowrap hover:bg-white/5">ESC 关闭</button>
+                   <button onClick={() => setSelectedProduct(null)} className="hidden lg:block px-4 py-1.5 border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-all rounded-lg text-xs font-bold whitespace-nowrap hover:bg-white/5">ESC 关闭</button>
                    <button 
                       onClick={handleSave}
-                      className="px-8 py-2.5 bg-white text-black font-bold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:bg-cyber-cyan hover:shadow-[0_0_30px_rgba(64,200,224,0.5)] transition-all rounded-xl flex items-center gap-2 text-sm whitespace-nowrap"
+                      className="px-6 py-1.5 bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:bg-cyber-cyan hover:shadow-[0_0_20px_rgba(64,200,224,0.4)] transition-all rounded-lg flex items-center gap-2 text-xs whitespace-nowrap"
                    >
-                      <Save size={16} /> 保存
+                      <Save size={14} /> 保存
                    </button>
                </div>
             </div>
@@ -762,35 +762,34 @@ export const RestockModule: React.FC = () => {
                      <TabButton id="finance" label="财务 (FINANCE)" icon={DollarSign} />
                   </div>
 
-                  <div className="p-8 lg:flex-1 lg:overflow-y-auto custom-scrollbar bg-black/20">
+                  <div className="p-5 lg:flex-1 lg:overflow-y-auto custom-scrollbar bg-black/20">
                      {activeTab === 'supply' && (
-                       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                           {/* Section 1: Supplier */}
-                          <div className="apple-glass p-8">
-                             <h3 className="text-cyber-yellow font-bold text-sm uppercase mb-6 flex items-center gap-3 tracking-widest">
-                                <div className="p-1.5 bg-cyber-yellow/10 rounded-lg"><Layers size={16}/></div>
-                                供应商信息
+                          <div className="apple-glass p-5">
+                             <h3 className="text-cyber-yellow font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
+                                <Layers size={14} className="text-cyber-yellow"/> 供应商信息
                              </h3>
-                             <div className="grid grid-cols-2 gap-8">
+                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
                                    <label className="lbl">供应商全称</label>
-                                   <input value={selectedProduct.supplier?.name || ''} onChange={e => handleUpdate('supplier.name', e.target.value)} className="input-holo w-full p-3" />
+                                   <input value={selectedProduct.supplier?.name || ''} onChange={e => handleUpdate('supplier.name', e.target.value)} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl text-cyber-yellow">采购单价 (RMB)</label>
-                                   <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-holo w-full p-3 font-bold text-cyber-yellow" />
+                                   <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm font-bold text-cyber-yellow" />
                                 </div>
                                 <div>
                                    <label className="lbl">备货数量 (MOQ)</label>
-                                   <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">生产周期 (天)</label>
-                                   <input type="number" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">付款条款</label>
-                                   <input value={selectedProduct.supplier?.paymentTerms || ''} onChange={e => handleUpdate('supplier.paymentTerms', e.target.value)} className="input-holo w-full p-3" placeholder="e.g. 30% Deposit" />
+                                   <input value={selectedProduct.supplier?.paymentTerms || ''} onChange={e => handleUpdate('supplier.paymentTerms', e.target.value)} className="input-holo w-full p-2 text-sm" placeholder="e.g. 30% Deposit" />
                                 </div>
                                 <div className="col-span-2">
                                    <label className="lbl">1688 / 采购链接</label>
@@ -798,15 +797,15 @@ export const RestockModule: React.FC = () => {
                                       <input 
                                         value={selectedProduct.supplier?.link || ''} 
                                         onChange={e => handleUpdate('supplier.link', e.target.value)} 
-                                        className="input-holo w-full p-3 text-blue-400 cursor-pointer pr-10 hover:text-blue-300 underline underline-offset-4" 
+                                        className="input-holo w-full p-2 text-sm text-blue-400 cursor-pointer pr-8 hover:text-blue-300 underline underline-offset-4" 
                                       />
                                       {selectedProduct.supplier?.link && (
                                         <button 
                                           onClick={() => handleUpdate('supplier.link', '')}
-                                          className="absolute right-3 text-gray-500 hover:text-white p-1 transition-colors"
+                                          className="absolute right-2 text-gray-500 hover:text-white p-1 transition-colors"
                                           title="清空链接"
                                         >
-                                          <X size={16} />
+                                          <X size={14} />
                                         </button>
                                       )}
                                    </div>
@@ -815,19 +814,18 @@ export const RestockModule: React.FC = () => {
                           </div>
                           
                           {/* Section 2: Variant Generator */}
-                          <div className="apple-glass p-8 border-cyber-purple/20 bg-cyber-purple/5">
-                             <h3 className="text-cyber-purple font-bold text-sm uppercase mb-6 flex items-center gap-3 tracking-widest">
-                                <div className="p-1.5 bg-cyber-purple/10 rounded-lg"><Grid size={16}/></div>
-                                多规格矩阵 (SKU MATRIX)
+                          <div className="apple-glass p-5 border-cyber-purple/20 bg-cyber-purple/5">
+                             <h3 className="text-cyber-purple font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
+                                <Grid size={14} className="text-cyber-purple"/> 多规格矩阵 (SKU MATRIX)
                              </h3>
                              
-                             <div className="flex flex-col lg:flex-row items-end gap-4 mb-8">
+                             <div className="flex flex-col lg:flex-row items-end gap-3 mb-4">
                                 <div className="w-full lg:w-1/4">
                                    <label className="lbl text-cyber-purple">后缀 (Suffix)</label>
                                    <input 
                                       value={variantSuffix}
                                       onChange={e => setVariantSuffix(e.target.value)}
-                                      className="input-holo w-full p-3 border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
+                                      className="input-holo w-full p-2 text-sm border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
                                       placeholder="-BLK" 
                                    />
                                 </div>
@@ -836,59 +834,59 @@ export const RestockModule: React.FC = () => {
                                    <input 
                                       value={variantName}
                                       onChange={e => setVariantName(e.target.value)}
-                                      className="input-holo w-full p-3 border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
+                                      className="input-holo w-full p-2 text-sm border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
                                       placeholder="Black (XL)" 
                                    />
                                 </div>
-                                <div className="w-full lg:w-32">
-                                   <label className="lbl text-cyber-purple">数量 (Qty)</label>
+                                <div className="w-full lg:w-24">
+                                   <label className="lbl text-cyber-purple">数量</label>
                                    <input 
                                       type="number"
                                       value={variantQty}
                                       onChange={e => setVariantQty(e.target.value)}
-                                      className="input-holo w-full p-3 text-center border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
+                                      className="input-holo w-full p-2 text-sm text-center border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
                                       placeholder="0" 
                                    />
                                 </div>
                                 <button 
                                    onClick={handleAddVariant}
-                                   className="w-full lg:w-auto px-8 py-3 bg-cyber-purple text-white font-bold text-sm hover:bg-white hover:text-black transition-all shadow-[0_0_20px_rgba(192,38,211,0.4)] rounded-xl flex items-center justify-center gap-2"
+                                   className="w-full lg:w-auto px-6 py-2 bg-cyber-purple text-white font-bold text-xs hover:bg-white hover:text-black transition-all shadow-[0_0_10px_rgba(192,38,211,0.4)] rounded-xl flex items-center justify-center gap-1"
                                 >
-                                   <Plus size={18} /> 添加
+                                   <Plus size={16} />
                                 </button>
                              </div>
 
                              {/* Variants Table */}
                              {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
                                 <div className="border border-white/10 rounded-xl overflow-hidden bg-black/40 backdrop-blur-sm">
-                                   <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                      <table className="w-full text-sm text-left">
-                                         <thead className="bg-white/5 text-gray-400 font-mono text-xs uppercase sticky top-0 backdrop-blur-md z-10">
+                                   <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                      <table className="w-full text-xs text-left">
+                                         <thead className="bg-white/5 text-gray-400 font-mono text-[10px] uppercase sticky top-0 backdrop-blur-md z-10">
                                             <tr>
-                                               <th className="p-4 font-bold tracking-wider">完整 SKU</th>
-                                               <th className="p-4 font-bold tracking-wider">变体名称</th>
-                                               <th className="p-4 font-bold tracking-wider text-right">数量</th>
-                                               <th className="p-4 font-bold tracking-wider text-center">操作</th>
+                                               <th className="p-3 font-bold tracking-wider">完整 SKU</th>
+                                               <th className="p-3 font-bold tracking-wider">变体名称</th>
+                                               <th className="p-3 font-bold tracking-wider text-right">数量</th>
+                                               <th className="p-3 font-bold tracking-wider text-center">操作</th>
                                             </tr>
                                          </thead>
                                          <tbody className="divide-y divide-white/5">
                                             {selectedProduct.variants.map((v) => (
                                                <tr key={v.id} className="hover:bg-white/5 transition-colors group">
-                                                  <td className="p-4 font-mono text-cyber-cyan font-bold tracking-wide">
+                                                  <td className="p-3 font-mono text-cyber-cyan font-bold tracking-wide">
                                                      {selectedProduct.skuCode}{v.suffix.startsWith('-') ? '' : '-'}{v.suffix}
                                                   </td>
-                                                  <td className="p-4 text-gray-300 font-medium">
+                                                  <td className="p-3 text-gray-300 font-medium">
                                                      {v.variantName}
                                                   </td>
-                                                  <td className="p-4 font-mono text-white text-right font-bold">
+                                                  <td className="p-3 font-mono text-white text-right font-bold">
                                                      {v.quantity}
                                                   </td>
-                                                  <td className="p-4 text-center">
+                                                  <td className="p-3 text-center">
                                                      <button 
                                                        onClick={() => handleRemoveVariant(v.id)}
-                                                       className="text-gray-600 hover:text-red-500 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                                                       className="text-gray-600 hover:text-red-500 transition-colors p-1.5 hover:bg-red-500/10 rounded-lg"
                                                      >
-                                                        <Trash2 size={14} />
+                                                        <Trash2 size={12} />
                                                      </button>
                                                   </td>
                                                </tr>
@@ -896,101 +894,99 @@ export const RestockModule: React.FC = () => {
                                          </tbody>
                                       </table>
                                    </div>
-                                   <div className="bg-white/5 text-xs font-mono text-gray-400 p-3 flex justify-between border-t border-white/5">
-                                      <span>TOTAL VARIANTS: {selectedProduct.variants.length}</span>
-                                      <span className="text-white font-bold">TOTAL QTY: {selectedProduct.variants.reduce((sum, v) => sum + v.quantity, 0)}</span>
+                                   <div className="bg-white/5 text-[10px] font-mono text-gray-400 p-2 flex justify-between border-t border-white/5">
+                                      <span>TOTAL: {selectedProduct.variants.length}</span>
+                                      <span className="text-white font-bold">QTY: {selectedProduct.variants.reduce((sum, v) => sum + v.quantity, 0)}</span>
                                    </div>
                                 </div>
                              ) : (
-                                <div className="text-center py-12 text-gray-600 text-xs font-mono border border-dashed border-gray-800 rounded-xl bg-black/20">
+                                <div className="text-center py-8 text-gray-600 text-[10px] font-mono border border-dashed border-gray-800 rounded-xl bg-black/20">
                                    // NO VARIANTS DETECTED //
                                 </div>
                              )}
                           </div>
 
                           {/* Section 3: Packing */}
-                          <div className="apple-glass p-8">
-                             <h3 className="text-gray-400 font-bold text-sm uppercase mb-6 flex items-center gap-3 tracking-widest">
-                                <div className="p-1.5 bg-white/10 rounded-lg"><Box size={16}/></div>
-                                装箱规格 (PACKING)
+                          <div className="apple-glass p-5">
+                             <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
+                                <Box size={14}/> 装箱规格 (PACKING)
                              </h3>
-                             <div className="grid grid-cols-4 gap-6">
+                             <div className="grid grid-cols-4 gap-4">
                                 <div>
                                    <label className="lbl">每箱数量 (Pcs/Box)</label>
-                                   <input type="number" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">总箱数 (Boxes)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">单箱重量 (KG)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">单箱体积 (CBM)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
-                             <div className="mt-6 p-4 bg-black/40 border border-white/10 rounded-xl flex justify-between gap-6 text-xs font-mono text-gray-500 shadow-inner">
-                                <span>TOTAL UNITS: <span className="text-white font-bold text-sm ml-2">{eco.totalUnits}</span></span>
-                                <span>TOTAL WEIGHT: <span className="text-white font-bold text-sm ml-2">{eco.totalWeight.toFixed(2)} kg</span></span>
-                                <span>TOTAL VOLUME: <span className="text-white font-bold text-sm ml-2">{eco.totalVolume.toFixed(3)} cbm</span></span>
+                             <div className="mt-4 p-3 bg-black/40 border border-white/10 rounded-xl flex justify-between gap-4 text-[10px] font-mono text-gray-500 shadow-inner">
+                                <span>TOTAL UNITS: <span className="text-white font-bold ml-1">{eco.totalUnits}</span></span>
+                                <span>TOTAL WEIGHT: <span className="text-white font-bold ml-1">{eco.totalWeight.toFixed(2)} kg</span></span>
+                                <span>TOTAL VOLUME: <span className="text-white font-bold ml-1">{eco.totalVolume.toFixed(3)} cbm</span></span>
                              </div>
                           </div>
                        </div>
                      )}
 
                      {activeTab === 'logistics' && (
-                       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <div className="apple-glass p-8">
-                             <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-cyber-cyan font-bold text-sm uppercase flex items-center gap-3 tracking-widest">
-                                    <div className="p-1.5 bg-cyber-cyan/10 rounded-lg"><Truck size={16}/></div>
-                                    物流单证
+                       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          <div className="apple-glass p-5">
+                             <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-cyber-cyan font-bold text-xs uppercase flex items-center gap-2 tracking-widest">
+                                    <Truck size={14}/> 物流单证
                                 </h3>
                                 <button 
                                     onClick={(e) => handleSyncToLogistics(e, selectedProduct)}
-                                    className="px-5 py-2 bg-cyber-cyan/10 border border-cyber-cyan text-cyber-cyan text-xs font-bold hover:bg-cyber-cyan hover:text-black transition-all flex items-center gap-2 rounded-lg shadow-[0_0_15px_rgba(64,200,224,0.3)] uppercase tracking-wide"
+                                    className="px-4 py-1.5 bg-cyber-cyan/10 border border-cyber-cyan text-cyber-cyan text-[10px] font-bold hover:bg-cyber-cyan hover:text-black transition-all flex items-center gap-1 rounded-lg shadow-[0_0_10px_rgba(64,200,224,0.3)] uppercase tracking-wide"
                                 >
-                                    <RefreshCw size={14} className="animate-spin-slow" /> 同步追踪 (Sync)
+                                    <RefreshCw size={12} className="animate-spin-slow" /> 同步追踪
                                 </button>
                              </div>
-                             <div className="grid grid-cols-2 gap-8 mb-4">
+                             <div className="grid grid-cols-2 gap-4 mb-2">
                                 <div>
-                                   <label className="lbl flex items-center gap-2 text-cyber-cyan"><FileText size={12} /> 入库单号 (Inbound ID)</label>
+                                   <label className="lbl flex items-center gap-1 text-cyber-cyan"><FileText size={10} /> 入库单号 (Inbound ID)</label>
                                    <input 
                                      value={selectedProduct.logistics?.inboundId || ''} 
                                      onChange={e => handleUpdate('logistics.inboundId', e.target.value)} 
-                                     className="input-holo w-full p-3 border-cyber-cyan/30 text-cyber-cyan font-bold font-mono tracking-wide"
+                                     className="input-holo w-full p-2 text-sm border-cyber-cyan/30 text-cyber-cyan font-bold font-mono tracking-wide"
                                      placeholder="LX-..." 
                                    />
                                 </div>
                                 <div>
-                                   <label className="lbl flex items-center gap-2"><Anchor size={12} /> 追踪号 (Tracking)</label>
-                                   <div className="flex gap-3">
+                                   <label className="lbl flex items-center gap-1"><Anchor size={10} /> 追踪号 (Tracking)</label>
+                                   <div className="flex gap-2">
                                        <input 
                                          value={selectedProduct.logistics?.trackingNo || ''} 
                                          onChange={e => handleUpdate('logistics.trackingNo', e.target.value)} 
-                                         className="input-holo flex-1 p-3 font-mono"
+                                         className="input-holo flex-1 p-2 text-sm font-mono"
                                          placeholder="1Z..." 
                                        />
                                        <button 
                                          onClick={(e) => handleSyncToLogistics(e, selectedProduct)}
-                                         className="px-4 bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/50 hover:bg-cyber-cyan hover:text-black transition-all rounded-xl shadow-lg"
+                                         className="px-3 bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/50 hover:bg-cyber-cyan hover:text-black transition-all rounded-lg shadow-lg"
                                          title="同步"
                                        >
-                                           <LinkIcon size={16} />
+                                           <LinkIcon size={14} />
                                        </button>
                                    </div>
                                 </div>
                                 <div>
                                    <label className="lbl">目的仓库 (Warehouse)</label>
-                                   <input value={selectedProduct.logistics?.warehouseDest || ''} onChange={e => handleUpdate('logistics.warehouseDest', e.target.value)} className="input-holo w-full p-3" placeholder="ONT8" />
+                                   <input value={selectedProduct.logistics?.warehouseDest || ''} onChange={e => handleUpdate('logistics.warehouseDest', e.target.value)} className="input-holo w-full p-2 text-sm" placeholder="ONT8" />
                                 </div>
                                 <div>
                                    <label className="lbl">物流状态</label>
-                                   <select value={selectedProduct.logistics?.status || 'Plan'} onChange={e => handleUpdate('logistics.status', e.target.value)} className="input-holo w-full p-3 appearance-none bg-no-repeat bg-right">
+                                   <select value={selectedProduct.logistics?.status || 'Plan'} onChange={e => handleUpdate('logistics.status', e.target.value)} className="input-holo w-full p-2 text-sm appearance-none bg-no-repeat bg-right">
                                       <option value="Plan">计划中 (Plan)</option>
                                       <option value="Shipped">已发货 (Shipped)</option>
                                       <option value="Customs">清关中 (Customs)</option>
@@ -1000,15 +996,14 @@ export const RestockModule: React.FC = () => {
                              </div>
                           </div>
 
-                          <div className="apple-glass p-8">
-                             <h3 className="text-gray-400 font-bold text-sm uppercase mb-6 flex items-center gap-3 tracking-widest">
-                                <div className="p-1.5 bg-white/10 rounded-lg"><Plane size={16}/></div>
-                                运输与清关成本
+                          <div className="apple-glass p-5">
+                             <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
+                                <Plane size={14}/> 运输与清关成本
                              </h3>
-                             <div className="grid grid-cols-3 gap-8">
+                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                    <label className="lbl">运输方式</label>
-                                   <select value={selectedProduct.logistics?.mode || 'sea'} onChange={e => handleUpdate('logistics.mode', e.target.value)} className="input-holo w-full p-3">
+                                   <select value={selectedProduct.logistics?.mode || 'sea'} onChange={e => handleUpdate('logistics.mode', e.target.value)} className="input-holo w-full p-2 text-sm">
                                       <option value="air">✈️ 空运 (Air)</option>
                                       <option value="sea">🚢 海运 (Sea)</option>
                                       <option value="rail">🚆 铁路 (Rail)</option>
@@ -1016,22 +1011,22 @@ export const RestockModule: React.FC = () => {
                                 </div>
                                 <div>
                                    <label className="lbl">运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
-                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">海关编码 (HS Code)</label>
-                                   <input value={selectedProduct.logistics?.hsCode || ''} onChange={e => handleUpdate('logistics.hsCode', e.target.value)} className="input-holo w-full p-3 font-mono" />
+                                   <input value={selectedProduct.logistics?.hsCode || ''} onChange={e => handleUpdate('logistics.hsCode', e.target.value)} className="input-holo w-full p-2 text-sm font-mono" />
                                 </div>
                                 <div>
                                    <label className="lbl">关税税率 (Duty %)</label>
                                    <div className="relative">
-                                      <input type="number" value={((selectedProduct.logistics?.dutyRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('logistics.dutyRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-3 pr-8" />
-                                      <span className="absolute right-3 top-3.5 text-xs text-gray-500 font-bold">%</span>
+                                      <input type="number" value={((selectedProduct.logistics?.dutyRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('logistics.dutyRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
+                                      <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                    </div>
                                 </div>
                                 <div>
                                    <label className="lbl">杂费预估 (USD/Unit)</label>
-                                   <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                   <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
                           </div>
@@ -1039,113 +1034,112 @@ export const RestockModule: React.FC = () => {
                      )}
 
                      {activeTab === 'finance' && (
-                       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                           {/* ... Finance content ... */}
-                          <div className="apple-glass p-8 relative overflow-hidden">
+                          <div className="apple-glass p-5 relative overflow-hidden">
                              <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-pink/20 blur-[60px] pointer-events-none"></div>
                              
-                             <h3 className="text-cyber-pink font-bold text-sm uppercase mb-8 flex items-center gap-3 tracking-widest relative z-10">
-                                <div className="p-1.5 bg-cyber-pink/10 rounded-lg"><TrendingUp size={16}/></div>
-                                定价与利润模型
+                             <h3 className="text-cyber-pink font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest relative z-10">
+                                <TrendingUp size={14}/> 定价与利润模型
                              </h3>
                              
-                             <div className="mb-10 relative z-10">
-                                <label className="text-[10px] text-cyber-pink font-bold uppercase mb-3 block tracking-[0.2em]">TikTok 售价 (Selling Price)</label>
+                             <div className="mb-5 relative z-10">
+                                <label className="text-[10px] text-cyber-pink font-bold uppercase mb-2 block tracking-[0.2em]">TikTok 售价 (Selling Price)</label>
                                 <div className="relative group">
-                                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-2xl group-focus-within:text-white transition-colors">$</span>
+                                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xl group-focus-within:text-white transition-colors">$</span>
                                    <input 
                                      type="number" 
                                      value={selectedProduct.financials?.sellingPriceUSD || 0} 
                                      onChange={e => handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} 
-                                     className="w-full bg-black/50 border border-cyber-pink/30 text-5xl font-black text-white p-6 pl-14 outline-none focus:shadow-[0_0_30px_rgba(255,55,95,0.3)] focus:border-cyber-pink rounded-2xl transition-all font-mono tracking-tight" 
+                                     className="w-full bg-black/50 border border-cyber-pink/30 text-3xl font-black text-white p-3 pl-10 outline-none focus:shadow-[0_0_20px_rgba(255,55,95,0.3)] focus:border-cyber-pink rounded-xl transition-all font-mono tracking-tight" 
                                    />
                                 </div>
                              </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
-                                <div className="space-y-6">
-                                   <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-3 mb-4 tracking-wider flex justify-between items-center">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                                <div className="space-y-4">
+                                   <h4 className="text-white text-[10px] font-bold uppercase border-b border-white/10 pb-2 mb-2 tracking-wider flex justify-between items-center">
                                       平台费率 (Fees)
-                                      <span className="text-[9px] bg-white/10 px-2 py-0.5 rounded">TikTok Shop</span>
+                                      <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded">TikTok Shop</span>
                                    </h4>
-                                   <div className="grid grid-cols-2 gap-6">
+                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
                                          <label className="lbl">平台佣金 (Referral)</label>
                                          <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-3 pr-8" />
-                                            <span className="absolute right-3 top-3.5 text-xs text-gray-500 font-bold">%</span>
+                                            <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
+                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                          </div>
                                       </div>
                                       <div>
                                          <label className="lbl">达人佣金 (Affiliate)</label>
                                          <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(0)} onChange={e => handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-3 pr-8" />
-                                            <span className="absolute right-3 top-3.5 text-xs text-gray-500 font-bold">%</span>
+                                            <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(0)} onChange={e => handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
+                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                          </div>
                                       </div>
                                       <div className="col-span-2">
                                          <label className="lbl">交易手续费 (Trans % + Fixed)</label>
-                                         <div className="flex gap-4">
+                                         <div className="flex gap-2">
                                             <div className="relative flex-1">
-                                                <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-3 pr-8" />
-                                                <span className="absolute right-3 top-3.5 text-xs text-gray-500 font-bold">%</span>
+                                                <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
+                                                <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                             </div>
                                             <div className="relative flex-1">
-                                                <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e => handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-3 pl-6" />
-                                                <span className="absolute left-3 top-3.5 text-xs text-gray-500 font-bold">$</span>
+                                                <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e => handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
+                                                <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
                                             </div>
                                          </div>
                                       </div>
                                    </div>
                                 </div>
 
-                                <div className="space-y-6">
-                                   <h4 className="text-white text-xs font-bold uppercase border-b border-white/10 pb-3 mb-4 tracking-wider">
-                                      履约与隐形成本 (Fulfillment & Risk)
+                                <div className="space-y-4">
+                                   <h4 className="text-white text-[10px] font-bold uppercase border-b border-white/10 pb-2 mb-2 tracking-wider">
+                                      履约与隐形成本 (Fulfillment)
                                    </h4>
-                                   <div className="grid grid-cols-2 gap-6">
+                                   <div className="grid grid-cols-2 gap-4">
                                       <div>
                                          <label className="lbl">尾程配送 (Fulfillment)</label>
                                          <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e => handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-3 pl-6" />
-                                            <span className="absolute left-3 top-3.5 text-xs text-gray-500 font-bold">$</span>
+                                            <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e => handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
+                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
                                          </div>
                                       </div>
                                       <div>
                                          <label className="lbl text-cyber-yellow">海外仓操作费</label>
                                          <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e => handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-3 pl-6 border-cyber-yellow/20 focus:border-cyber-yellow" />
-                                            <span className="absolute left-3 top-3.5 text-xs text-gray-500 font-bold">$</span>
+                                            <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e => handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4 border-cyber-yellow/20 focus:border-cyber-yellow" />
+                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
                                          </div>
                                       </div>
                                       <div>
                                          <label className="lbl">月度仓储费</label>
                                          <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e => handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-3 pl-6" />
-                                            <span className="absolute left-3 top-3.5 text-xs text-gray-500 font-bold">$</span>
+                                            <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e => handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
+                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
                                          </div>
                                       </div>
                                       <div>
-                                         <label className="lbl flex items-center gap-1 text-red-400"><ShieldAlert size={10}/> 预估退货率 %</label>
+                                         <label className="lbl flex items-center gap-1 text-red-400"><ShieldAlert size={8}/> 预估退货率 %</label>
                                          <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e => handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-3 pr-8 text-red-400 border-red-500/30 focus:border-red-500" />
-                                            <span className="absolute right-3 top-3.5 text-xs text-gray-500 font-bold">%</span>
+                                            <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e => handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6 text-red-400 border-red-500/30 focus:border-red-500" />
+                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                          </div>
                                       </div>
                                    </div>
                                 </div>
                              </div>
                              
-                             <div className="border-t border-white/5 pt-6 mt-8 relative z-10">
-                                <h4 className="text-cyber-purple font-bold text-xs uppercase mb-4 tracking-wider">营销推广 (Marketing)</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                             <div className="border-t border-white/5 pt-4 mt-4 relative z-10">
+                                <h4 className="text-cyber-purple font-bold text-[10px] uppercase mb-2 tracking-wider">营销推广 (Marketing)</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                    <div>
                                       <label className="lbl text-cyber-purple">单次获客成本 (CPA)</label>
-                                      <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e => handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-3 border-cyber-purple/30 text-cyber-purple font-bold" />
+                                      <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e => handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm border-cyber-purple/30 text-cyber-purple font-bold" />
                                    </div>
                                    <div>
                                       <label className="lbl">目标投产比 (Target ROAS)</label>
-                                      <input type="number" value={selectedProduct.financials?.targetRoas || 0} onChange={e => handleUpdate('financials.targetRoas', parseFloat(e.target.value))} className="input-holo w-full p-3" />
+                                      <input type="number" value={selectedProduct.financials?.targetRoas || 0} onChange={e => handleUpdate('financials.targetRoas', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                    </div>
                                 </div>
                              </div>
@@ -1156,23 +1150,22 @@ export const RestockModule: React.FC = () => {
                </div>
 
                {/* RIGHT PANEL: LIVE ANALYTICS (Fixed) */}
-               <div className="col-span-12 lg:col-span-4 bg-black/40 p-8 flex flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto backdrop-blur-xl relative">
+               <div className="col-span-12 lg:col-span-4 bg-black/40 p-5 flex flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto backdrop-blur-xl relative">
                   {/* Subtle Background Mesh for Analytics */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 pointer-events-none"></div>
                   
-                  <div className="mb-8 relative z-10">
-                     <h3 className="text-white font-bold text-lg mb-8 flex items-center gap-3 tracking-wide">
-                        <div className="p-2 bg-cyber-green/10 rounded-lg"><Scale size={20} className="text-cyber-green"/></div>
-                        利润瀑布流 (Waterfall)
+                  <div className="mb-4 relative z-10">
+                     <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2 tracking-wide">
+                        <Scale size={16} className="text-cyber-green"/> 利润瀑布流
                      </h3>
 
-                     <div className="space-y-4 font-mono text-sm relative">
+                     <div className="space-y-2 font-mono text-xs relative">
                         {/* Connecting Line */}
                         <div className="absolute left-[11px] top-3 bottom-12 w-[2px] bg-gradient-to-b from-white/20 to-transparent"></div>
                         
-                        <div className="flex justify-between items-center py-3 border-b border-white/10 relative z-10 bg-transparent">
+                        <div className="flex justify-between items-center py-2 border-b border-white/10 relative z-10 bg-transparent">
                            <span className="text-gray-300 font-bold">销售价格 (Price)</span>
-                           <span className="text-white font-bold text-xl">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
+                           <span className="text-white font-bold text-lg">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
                         </div>
 
                         {[
@@ -1184,55 +1177,54 @@ export const RestockModule: React.FC = () => {
                           { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, 
                           { l: '广告支出', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-cyber-purple' },
                         ].map((item, i) => (
-                          <div key={i} className="flex justify-between text-xs relative pl-8 py-1">
-                             <div className="absolute left-[8px] top-[10px] w-[8px] h-[8px] rounded-full bg-[#1c1c1e] border-2 border-gray-600"></div>
+                          <div key={i} className="flex justify-between text-[10px] relative pl-8 py-0.5">
+                             <div className="absolute left-[8px] top-[6px] w-[6px] h-[6px] rounded-full bg-[#1c1c1e] border-2 border-gray-600"></div>
                              <span className={`${item.c} opacity-90 tracking-wide font-bold uppercase`}>{item.l}</span>
                              <span className="text-gray-300 font-bold">${item.v.toFixed(2)}</span>
                           </div>
                         ))}
 
-                        <div className="mt-8 pt-6 border-t border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden group">
+                        <div className="mt-4 pt-4 border-t border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden group">
                            <div className={`absolute inset-0 opacity-10 transition-colors duration-500 ${eco.netProfit > 0 ? 'bg-cyber-green' : 'bg-cyber-red'}`}></div>
                            
                            <div className="flex justify-between items-center mb-2 relative z-10">
-                              <span className="text-white font-bold text-xs uppercase tracking-widest opacity-80">净利润 (Net Profit)</span>
-                              <span className={`text-4xl font-black ${eco.netProfit > 0 ? 'text-cyber-green text-glow-green' : 'text-cyber-red text-glow-red'}`}>
+                              <span className="text-white font-bold text-[10px] uppercase tracking-widest opacity-80">净利润 (Net Profit)</span>
+                              <span className={`text-3xl font-black ${eco.netProfit > 0 ? 'text-cyber-green text-glow-green' : 'text-cyber-red text-glow-red'}`}>
                                  ${eco.netProfit.toFixed(2)}
                               </span>
                            </div>
-                           <div className="flex justify-between gap-4 text-xs font-bold font-mono mt-4 relative z-10">
-                              <span className="bg-black/40 px-3 py-1.5 rounded-lg text-gray-300 border border-white/5">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
-                              <span className="bg-black/40 px-3 py-1.5 rounded-lg text-gray-300 border border-white/5">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
+                           <div className="flex justify-between gap-2 text-[10px] font-bold font-mono mt-2 relative z-10">
+                              <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
+                              <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
                            </div>
                         </div>
                      </div>
                   </div>
 
-                  <div className="border border-white/10 bg-black/30 p-6 rounded-2xl mt-auto relative overflow-hidden group hover:border-cyber-yellow/50 transition-colors">
-                     <div className="absolute top-0 right-0 p-3 opacity-20"><Calculator size={64}/></div>
-                     <h4 className="text-cyber-yellow font-bold text-sm mb-6 flex items-center gap-3 tracking-widest relative z-10">
-                        <div className="p-1.5 bg-cyber-yellow/10 rounded-lg"><Calculator size={16}/></div>
-                        智能备货建议
+                  <div className="border border-white/10 bg-black/30 p-4 rounded-xl mt-auto relative overflow-hidden group hover:border-cyber-yellow/50 transition-colors">
+                     <div className="absolute top-0 right-0 p-2 opacity-20"><Calculator size={48}/></div>
+                     <h4 className="text-cyber-yellow font-bold text-xs mb-4 flex items-center gap-2 tracking-widest relative z-10">
+                        <Calculator size={14}/> 智能备货建议
                      </h4>
                      
-                     <div className="grid grid-cols-2 gap-4 mb-6 text-xs font-mono relative z-10">
-                        <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                     <div className="grid grid-cols-2 gap-3 mb-4 text-[10px] font-mono relative z-10">
+                        <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                            <div className="text-gray-500 mb-1 font-bold uppercase">安全库存</div>
-                           <div className="text-white font-black text-lg">{selectedProduct.inventory?.safetyDays || 0} 天</div>
+                           <div className="text-white font-black text-sm">{selectedProduct.inventory?.safetyDays || 0} 天</div>
                         </div>
-                        <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                            <div className="text-gray-500 mb-1 font-bold uppercase">当前可售</div>
-                           <div className={`text-lg font-black ${eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-red animate-pulse" : "text-white"}`}>
+                           <div className={`text-sm font-black ${eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-red animate-pulse" : "text-white"}`}>
                               {eco.daysOfCover.toFixed(0)} 天
                            </div>
                         </div>
                      </div>
 
-                     <div className="flex justify-between text-xs font-mono text-gray-400 mb-4 border-t border-white/10 pt-4 relative z-10">
+                     <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
                         <span className="uppercase font-bold tracking-wider">建议采购量:</span>
-                        <span className="text-cyber-yellow font-black text-lg">{Math.ceil(eco.reorderQty)} <span className="text-xs text-gray-500">pcs</span></span>
+                        <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
                      </div>
-                     <button className="w-full py-4 bg-cyber-yellow text-black font-black text-sm hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-xl relative z-10">
+                     <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
                         生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
                      </button>
                   </div>
@@ -1250,11 +1242,11 @@ export const RestockModule: React.FC = () => {
     <div className="px-8 pb-8 space-y-8 animate-in fade-in duration-700">
       <style>{`
         .lbl {
-          font-size: 0.65rem;
+          font-size: 0.6rem;
           color: #86868b;
           text-transform: uppercase;
           font-weight: 800;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.25rem;
           display: block;
           font-family: 'Inter', sans-serif;
           letter-spacing: 0.1em;
