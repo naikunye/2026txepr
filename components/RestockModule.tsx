@@ -76,7 +76,11 @@ const initialProducts: Product[] = [
     skuCode: 'dsz-01-PRO', 
     productName: '战术登山杖 Pro (碳纤维版)', 
     image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=60',
-    variants: [],
+    variants: [
+        { id: 'v1', suffix: '-BLK', variantName: 'Black', quantity: 120 },
+        { id: 'v2', suffix: '-RED', variantName: 'Red', quantity: 45 },
+        { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
+    ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '30/70' },
     logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
@@ -1449,6 +1453,22 @@ export const RestockModule: React.FC = () => {
                                    <span className="hidden lg:inline font-bold uppercase tracking-wider text-[10px]">Sync</span>
                                 </div>
                              </div>
+
+                             {/* --- SKU MATRIX MINI VIEW --- */}
+                             {product.variants && product.variants.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/5">
+                                   {product.variants.slice(0, 6).map(v => (
+                                      <div key={v.id} className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-2 py-1 rounded text-[10px] font-mono">
+                                         <span className="text-cyber-purple font-bold">{v.suffix}</span>
+                                         <span className="text-gray-500">|</span>
+                                         <span className="text-white">{v.quantity}</span>
+                                      </div>
+                                   ))}
+                                   {product.variants.length > 6 && (
+                                      <span className="text-[10px] text-gray-500 self-center px-1">+{product.variants.length - 6} more</span>
+                                   )}
+                                </div>
+                             )}
                           </div>
                        </div>
                     </div>
