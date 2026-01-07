@@ -13,7 +13,7 @@ interface SettingsModuleProps {
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS System Monitor initialized...', '> Waiting for diagnostics...']);
+  const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS 系统监控初始化...', '> 等待诊断指令...']);
   
   // Real System Stats
   const [storageUsage, setStorageUsage] = useState(0); // in KB
@@ -35,14 +35,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   };
 
   const runDiagnostics = async () => {
-      addLog('> Pinging server nodes...');
+      addLog('> 正在 ping 服务器节点...');
       const start = Date.now();
       // Simulate network request
       await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 100));
       const end = Date.now();
       setNetworkLatency(end - start);
-      addLog(`> Latency check: ${end - start}ms`);
-      addLog('> Integrity check passed.');
+      addLog(`> 延迟检测: ${end - start}ms`);
+      addLog('> 数据完整性检查通过。');
       calculateStorage();
   };
 
@@ -55,7 +55,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
   const handleExport = () => {
     try {
-      addLog('> Starting system dump...');
+      addLog('> 开始导出系统数据...');
       
       const data = {
         meta: { exportedAt: new Date().toISOString(), version: '3.1.0', user: 'Admin' },
@@ -79,10 +79,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      addLog('> Backup generated successfully.');
+      addLog('> 备份文件生成成功。');
       setLastBackup('刚刚');
     } catch (e) {
-      addLog('> ERROR: Export failed.');
+      addLog('> 错误: 导出失败。');
       console.error(e);
     }
   };
@@ -94,7 +94,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    addLog(`> Reading: ${file.name}...`);
+    addLog(`> 读取文件: ${file.name}...`);
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
@@ -127,11 +127,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             onThemeChange(payload.theme);
         }
 
-        addLog(`> Import complete. Updated ${count} modules.`);
+        addLog(`> 导入完成。更新了 ${count} 个模块。`);
         alert(`成功恢复了 ${count} 个模块的数据。`);
         calculateStorage();
       } catch (err) {
-        addLog('> FATAL: Corrupt data file.');
+        addLog('> 致命错误: 数据文件损坏。');
         alert('导入失败：文件格式错误或数据损坏。');
       }
     };
@@ -142,8 +142,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const handleReset = () => {
       if (confirm('⚠️ 警告：这将清除所有本地缓存数据并重置系统。\n此操作无法撤销。是否继续？')) {
           localStorage.clear();
-          addLog('> SYSTEM RESET INITIATED.');
-          addLog('> Clearing memory banks...');
+          addLog('> 系统重置程序已启动。');
+          addLog('> 正在清理存储扇区...');
           setTimeout(() => window.location.reload(), 1000);
       }
   };
@@ -159,12 +159,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                 <Settings className="text-gray-400" />
                 系统配置 (System)
              </h1>
-             <p className="text-gray-500 font-mono text-xs mt-1">CORE SETTINGS & DIAGNOSTICS</p>
+             <p className="text-gray-500 font-mono text-xs mt-1">核心设置与诊断中心</p>
           </div>
           <div className="flex items-center gap-2">
              <div className="flex items-center gap-2 px-3 py-1 bg-black border border-white/10 rounded text-xs font-mono text-gray-400">
                 <div className={`w-2 h-2 rounded-full ${networkLatency ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
-                {networkLatency ? `${networkLatency}ms` : 'Connecting...'}
+                {networkLatency ? `${networkLatency}ms` : '连接中...'}
              </div>
           </div>
        </div>
@@ -178,11 +178,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              <div className="tech-border p-6 bg-white/5 relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><Database size={18} className="text-cyber-cyan"/> 数据存储 (Storage)</h3>
-                   <span className="text-xs font-mono text-gray-500 uppercase">Local IndexDB</span>
+                   <span className="text-xs font-mono text-gray-500 uppercase">本地数据库 (IndexedDB)</span>
                 </div>
                 <div className="flex items-end gap-2 mb-2">
                    <span className="text-4xl font-black text-white tracking-tighter">{storageUsage}</span>
-                   <span className="text-sm font-bold text-gray-500 mb-1">KB Used</span>
+                   <span className="text-sm font-bold text-gray-500 mb-1">KB 已用</span>
                 </div>
                 <div className="w-full bg-black h-2 rounded-full overflow-hidden mb-4 border border-white/10">
                    <div className="h-full bg-gradient-to-r from-cyber-cyan to-blue-600 w-[10%] animate-pulse"></div>
@@ -204,12 +204,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                    <div className="flex items-center gap-3">
                       <Palette size={20} className="text-gray-400" />
                       <div>
-                         <div className="text-sm font-bold text-white">Cyber Mode</div>
-                         <div className="text-xs text-gray-500">High contrast, neon accents</div>
+                         <div className="text-sm font-bold text-white">赛博模式 (Cyber Mode)</div>
+                         <div className="text-xs text-gray-500">高对比度，霓虹风格</div>
                       </div>
                    </div>
                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-cyber-green font-bold">ACTIVE</span>
+                      <span className="text-xs text-cyber-green font-bold">使用中</span>
                    </div>
                 </div>
                 <button onClick={runDiagnostics} className="w-full py-3 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-all rounded font-bold text-sm flex items-center justify-center gap-2">
@@ -234,7 +234,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           <div className="flex flex-col h-full min-h-[400px]">
              <div className="bg-[#0c0c0c] border border-white/10 rounded-t-xl p-3 flex items-center gap-2 border-b border-white/5">
                 <Terminal size={14} className="text-gray-500" />
-                <span className="text-xs font-mono text-gray-500">System Log</span>
+                <span className="text-xs font-mono text-gray-500">系统日志 (System Log)</span>
              </div>
              <div className="flex-1 bg-black border border-white/10 border-t-0 rounded-b-xl p-4 font-mono text-xs text-green-500 overflow-y-auto custom-scrollbar shadow-inner">
                 {consoleLogs.map((log, i) => (

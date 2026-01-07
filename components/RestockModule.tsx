@@ -3,7 +3,6 @@ import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRigh
 import { initialShipments } from './LogisticsModule';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 
-// ... (Keep existing interface and data structure definitions as they were) ...
 // --- World-Class ERP Data Model ---
 interface Variant {
   id: string;
@@ -800,7 +799,7 @@ export const RestockModule: React.FC = () => {
                                    <input value={selectedProduct.supplier?.paymentTerms || ''} onChange={e => handleUpdate('supplier.paymentTerms', e.target.value)} className="input-cyber" placeholder="e.g. 30% Deposit" />
                                 </div>
                                 <div className="col-span-2">
-                                   <label className="lbl">1688 / Supplier Link</label>
+                                   <label className="lbl">1688 / 采购链接 (Link)</label>
                                    <div className="relative flex items-center">
                                       <input 
                                         value={selectedProduct.supplier?.link || ''} 
@@ -1134,10 +1133,10 @@ export const RestockModule: React.FC = () => {
                              </div>
                              
                              <div className="border-t border-white/5 pt-4 mt-6">
-                                <h4 className="text-cyber-purple font-bold text-xs uppercase mb-4">营销与广告 (Marketing)</h4>
+                                <h4 className="text-cyber-purple font-bold text-xs uppercase mb-4">营销推广 (Marketing)</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                    <div>
-                                      <label className="lbl text-cyber-purple">单次广告成本 (CPA/Ads)</label>
+                                      <label className="lbl text-cyber-purple">单次获客成本 (CPA/Ads)</label>
                                       <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e => handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="input-cyber border-cyber-purple/30 text-cyber-purple font-bold" />
                                    </div>
                                    <div>

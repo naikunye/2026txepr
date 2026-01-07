@@ -5,7 +5,6 @@ import {
   PieChart as PieIcon, Trash2, ArrowRight, MoreHorizontal, CheckCircle2,
   Clock, Activity, Container
 } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, Cell, Tooltip, XAxis, CartesianGrid, AreaChart, Area } from 'recharts';
 import { usePersistence } from '../hooks/usePersistence';
 
 // --- Types ---
@@ -33,44 +32,44 @@ export interface Shipment {
 export const initialShipments: Shipment[] = [
   {
     id: 'TRK-98212102',
-    originCode: 'SZX', originCity: 'Shenzhen', destCode: 'LAX', destCity: 'Los Angeles',
+    originCode: 'SZX', originCity: '深圳', destCode: 'LAX', destCity: '洛杉矶',
     status: 'transport', carrier: 'DHL Aviation', mode: 'air',
-    etd: 'Jan 04', eta: 'Jan 08', progress: 65,
+    etd: '1月04日', eta: '1月08日', progress: 65,
     packing: { totalCartons: 45, totalWeightKg: 520, totalVolumeCbm: 1.2 },
     fees: { freightCost: 2400 },
     milestones: [
-        { label: '已揽收 (Picked Up)', date: 'Jan 04 14:00', status: 'completed' },
-        { label: '离开起运港 (Departed)', date: 'Jan 05 02:30', status: 'completed' },
-        { label: '到达中转站 (Transit)', date: 'Jan 06 10:15', status: 'current' },
-        { label: '清关 (Customs)', date: 'Jan 07', status: 'pending' },
-        { label: '派送 (Delivery)', date: 'Jan 08', status: 'pending' }
+        { label: '已揽收 (Picked Up)', date: '1月04日 14:00', status: 'completed' },
+        { label: '离开起运港 (Departed)', date: '1月05日 02:30', status: 'completed' },
+        { label: '到达中转站 (Transit)', date: '1月06日 10:15', status: 'current' },
+        { label: '清关 (Customs)', date: '1月07日', status: 'pending' },
+        { label: '派送 (Delivery)', date: '1月08日', status: 'pending' }
     ]
   },
   {
     id: 'TRK-SEA-002',
-    originCode: 'NGB', originCity: 'Ningbo', destCode: 'LGB', destCity: 'Long Beach',
+    originCode: 'NGB', originCity: '宁波', destCode: 'LGB', destCity: '长滩',
     status: 'customs', carrier: 'Cosco Shipping', mode: 'sea',
-    etd: 'Dec 12', eta: 'Jan 15', progress: 85,
+    etd: '12月12日', eta: '1月15日', progress: 85,
     packing: { totalCartons: 1200, totalWeightKg: 15000, totalVolumeCbm: 28.5 },
     fees: { freightCost: 4500 },
     milestones: [
-        { label: '装船 (Loaded)', date: 'Dec 12', status: 'completed' },
-        { label: '离港 (Departed)', date: 'Dec 13', status: 'completed' },
-        { label: '海上运输 (At Sea)', date: 'Dec 14 - Jan 10', status: 'completed' },
-        { label: '到港 (Arrived)', date: 'Jan 12', status: 'completed' },
-        { label: '海关查验 (Customs)', date: 'Jan 13', status: 'current' }
+        { label: '装船 (Loaded)', date: '12月12日', status: 'completed' },
+        { label: '离港 (Departed)', date: '12月13日', status: 'completed' },
+        { label: '海上运输 (At Sea)', date: '12月14日 - 1月10日', status: 'completed' },
+        { label: '到港 (Arrived)', date: '1月12日', status: 'completed' },
+        { label: '海关查验 (Customs)', date: '1月13日', status: 'current' }
     ]
   },
   {
     id: 'TRK-EX-009',
-    originCode: 'HKG', originCity: 'Hong Kong', destCode: 'JFK', destCity: 'New York',
+    originCode: 'HKG', originCity: '香港', destCode: 'JFK', destCity: '纽约',
     status: 'exception', carrier: 'FedEx', mode: 'air',
-    etd: 'Jan 02', eta: 'Jan 05', progress: 40,
+    etd: '1月02日', eta: '1月05日', progress: 40,
     packing: { totalCartons: 10, totalWeightKg: 120, totalVolumeCbm: 0.5 },
     fees: { freightCost: 850 },
     milestones: [
-        { label: '已揽收', date: 'Jan 02', status: 'completed' },
-        { label: '航班延误', date: 'Jan 03', status: 'current' }
+        { label: '已揽收', date: '1月02日', status: 'completed' },
+        { label: '航班延误', date: '1月03日', status: 'current' }
     ]
   }
 ];
@@ -96,6 +95,15 @@ interface ShipmentCardProps {
 
 const ShipmentCard: React.FC<ShipmentCardProps> = ({ data, isSelected, onSelect }) => {
   const colors = getModeColor(data.mode);
+  
+  const statusLabels: Record<string, string> = {
+      'pending': '待处理',
+      'transport': '运输中',
+      'customs': '清关中',
+      'exception': '异常',
+      'delivered': '已送达'
+  };
+
   return (
       <div 
          onClick={() => onSelect(data)}
@@ -125,7 +133,7 @@ const ShipmentCard: React.FC<ShipmentCardProps> = ({ data, isSelected, onSelect 
                  data.status === 'delivered' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
                  'bg-white/5 text-gray-300 border-white/10'
              }`}>
-                 {data.status}
+                 {statusLabels[data.status] || data.status}
              </div>
           </div>
 
@@ -156,7 +164,7 @@ const ShipmentCard: React.FC<ShipmentCardProps> = ({ data, isSelected, onSelect 
 };
 
 const DetailView = ({ data }: { data: Shipment | null }) => {
-  if(!data) return <div className="h-full flex items-center justify-center text-gray-500">Select a shipment</div>;
+  if(!data) return <div className="h-full flex items-center justify-center text-gray-500">请选择运单 (Select a shipment)</div>;
   const colors = getModeColor(data.mode);
 
   return (
@@ -170,9 +178,9 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                  <div>
                     <div className="flex items-center gap-2 mb-2">
                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${colors.border} ${colors.text} bg-black/20 uppercase`}>
-                          International {data.mode === 'air' ? 'Priority' : 'Freight'}
+                          国际{data.mode === 'air' ? '空运' : '海运'} (International {data.mode === 'air' ? 'Air' : 'Sea'})
                        </span>
-                       {data.status === 'exception' && <span className="flex items-center gap-1 text-red-400 text-xs font-bold"><AlertTriangle size={12}/> DELAY REPORTED</span>}
+                       {data.status === 'exception' && <span className="flex items-center gap-1 text-red-400 text-xs font-bold"><AlertTriangle size={12}/> 延误通报 (DELAY)</span>}
                     </div>
                     <h2 className="text-4xl font-black text-white tracking-tighter mb-1">{data.originCode} <span className="text-white/20 mx-2">→</span> {data.destCode}</h2>
                     <div className="text-sm text-gray-400 flex items-center gap-4">
@@ -183,7 +191,7 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                  </div>
                  <div className="text-right">
                     <div className="text-3xl font-bold text-white tabular-nums">{data.progress}%</div>
-                    <div className="text-xs text-cyber-cyan font-mono">IN TRANSIT</div>
+                    <div className="text-xs text-cyber-cyan font-mono">运输中 (IN TRANSIT)</div>
                  </div>
              </div>
 
@@ -196,8 +204,8 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                  </div>
              </div>
              <div className="flex justify-between mt-4 text-xs font-mono font-bold text-gray-500">
-                <span>Dep: {data.etd}</span>
-                <span className="text-white">Est. Arrival: {data.eta}</span>
+                <span>出发: {data.etd}</span>
+                <span className="text-white">预计到达: {data.eta}</span>
              </div>
           </div>
 
@@ -207,7 +215,7 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                   {/* Timeline */}
                   <div>
                      <h3 className="text-sm font-bold text-white uppercase mb-6 flex items-center gap-2">
-                        <Activity size={16} className="text-cyber-cyan"/> 追踪节点 (Tracking Events)
+                        <Activity size={16} className="text-cyber-cyan"/> 物流追踪节点 (Tracking)
                      </h3>
                      <div className="space-y-0 relative border-l border-white/10 ml-3">
                         {data.milestones.map((m, i) => (
@@ -235,19 +243,19 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                         <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><Box size={14}/> 货物规格 (Cargo Specs)</h4>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="p-3 bg-black rounded-xl">
-                              <div className="text-[10px] text-gray-500 uppercase">Weight</div>
+                              <div className="text-[10px] text-gray-500 uppercase">重量 (Weight)</div>
                               <div className="text-lg font-bold text-white">{data.packing?.totalWeightKg} <span className="text-xs text-gray-600">kg</span></div>
                            </div>
                            <div className="p-3 bg-black rounded-xl">
-                              <div className="text-[10px] text-gray-500 uppercase">Volume</div>
+                              <div className="text-[10px] text-gray-500 uppercase">体积 (Volume)</div>
                               <div className="text-lg font-bold text-white">{data.packing?.totalVolumeCbm} <span className="text-xs text-gray-600">cbm</span></div>
                            </div>
                            <div className="p-3 bg-black rounded-xl">
-                              <div className="text-[10px] text-gray-500 uppercase">Cartons</div>
+                              <div className="text-[10px] text-gray-500 uppercase">箱数 (Cartons)</div>
                               <div className="text-lg font-bold text-white">{data.packing?.totalCartons} <span className="text-xs text-gray-600">boxes</span></div>
                            </div>
                            <div className="p-3 bg-black rounded-xl">
-                              <div className="text-[10px] text-gray-500 uppercase">Carrier</div>
+                              <div className="text-[10px] text-gray-500 uppercase">承运商 (Carrier)</div>
                               <div className="text-sm font-bold text-white truncate">{data.carrier}</div>
                            </div>
                         </div>
@@ -258,15 +266,15 @@ const DetailView = ({ data }: { data: Shipment | null }) => {
                         <div className="absolute right-0 top-0 p-4 opacity-5"><DollarSign size={64}/></div>
                         <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2"><DollarSign size={14}/> 物流成本 (Logistics Cost)</h4>
                         <div className="flex justify-between items-end mb-2">
-                           <div className="text-sm text-gray-400">Freight Charge (运费)</div>
+                           <div className="text-sm text-gray-400">运费 (Freight)</div>
                            <div className="text-xl font-bold text-white font-mono">${data.fees?.freightCost}</div>
                         </div>
                         <div className="w-full bg-black h-1 rounded-full mb-2">
                            <div className="w-3/4 h-full bg-cyber-green rounded-full"></div>
                         </div>
                         <div className="flex justify-between text-[10px] text-gray-500 font-mono">
-                           <span>Paid: 75%</span>
-                           <span>Pending: 25%</span>
+                           <span>已付: 75%</span>
+                           <span>待付: 25%</span>
                         </div>
                      </div>
                      
@@ -291,6 +299,14 @@ export const LogisticsModule: React.FC = () => {
   const [shipments, setShipments] = usePersistence<Shipment[]>('AERO_LOGISTICS_DATA', initialShipments);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(shipments[0] || null);
 
+  const filterLabels: Record<string, string> = {
+      'all': '全部',
+      'transport': '运输中',
+      'customs': '清关中',
+      'exception': '异常',
+      'delivered': '已送达'
+  };
+
   return (
     <div className="px-6 pb-6 h-screen flex flex-col animate-in fade-in duration-500 overflow-hidden">
       
@@ -302,15 +318,15 @@ export const LogisticsModule: React.FC = () => {
                    <Map className="text-cyber-cyan" size={32} />
                    物流指挥中心
                 </h1>
-                <p className="text-gray-500 font-mono text-xs mt-1">GLOBAL LOGISTICS TRACKER</p>
+                <p className="text-gray-500 font-mono text-xs mt-1">全球物流追踪系统</p>
              </div>
              
              {/* Stats Pills */}
              <div className="hidden lg:flex gap-4">
                  {[
-                     { label: 'In Transit', val: shipments.filter(s=>s.status==='transport').length, c: 'text-cyber-cyan' },
-                     { label: 'Customs', val: shipments.filter(s=>s.status==='customs').length, c: 'text-cyber-yellow' },
-                     { label: 'Exceptions', val: shipments.filter(s=>s.status==='exception').length, c: 'text-red-500 animate-pulse' },
+                     { label: '运输中', val: shipments.filter(s=>s.status==='transport').length, c: 'text-cyber-cyan' },
+                     { label: '清关中', val: shipments.filter(s=>s.status==='customs').length, c: 'text-cyber-yellow' },
+                     { label: '异常', val: shipments.filter(s=>s.status==='exception').length, c: 'text-red-500 animate-pulse' },
                  ].map((stat, i) => (
                      <div key={i} className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl flex items-center gap-3 backdrop-blur-md">
                         <div className="text-[10px] text-gray-400 uppercase font-bold">{stat.label}</div>
@@ -336,7 +352,7 @@ export const LogisticsModule: React.FC = () => {
                   />
               </div>
               <div className="flex gap-2">
-                 {['all', 'transport', 'customs', 'exception', 'delivered'].map(f => (
+                 {Object.keys(filterLabels).map(f => (
                      <button 
                         key={f}
                         onClick={() => setFilterMode(f)}
@@ -346,7 +362,7 @@ export const LogisticsModule: React.FC = () => {
                             : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5'
                         }`}
                      >
-                        {f}
+                        {filterLabels[f]}
                      </button>
                  ))}
               </div>
@@ -359,8 +375,8 @@ export const LogisticsModule: React.FC = () => {
           {/* List Column */}
           <div className="col-span-12 lg:col-span-4 flex flex-col min-h-0 bg-[#0A0A0A] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
              <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Shipment List</span>
-                <span className="text-xs font-mono text-gray-600">{shipments.length} Records</span>
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">运单列表 (Shipment List)</span>
+                <span className="text-xs font-mono text-gray-600">{shipments.length} 条记录</span>
              </div>
              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
                  {shipments
