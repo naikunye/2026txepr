@@ -1709,7 +1709,7 @@ export const RestockModule: React.FC = () => {
                     <div className="grid grid-cols-3 divide-x divide-white/5 bg-black/20">
                        <div className="p-4 hover:bg-white/5 transition-colors relative group/stat">
                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                             <Package size={12} className="text-cyber-yellow group-hover/stat:scale-110 transition-transform"/> 建议备货
+                             <Package size={12} className="text-cyber-yellow group-hover/stat:scale-110 transition-transform"/> 备货数量
                           </div>
                           <div className="flex items-baseline gap-2">
                              <span className="text-xl font-black text-white">{Math.ceil(eco.reorderQty)}</span>
@@ -1722,7 +1722,12 @@ export const RestockModule: React.FC = () => {
 
                        <div className="p-4 hover:bg-white/5 transition-colors relative group/stat">
                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                             <Plane size={12} className="text-blue-400 group-hover/stat:translate-x-1 transition-transform"/> 头程物流
+                             {product.logistics?.mode === 'air' ? (
+                                <Plane size={12} className="text-blue-400 group-hover/stat:translate-x-1 transition-transform"/>
+                             ) : (
+                                <Ship size={12} className="text-blue-600 group-hover/stat:translate-x-1 transition-transform"/>
+                             )}
+                             头程物流
                           </div>
                           <div className="flex items-baseline gap-2">
                              <span className={`text-xl font-black ${isManualFreight ? 'text-cyber-cyan text-glow-blue' : 'text-white'}`}>
