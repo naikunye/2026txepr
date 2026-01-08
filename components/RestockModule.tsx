@@ -986,7 +986,7 @@ export const RestockModule: React.FC = () => {
                                      placeholder="0.00" 
                                    />
                                    <div className="text-[9px] text-gray-500 mt-1 text-right">
-                                      {(selectedProduct.logistics?.totalFreightRMB || 0) > 0 ? '已覆盖预估计算' : '使用单价自动计算'}
+                                      {(selectedProduct.logistics?.totalFreightRMB || 0) > 0 ? '已覆盖预估计算 (优先)' : '使用单价自动计算'}
                                    </div>
                                 </div>
                              </div>
@@ -1006,8 +1006,19 @@ export const RestockModule: React.FC = () => {
                                    </select>
                                 </div>
                                 <div>
-                                   <label className="lbl">头程运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
-                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" disabled={(selectedProduct.logistics?.totalFreightRMB || 0) > 0} />
+                                   <label className="lbl">头程运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/kg' : '¥/m³'})</label>
+                                   <input 
+                                      type="number" 
+                                      value={selectedProduct.logistics?.unitRateRMB || 0} 
+                                      onChange={e => {
+                                          const val = parseFloat(e.target.value);
+                                          // Custom update: Set Unit Rate AND Clear Total Freight to ensure Unit Rate calculation takes precedence
+                                          const updatedLogistics = { ...selectedProduct.logistics, unitRateRMB: val, totalFreightRMB: 0 };
+                                          const updatedProduct = { ...selectedProduct, logistics: updatedLogistics };
+                                          setSelectedProduct(updatedProduct);
+                                      }}
+                                      className="input-holo w-full p-2 text-sm" 
+                                   />
                                 </div>
                                 <div>
                                    <label className="lbl">海关编码 (HS Code)</label>
