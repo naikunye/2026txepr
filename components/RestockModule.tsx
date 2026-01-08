@@ -727,7 +727,17 @@ export const RestockModule: React.FC = () => {
                         </button>
                      </div>
                      <div className="text-gray-400 text-[10px] font-mono mt-1 flex gap-2 items-center flex-wrap">
-                        <span className="bg-white/10 px-1.5 py-0.5 rounded text-cyber-cyan font-bold tracking-wider border border-white/5">{selectedProduct.skuCode}</span>
+                        <button 
+                            className="bg-white/10 px-1.5 py-0.5 rounded border border-white/5 flex items-center gap-2 hover:bg-white/20 hover:border-cyber-cyan/50 transition-all group/sku cursor-pointer"
+                            onClick={() => {
+                                const newSku = prompt("请输入新的 SKU 编码:", selectedProduct.skuCode);
+                                if (newSku && newSku.trim() !== "") handleUpdate('skuCode', newSku.trim());
+                            }}
+                            title="点击修改 SKU"
+                        >
+                            <span className="text-cyber-cyan font-bold tracking-wider">{selectedProduct.skuCode}</span>
+                            <Edit2 size={10} className="text-gray-500 group-hover/sku:text-cyber-cyan opacity-50 group-hover/sku:opacity-100 transition-all" />
+                        </button>
                         <span className="text-gray-400 border border-white/10 px-1.5 py-0.5 rounded flex items-center gap-1 bg-black/30">
                            <Warehouse size={10} className="text-cyber-purple"/> {selectedProduct.logistics?.warehouseDest || 'N/A'}
                         </span>
