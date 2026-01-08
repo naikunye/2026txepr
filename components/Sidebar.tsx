@@ -4,12 +4,10 @@ import {
   BarChart3, 
   Users, 
   CreditCard, 
-  PackageSearch, 
   Layers, 
   ListTodo, 
   Settings, 
-  Command,
-  Cpu
+  Command
 } from 'lucide-react';
 import { NavItem } from '../types';
 
@@ -23,7 +21,7 @@ const navItems: NavItem[] = [
   { id: 'data', label: '数据智脑', icon: BarChart3 },
   { id: 'influencers', label: '达人矩阵', icon: Users },
   { id: 'finance', label: '财务核算', icon: CreditCard },
-  { id: 'logistics', label: '物流追踪', icon: PackageSearch },
+  // Logistics removed as per request
   { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务协同', icon: ListTodo },
 ];

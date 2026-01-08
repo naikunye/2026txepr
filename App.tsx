@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { FinanceModule } from './components/FinanceModule';
-import { LogisticsModule } from './components/LogisticsModule';
 import { DataIntelligenceModule } from './components/DataIntelligenceModule';
 import { InfluencerModule } from './components/InfluencerModule';
 import { RestockModule } from './components/RestockModule';
 import { TaskModule } from './components/TaskModule';
 import { SettingsModule } from './components/SettingsModule'; 
 import { ModulePlaceholder } from './components/ModulePlaceholder';
-import { Sparkles, Command, Search, ArrowRight, CreditCard, Package, Users, Settings } from 'lucide-react';
+import { Sparkles, Command, CreditCard, Users } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -43,7 +42,6 @@ export default function App() {
       case 'dashboard': return <Dashboard />;
       case 'data': return <DataIntelligenceModule />;
       case 'influencers': return <InfluencerModule />;
-      case 'logistics': return <LogisticsModule />;
       case 'replenish': return <RestockModule />;
       case 'tasks': return <TaskModule />;
       case 'finance': return <FinanceModule />;
@@ -72,7 +70,6 @@ export default function App() {
             <div className="p-2">
                {[
                  { label: '记一笔账 (Record Transaction)', icon: CreditCard, action: () => setActiveTab('finance') },
-                 { label: '查询物流 (Track Shipment)', icon: Package, action: () => setActiveTab('logistics') },
                  { label: '录入达人 (Add Creator)', icon: Users, action: () => setActiveTab('influencers') },
                ].map((cmd, i) => (
                  <button 

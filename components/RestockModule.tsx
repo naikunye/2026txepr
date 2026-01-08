@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Package, Edit2, Trash2, Copy, Plane, Ship, Box, ArrowRight, Save, Calculator, Truck, TrendingUp, AlertTriangle, DollarSign, Percent, Scale, Info, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, BarChart4, Wallet, ScanLine, Grid, X, ShieldAlert, Download, Upload, RefreshCw, Link as LinkIcon, CheckSquare, Square, Check, AlertCircle, Database, Clock } from 'lucide-react';
-import { initialShipments } from './LogisticsModule';
-import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
+import { Search, Plus, Package, Edit2, Trash2, Plane, Ship, Box, Save, Calculator, Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock } from 'lucide-react';
+import { usePersistence } from '../hooks/usePersistence';
 
 // --- World-Class ERP Data Model ---
 interface Variant {
@@ -333,79 +332,14 @@ export const RestockModule: React.FC = () => {
     }
   };
 
-  const handleSyncToLogistics = (e: React.MouseEvent, p: Product) => {
-    e.stopPropagation();
-    if (!p.logistics.trackingNo || p.logistics.trackingNo.trim() === '' || p.logistics.trackingNo.includes('待填')) {
-        alert("无法同步：请先在物流信息中填写有效的追踪单号 (Tracking No)。");
-        return;
-    }
-
-    const newShipment = {
-        id: p.logistics.trackingNo,
-        internalRef: p.logistics.inboundId || `AUTO-SYNC-${Date.now().toString().slice(-6)}`,
-        originCode: 'CN',
-        originCity: p.supplier.name.substring(0, 4) || 'China', 
-        destCode: p.logistics.warehouseDest || 'US',
-        destCity: 'Destination',
-        status: p.logistics.status === 'Plan' ? 'pending' : 
-                p.logistics.status === 'Shipped' ? 'transport' : 
-                p.logistics.status === 'Customs' ? 'customs' : 'delivered',
-        carrier: p.logistics.mode === 'air' ? 'Air Express' : 'Ocean Line',
-        mode: p.logistics.mode,
-        etd: '待定',
-        eta: '待定',
-        progress: p.logistics.status === 'Shipped' ? 20 : 0,
-        skuCount: (p.inventory.incoming || 0) + (p.variants?.reduce((s, v) => s + v.quantity, 0) || 0),
-        supplier: { 
-            name: p.supplier.name, 
-            contact: '供应商对接人', 
-            phone: '' 
-        },
-        packing: {
-            totalCartons: p.packing.boxCount,
-            pcsPerCarton: p.packing.pcsPerBox,
-            totalWeightKg: p.packing.boxCount * p.packing.boxWeightKg,
-            totalVolumeCbm: p.packing.boxCount * p.packing.boxVolumeCbm
-        },
-        fees: {
-            freightCost: 0,
-            customsDuty: 0,
-            insurance: 0,
-            misc: p.financials.miscCostUSD
-        },
-        milestones: [
-            { label: '系统同步', date: new Date().toLocaleDateString(), status: 'completed' },
-            { label: '已发货', date: '-', status: 'pending' },
-            { label: '已送达', date: '-', status: 'pending' },
-        ]
-    };
-
-    try {
-        const storedData = localStorage.getItem('AERO_LOGISTICS_DATA');
-        let currentShipments = [];
-        
-        if (storedData) {
-            currentShipments = JSON.parse(storedData);
-        } else {
-            currentShipments = [...initialShipments];
-        }
-
-        const exists = currentShipments.find((s: any) => s.id === newShipment.id);
-        if (exists) {
-            alert(`同步失败：追踪单号 ${newShipment.id} 已存在于物流模块中。`);
-            return;
-        }
-
-        currentShipments.unshift(newShipment);
-        
-        const KEY = 'AERO_LOGISTICS_DATA';
-        localStorage.setItem(KEY, JSON.stringify(currentShipments));
-        window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: KEY } }));
-        alert(`✅ 同步成功！\n\n追踪号: ${newShipment.id}\n已自动创建物流追踪档案，请前往[物流追踪]模块查看。`);
-    } catch (err) {
-        console.error(err);
-        alert("同步时发生系统错误 (LocalStorage Error)。");
-    }
+  const handleStatusUpdate = (e: React.ChangeEvent<HTMLSelectElement>, productId: string) => {
+      e.stopPropagation();
+      const newStatus = e.target.value as any;
+      setProducts(products.map(p => 
+          p.id === productId 
+              ? { ...p, logistics: { ...p.logistics, status: newStatus } } 
+              : p
+      ));
   };
 
   const handleExportData = () => {
@@ -949,12 +883,6 @@ export const RestockModule: React.FC = () => {
                                 <h3 className="text-cyber-cyan font-bold text-xs uppercase flex items-center gap-2 tracking-widest">
                                     <Truck size={14}/> 物流单证
                                 </h3>
-                                <button 
-                                    onClick={(e) => handleSyncToLogistics(e, selectedProduct)}
-                                    className="px-4 py-1.5 bg-cyber-cyan/10 border border-cyber-cyan text-cyber-cyan text-[10px] font-bold hover:bg-cyber-cyan hover:text-black transition-all flex items-center gap-1 rounded-lg shadow-[0_0_10px_rgba(64,200,224,0.3)] uppercase tracking-wide"
-                                >
-                                    <RefreshCw size={12} className="animate-spin-slow" /> 同步追踪
-                                </button>
                              </div>
                              <div className="grid grid-cols-2 gap-4 mb-2">
                                 <div>
@@ -975,13 +903,6 @@ export const RestockModule: React.FC = () => {
                                          className="input-holo flex-1 p-2 text-sm font-mono"
                                          placeholder="1Z..." 
                                        />
-                                       <button 
-                                         onClick={(e) => handleSyncToLogistics(e, selectedProduct)}
-                                         className="px-3 bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/50 hover:bg-cyber-cyan hover:text-black transition-all rounded-lg shadow-lg"
-                                         title="同步"
-                                       >
-                                           <LinkIcon size={14} />
-                                       </button>
                                    </div>
                                 </div>
                                 <div>
@@ -1416,11 +1337,29 @@ export const RestockModule: React.FC = () => {
                                     {product.logistics?.mode === 'air' ? <Plane size={14} className="text-blue-400"/> : <Ship size={14} className="text-blue-600"/>}
                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.logistics?.mode}</span>
                                 </div>
-                                <span className={`text-[10px] font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${product.logistics?.status === 'Shipped' ? 'border-green-500/50 text-green-400 bg-green-500/10' : 'border-gray-600 text-gray-500 bg-gray-500/10'}`}>
-                                   {product.logistics?.status === 'Plan' ? '计划中' : 
-                                    product.logistics?.status === 'Shipped' ? '已发货' :
-                                    product.logistics?.status === 'Customs' ? '清关中' : '已入库'}
-                                </span>
+
+                                <div onClick={e => e.stopPropagation()} className="relative z-10">
+                                    <select
+                                        value={product.logistics?.status || 'Plan'}
+                                        onChange={(e) => handleStatusUpdate(e, product.id)}
+                                        className={`
+                                            appearance-none cursor-pointer text-[10px] font-bold px-3 py-1.5 rounded-full border uppercase tracking-wider outline-none transition-all duration-500 text-center min-w-[80px]
+                                            ${product.logistics?.status === 'Received' 
+                                                ? 'border-green-500/30 text-green-400 bg-green-500/10' 
+                                                : product.logistics?.status === 'Customs'
+                                                    ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10 animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.4)]'
+                                                    : product.logistics?.status === 'Shipped'
+                                                        ? 'border-blue-500/50 text-blue-400 bg-blue-500/10 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                                                        : 'border-white/20 text-gray-400 bg-white/5 hover:border-white/40'
+                                            }
+                                        `}
+                                    >
+                                        <option value="Plan" className="bg-[#1c1c1e] text-gray-400">📝 计划中</option>
+                                        <option value="Shipped" className="bg-[#1c1c1e] text-blue-400">✈️ 已发货</option>
+                                        <option value="Customs" className="bg-[#1c1c1e] text-yellow-400">🛃 清关中</option>
+                                        <option value="Received" className="bg-[#1c1c1e] text-green-400">✅ 已入库</option>
+                                    </select>
+                                </div>
                              </div>
                           </div>
                           
@@ -1442,15 +1381,6 @@ export const RestockModule: React.FC = () => {
                                 >
                                    <Truck size={12}/> 
                                    <span>{product.logistics?.trackingNo || 'No Tracking'}</span>
-                                </div>
-                                
-                                <div 
-                                  onClick={(e) => handleSyncToLogistics(e, product)}
-                                  className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-cyber-cyan/30 text-cyber-cyan cursor-pointer hover:bg-cyber-cyan hover:text-black transition-all group/sync"
-                                  title="同步"
-                                >
-                                   <RefreshCw size={12} className="group-hover/sync:rotate-180 transition-transform" />
-                                   <span className="hidden lg:inline font-bold uppercase tracking-wider text-[10px]">Sync</span>
                                 </div>
                              </div>
 
