@@ -94,7 +94,7 @@ export default function App() {
       <CommandPalette />
 
       <main className="flex-1 ml-[260px] h-screen overflow-y-auto relative scroll-smooth px-4 pt-4">
-        <div className="w-full h-full rounded-3xl bg-black/20 border border-white/5 backdrop-blur-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
+        <div className="w-full max-w-[1800px] mx-auto h-full rounded-3xl bg-black/20 border border-white/5 backdrop-blur-xl shadow-2xl overflow-y-auto overflow-x-hidden custom-scrollbar relative">
            {renderContent()}
         </div>
         

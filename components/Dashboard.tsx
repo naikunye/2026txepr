@@ -76,7 +76,7 @@ export const Dashboard: React.FC = () => {
   }, [metrics]);
 
   return (
-    <div className="px-8 py-6 space-y-8 animate-in fade-in duration-700 w-full max-w-[1600px] mx-auto">
+    <div className="px-8 py-6 space-y-8 animate-in fade-in duration-700 w-full mx-auto">
       
       {/* Header Section */}
       <div className="flex flex-col xl:flex-row justify-between items-end xl:items-center gap-6">
