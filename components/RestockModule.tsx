@@ -5,7 +5,7 @@ import {
   Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
-  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation
+  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
@@ -41,6 +41,7 @@ interface Product {
     warehouseDest: string; 
     unitRateRMB: number; // Estimated Unit Rate
     totalFreightRMB?: number; // Manual Total Override
+    paymentStatus: string; // Added: Freight Payment Status
     dutyRate: number; 
     hsCode: string; 
     status: 'Plan' | 'Shipped' | 'Customs' | 'Received' | 'Exception';
@@ -90,7 +91,7 @@ const initialProducts: Product[] = [
         { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
     ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '已付款' },
-    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', carrier: 'UPS', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', carrier: 'UPS', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, paymentStatus: '待支付', dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
@@ -115,7 +116,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '待付款' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, paymentStatus: '已支付', dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -219,6 +220,7 @@ const sanitizeProduct = (p: any): Product => {
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
       unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
       totalFreightRMB: fuzzyVal(mixedPool, ['totalFreightRMB', 'Total Freight', '总运费', '头程总额'], 'number', 0),
+      paymentStatus: fuzzyVal(mixedPool, ['paymentStatus', 'freightPayment', '运费支付', '头程付款'], 'string', ''),
       dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0),
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
@@ -640,7 +642,7 @@ export const RestockModule: React.FC = () => {
           image: '',
           variants: [],
           supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
-          logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
+          logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, paymentStatus: '待支付', dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
           inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
@@ -784,7 +786,7 @@ export const RestockModule: React.FC = () => {
                                    <input type="number" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
-                                   <label className="lbl">付款状态 (Payment)</label>
+                                   <label className="lbl">货款支付状态 (Product Payment)</label>
                                    <div className="flex gap-2">
                                        <select
                                            className="input-holo w-1/3 p-2 text-xs"
@@ -808,7 +810,7 @@ export const RestockModule: React.FC = () => {
                                            value={selectedProduct.supplier?.paymentTerms || ''} 
                                            onChange={e => handleUpdate('supplier.paymentTerms', e.target.value)} 
                                            className="input-holo flex-1 p-2 text-sm" 
-                                           placeholder="输入金额或条款 (e.g. 已付30%)" 
+                                           placeholder="输入金额或条款" 
                                            disabled={['待付款', '已付款'].includes(selectedProduct.supplier?.paymentTerms || '')}
                                        />
                                    </div>
@@ -1060,6 +1062,36 @@ export const RestockModule: React.FC = () => {
                                       }}
                                       className="input-holo w-full p-2 text-sm" 
                                    />
+                                </div>
+                                <div>
+                                   <label className="lbl">运费支付状态 (Freight Payment)</label>
+                                   <div className="flex gap-2">
+                                       <select
+                                           className="input-holo w-1/3 p-2 text-xs"
+                                           value={['待支付', '已支付'].includes(selectedProduct.logistics?.paymentStatus || '') ? selectedProduct.logistics?.paymentStatus : 'Custom'}
+                                           onChange={(e) => {
+                                               const val = e.target.value;
+                                               if (val === 'Custom') {
+                                                   if (['待支付', '已支付'].includes(selectedProduct.logistics?.paymentStatus || '')) {
+                                                       handleUpdate('logistics.paymentStatus', '');
+                                                   }
+                                               } else {
+                                                   handleUpdate('logistics.paymentStatus', val);
+                                               }
+                                           }}
+                                       >
+                                           <option value="待支付">🔴 待支付</option>
+                                           <option value="已支付">🟢 已支付</option>
+                                           <option value="Custom">✏️ 自定义</option>
+                                       </select>
+                                       <input 
+                                           value={selectedProduct.logistics?.paymentStatus || ''} 
+                                           onChange={e => handleUpdate('logistics.paymentStatus', e.target.value)} 
+                                           className="input-holo flex-1 p-2 text-sm" 
+                                           placeholder="输入金额或条款" 
+                                           disabled={['待支付', '已支付'].includes(selectedProduct.logistics?.paymentStatus || '')}
+                                       />
+                                   </div>
                                 </div>
                                 <div>
                                    <label className="lbl">海关编码 (HS Code)</label>
@@ -1691,14 +1723,16 @@ export const RestockModule: React.FC = () => {
                        </div>
                     </div>
                     
-                    <div className="px-5 py-2.5 bg-black/40 border-t border-white/5 flex justify-between items-center backdrop-blur-md">
-                        <div className="flex items-center gap-4">
-                            <div className="text-[10px] text-gray-500 font-mono font-medium flex items-center gap-2">
+                    <div className="px-5 py-2.5 bg-black/40 border-t border-white/5 flex flex-wrap justify-between items-center backdrop-blur-md gap-y-2">
+                        <div className="flex items-center gap-6">
+                            <div className="text-[10px] text-gray-500 font-mono font-medium flex items-center gap-2 min-w-[80px]">
                                <Clock size={12} /> 生产: <span className="text-white">{product.supplier?.leadTime || 0} 天</span>
                             </div>
-                            {/* Payment Badge */}
-                            <div className="text-[10px] font-mono font-medium flex items-center gap-2">
-                               <span className={`w-2 h-2 rounded-full ${
+                            
+                            {/* Product Payment Badge */}
+                            <div className="text-[10px] font-mono font-medium flex items-center gap-2 min-w-[100px]">
+                               <Factory size={12} className="text-gray-600" />
+                               <span className={`w-1.5 h-1.5 rounded-full ${
                                    product.supplier?.paymentTerms === '已付款' ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 
                                    product.supplier?.paymentTerms === '待付款' ? 'bg-red-500 shadow-[0_0_5px_#ef4444]' : 
                                    'bg-yellow-500 shadow-[0_0_5px_#eab308]'
@@ -1708,11 +1742,28 @@ export const RestockModule: React.FC = () => {
                                    product.supplier?.paymentTerms === '待付款' ? 'text-red-400' : 
                                    'text-yellow-400'
                                }`}>
-                                   {product.supplier?.paymentTerms || '未设置'}
+                                   {product.supplier?.paymentTerms || '货款未付'}
+                               </span>
+                            </div>
+
+                            {/* Freight Payment Badge */}
+                            <div className="text-[10px] font-mono font-medium flex items-center gap-2 min-w-[100px]">
+                               <Truck size={12} className="text-gray-600" />
+                               <span className={`w-1.5 h-1.5 rounded-full ${
+                                   product.logistics?.paymentStatus === '已支付' ? 'bg-blue-500 shadow-[0_0_5px_#3b82f6]' : 
+                                   product.logistics?.paymentStatus === '待支付' ? 'bg-red-500 shadow-[0_0_5px_#ef4444]' : 
+                                   'bg-gray-500'
+                               }`}></span>
+                               <span className={`${
+                                   product.logistics?.paymentStatus === '已支付' ? 'text-blue-400' : 
+                                   product.logistics?.paymentStatus === '待支付' ? 'text-red-400' : 
+                                   'text-gray-400'
+                               }`}>
+                                   {product.logistics?.paymentStatus || '运费未付'}
                                </span>
                             </div>
                         </div>
-                        <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
+                        <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300 ml-auto">
                            <button 
                              onClick={(e) => { e.stopPropagation(); handleSkuSplit(product); }}
                              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
