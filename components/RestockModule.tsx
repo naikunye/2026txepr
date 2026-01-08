@@ -489,24 +489,26 @@ export const RestockModule: React.FC = () => {
     const totalVolume = boxCount * boxVol;
     const totalUnits = boxCount * pcsPerBox || 1; 
 
-    let totalFreightRMB = 0;
+    // --- FREIGHT CALCULATION START ---
+    let currentTotalFreightRMB = 0; // This is the value for the *current* batch
     const mode = p.logistics?.mode || 'sea';
     const rate = p.logistics?.unitRateRMB || 0;
     const manualTotalFreight = p.logistics?.totalFreightRMB || 0;
 
     // Logic Priority: If manual total freight is set, use it. Otherwise, calculate from rate.
     if (manualTotalFreight > 0) {
-        totalFreightRMB = manualTotalFreight;
+        currentTotalFreightRMB = manualTotalFreight;
     } else {
         if (mode === 'air') {
-           totalFreightRMB = totalWeight * rate; 
+           currentTotalFreightRMB = totalWeight * rate; 
         } else {
-           totalFreightRMB = totalVolume * rate;
+           currentTotalFreightRMB = totalVolume * rate;
         }
     }
 
-    const unitFreightRMB = totalUnits > 0 ? totalFreightRMB / totalUnits : 0; // Explicit RMB
+    const unitFreightRMB = totalUnits > 0 ? currentTotalFreightRMB / totalUnits : 0; // Explicit RMB
     const unitFreightUSD = unitFreightRMB / exchangeRate;
+    // --- FREIGHT CALCULATION END ---
     
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
     const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
@@ -537,12 +539,12 @@ export const RestockModule: React.FC = () => {
     const reorderQty = Math.max(needed, supplier.moq);
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Calculate RMB Total
+    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Theoretical Reorder Freight
     const totalFreightBatchUSD = unitFreightUSD * reorderQty;
     const totalProfitBatchUSD = netProfit * reorderQty;
 
     return {
-      unitProductCostRMB, unitFreightRMB, // Return raw RMB
+      unitProductCostRMB, unitFreightRMB,
       unitProductCostUSD, unitFreightUSD, unitDutyUSD, landedCostUSD,
       referralFeeUSD, transactionFeeUSD, affiliateFeeUSD, 
       fulfillmentTotalUSD, storageCostUSD, returnLossUSD, 
@@ -551,7 +553,8 @@ export const RestockModule: React.FC = () => {
       daysOfCover, reorderQty, capitalRequiredRMB,
       totalUnits, totalWeight, totalVolume,
       totalFreightBatchUSD, totalProfitBatchUSD,
-      totalFreightBatchRMB // Added
+      totalFreightBatchRMB, 
+      currentTotalFreightRMB // Added for precise display in list view
     };
   };
 
@@ -1570,6 +1573,13 @@ export const RestockModule: React.FC = () => {
               const currentPrio = product.logistics?.priority || 'normal';
               const pStyle = priorityMap[currentPrio] || priorityMap['normal'];
 
+              // Logic to prioritize manual total freight display
+              const displayFreight = (product.logistics?.totalFreightRMB || 0) > 0 
+                  ? product.logistics.totalFreightRMB 
+                  : eco.totalFreightBatchRMB; // Fallback to restock calc if no manual freight
+              
+              const isManualFreight = (product.logistics?.totalFreightRMB || 0) > 0;
+
               return (
                  <div 
                    key={product.id} 
@@ -1699,8 +1709,12 @@ export const RestockModule: React.FC = () => {
                              <Plane size={12} className="text-blue-400 group-hover/stat:translate-x-1 transition-transform"/> 头程物流
                           </div>
                           <div className="flex items-baseline gap-2">
-                             <span className="text-xl font-black text-white">¥{eco.totalFreightBatchRMB.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                             <span className="text-xs text-gray-500 font-bold">总额</span>
+                             <span className={`text-xl font-black ${isManualFreight ? 'text-cyber-cyan text-glow-blue' : 'text-white'}`}>
+                                ¥{displayFreight.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                             </span>
+                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${isManualFreight ? 'border-cyber-cyan text-cyber-cyan bg-cyber-cyan/10' : 'border-gray-600 text-gray-500'}`}>
+                                {isManualFreight ? '固定' : '预估'}
+                             </span>
                           </div>
                           <div className="text-xs font-mono text-blue-400 mt-1 font-bold">
                              ¥{eco.unitFreightRMB.toFixed(2)} / 件
