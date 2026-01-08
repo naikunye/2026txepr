@@ -477,9 +477,11 @@ export const RestockModule: React.FC = () => {
   };
 
   const calculateEconomics = (p: Product) => {
-    const unitProductCostRMB = p.supplier?.unitPriceRMB || 0; // Explicit RMB
+    // 1. Basic Costs
+    const unitProductCostRMB = p.supplier?.unitPriceRMB || 0; 
     const unitProductCostUSD = unitProductCostRMB / exchangeRate;
     
+    // 2. Packing & Dimensions
     const boxCount = p.packing?.boxCount || 0;
     const boxWeight = p.packing?.boxWeightKg || 0;
     const boxVol = p.packing?.boxVolumeCbm || 0;
@@ -487,18 +489,39 @@ export const RestockModule: React.FC = () => {
 
     const totalWeight = boxCount * boxWeight;
     const totalVolume = boxCount * boxVol;
-    const totalUnits = boxCount * pcsPerBox || 1; 
+    const totalUnitsConfigured = boxCount * pcsPerBox || 1; // From Packing Config
 
-    // --- FREIGHT CALCULATION START ---
-    let currentTotalFreightRMB = 0; // This is the value for the *current* batch
+    // 3. Inventory & Reorder Logic (Moved Up for Freight Calc)
+    const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
+    const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
+    
+    const daysOfCover = inventory.dailyVelocity > 0 ? (inventory.current + inventory.incoming) / inventory.dailyVelocity : 999;
+    const needed = Math.max(0, (inventory.safetyDays - daysOfCover) * inventory.dailyVelocity);
+    const reorderQty = Math.max(needed, supplier.moq);
+    
+    // 4. Freight Logic (Smart Divisor)
+    let currentTotalFreightRMB = 0; 
     const mode = p.logistics?.mode || 'sea';
     const rate = p.logistics?.unitRateRMB || 0;
     const manualTotalFreight = p.logistics?.totalFreightRMB || 0;
 
-    // Logic Priority: If manual total freight is set, use it. Otherwise, calculate from rate.
+    let freightDivisor = totalUnitsConfigured;
+
     if (manualTotalFreight > 0) {
         currentTotalFreightRMB = manualTotalFreight;
+        
+        // Smart Divisor Logic:
+        // If the configured packing quantity is very low (e.g. default 1 or sample 4),
+        // but the calculated reorder quantity is significant (e.g. > 20),
+        // we assume the manual freight entered corresponds to the Reorder Batch, not the Packing Config.
+        if (totalUnitsConfigured < 20 && reorderQty > 20) {
+             freightDivisor = Math.ceil(reorderQty);
+        } else if (totalUnitsConfigured === 1 && reorderQty > 1) {
+             // Catch-all for default initialized products
+             freightDivisor = Math.ceil(reorderQty);
+        }
     } else {
+        // Auto-calc based on rate * dimensions
         if (mode === 'air') {
            currentTotalFreightRMB = totalWeight * rate; 
         } else {
@@ -506,9 +529,8 @@ export const RestockModule: React.FC = () => {
         }
     }
 
-    const unitFreightRMB = totalUnits > 0 ? currentTotalFreightRMB / totalUnits : 0; // Explicit RMB
+    const unitFreightRMB = freightDivisor > 0 ? currentTotalFreightRMB / freightDivisor : 0;
     const unitFreightUSD = unitFreightRMB / exchangeRate;
-    // --- FREIGHT CALCULATION END ---
     
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
     const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
@@ -531,15 +553,9 @@ export const RestockModule: React.FC = () => {
     const margin = sellingPrice > 0 ? (netProfit / sellingPrice) * 100 : 0;
     const roi = landedCostUSD > 0 ? (netProfit / landedCostUSD) * 100 : 0; 
     
-    const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
-    const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
-    
-    const daysOfCover = inventory.dailyVelocity > 0 ? (inventory.current + inventory.incoming) / inventory.dailyVelocity : 999;
-    const needed = Math.max(0, (inventory.safetyDays - daysOfCover) * inventory.dailyVelocity);
-    const reorderQty = Math.max(needed, supplier.moq);
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Theoretical Reorder Freight
+    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Theoretical Reorder Freight (Derived from unit cost)
     const totalFreightBatchUSD = unitFreightUSD * reorderQty;
     const totalProfitBatchUSD = netProfit * reorderQty;
 
@@ -551,7 +567,7 @@ export const RestockModule: React.FC = () => {
       totalServiceFees,
       netProfit, margin, roi,
       daysOfCover, reorderQty, capitalRequiredRMB,
-      totalUnits, totalWeight, totalVolume,
+      totalUnits: totalUnitsConfigured, totalWeight, totalVolume,
       totalFreightBatchUSD, totalProfitBatchUSD,
       totalFreightBatchRMB, 
       currentTotalFreightRMB // Added for precise display in list view
