@@ -535,6 +535,7 @@ export const RestockModule: React.FC = () => {
     const reorderQty = Math.max(needed, supplier.moq);
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
+    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Calculate RMB Total
     const totalFreightBatchUSD = unitFreightUSD * reorderQty;
     const totalProfitBatchUSD = netProfit * reorderQty;
 
@@ -547,7 +548,8 @@ export const RestockModule: React.FC = () => {
       netProfit, margin, roi,
       daysOfCover, reorderQty, capitalRequiredRMB,
       totalUnits, totalWeight, totalVolume,
-      totalFreightBatchUSD, totalProfitBatchUSD
+      totalFreightBatchUSD, totalProfitBatchUSD,
+      totalFreightBatchRMB // Added
     };
   };
 
@@ -895,26 +897,26 @@ export const RestockModule: React.FC = () => {
                              </h3>
                              <div className="grid grid-cols-4 gap-4">
                                 <div>
-                                   <label className="lbl">每箱数量 (Pcs/Box)</label>
+                                   <label className="lbl">每箱数量 (件/箱)</label>
                                    <input type="number" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
-                                   <label className="lbl">总箱数 (Boxes)</label>
+                                   <label className="lbl">总箱数 (箱)</label>
                                    <input type="number" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
-                                   <label className="lbl">单箱重量 (KG)</label>
+                                   <label className="lbl">单箱重量 (kg)</label>
                                    <input type="number" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
-                                   <label className="lbl">单箱体积 (CBM)</label>
+                                   <label className="lbl">单箱体积 (m³)</label>
                                    <input type="number" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
                              <div className="mt-4 p-3 bg-black/40 border border-white/10 rounded-xl flex justify-between gap-4 text-[10px] font-mono text-gray-500 shadow-inner">
-                                <span>TOTAL UNITS: <span className="text-white font-bold ml-1">{eco.totalUnits}</span></span>
-                                <span>TOTAL WEIGHT: <span className="text-white font-bold ml-1">{eco.totalWeight.toFixed(2)} kg</span></span>
-                                <span>TOTAL VOLUME: <span className="text-white font-bold ml-1">{eco.totalVolume.toFixed(3)} cbm</span></span>
+                                <span>总件数: <span className="text-white font-bold ml-1">{eco.totalUnits}</span></span>
+                                <span>总重量: <span className="text-white font-bold ml-1">{eco.totalWeight.toFixed(2)} kg</span></span>
+                                <span>总体积: <span className="text-white font-bold ml-1">{eco.totalVolume.toFixed(3)} m³</span></span>
                              </div>
                           </div>
                        </div>
@@ -975,7 +977,7 @@ export const RestockModule: React.FC = () => {
                                    </select>
                                 </div>
                                 <div className="col-span-2">
-                                   <label className="lbl text-cyber-cyan">头程总运费 (Total RMB)</label>
+                                   <label className="lbl text-cyber-cyan">头程总运费 (总额 ¥)</label>
                                    <input 
                                      type="number" 
                                      value={selectedProduct.logistics?.totalFreightRMB || 0} 
@@ -1019,7 +1021,7 @@ export const RestockModule: React.FC = () => {
                                    </div>
                                 </div>
                                 <div>
-                                   <label className="lbl">杂费预估 (USD/Unit)</label>
+                                   <label className="lbl">杂费预估 (USD/件)</label>
                                    <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
@@ -1067,7 +1069,7 @@ export const RestockModule: React.FC = () => {
                                         {/* Row 3: Fulfillment & Ops */}
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
-                                                <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 尾程配送费 (Last Mile $)</label>
+                                                <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 尾程配送费 ($)</label>
                                                 <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
                                                     <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e=>handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
@@ -1092,7 +1094,7 @@ export const RestockModule: React.FC = () => {
                                         {/* Row 4: Ads & Returns */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="lbl flex items-center gap-1 text-purple-400"><Zap size={10}/> 广告 CPA (Ad Cost)</label>
+                                                <label className="lbl flex items-center gap-1 text-purple-400"><Zap size={10}/> 广告费 (Ad Cost)</label>
                                                 <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
                                                     <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e=>handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="bg-transparent text-purple-400 font-bold font-mono flex-1 outline-none text-right"/>
@@ -1145,11 +1147,11 @@ export const RestockModule: React.FC = () => {
                                              </div>
                                              <div className="text-right space-y-2">
                                                  <div>
-                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">Margin</div>
+                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">利润率 (Margin)</div>
                                                      <div className={`text-xl font-black ${eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}`}>{eco.margin.toFixed(1)}%</div>
                                                  </div>
                                                  <div>
-                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">ROI</div>
+                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">投产比 (ROI)</div>
                                                      <div className="text-xl font-black text-blue-400">{eco.roi.toFixed(0)}%</div>
                                                  </div>
                                              </div>
@@ -1223,7 +1225,7 @@ export const RestockModule: React.FC = () => {
                                      
                                      <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
                                         <span className="uppercase font-bold tracking-wider">建议采购量:</span>
-                                        <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
+                                        <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">件 (pcs)</span></span>
                                      </div>
                                      <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
                                         生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
@@ -1285,8 +1287,8 @@ export const RestockModule: React.FC = () => {
                                 </span>
                              </div>
                              <div className="flex justify-between gap-2 text-[10px] font-bold font-mono mt-2 relative z-10">
-                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
-                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
+                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">利润率: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
+                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">投产比: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
                              </div>
                           </div>
                        </div>
@@ -1304,7 +1306,7 @@ export const RestockModule: React.FC = () => {
                              <div className="text-white font-black text-sm">{selectedProduct.inventory?.safetyDays || 0} 天</div>
                           </div>
                           <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                             <div className="text-gray-500 mb-1 font-bold uppercase">当前可售</div>
+                             <div className="text-gray-500 mb-1 font-bold uppercase">可售天数</div>
                              <div className={`text-sm font-black ${eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-red animate-pulse" : "text-white"}`}>
                                 {eco.daysOfCover.toFixed(0)} 天
                              </div>
@@ -1313,7 +1315,7 @@ export const RestockModule: React.FC = () => {
 
                        <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
                           <span className="uppercase font-bold tracking-wider">建议采购量:</span>
-                          <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
+                          <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">件</span></span>
                        </div>
                        <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
                           生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
@@ -1601,7 +1603,7 @@ export const RestockModule: React.FC = () => {
                           </div>
                           <div className="flex items-baseline gap-2">
                              <span className="text-xl font-black text-white">{Math.ceil(eco.reorderQty)}</span>
-                             <span className="text-xs text-gray-500 font-bold">pcs</span>
+                             <span className="text-xs text-gray-500 font-bold">件</span>
                           </div>
                           <div className="text-xs font-mono text-cyber-yellow mt-1 font-bold">
                              ¥{eco.capitalRequiredRMB.toLocaleString()}
@@ -1613,11 +1615,11 @@ export const RestockModule: React.FC = () => {
                              <Plane size={12} className="text-blue-400 group-hover/stat:translate-x-1 transition-transform"/> 头程物流
                           </div>
                           <div className="flex items-baseline gap-2">
-                             <span className="text-xl font-black text-white">${eco.totalFreightBatchUSD.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
-                             <span className="text-xs text-gray-500 font-bold">Total</span>
+                             <span className="text-xl font-black text-white">¥{eco.totalFreightBatchRMB.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                             <span className="text-xs text-gray-500 font-bold">总额</span>
                           </div>
                           <div className="text-xs font-mono text-blue-400 mt-1 font-bold">
-                             ${eco.unitFreightUSD.toFixed(2)} / unit
+                             ¥{eco.unitFreightRMB.toFixed(2)} / 件
                           </div>
                        </div>
 
@@ -1631,7 +1633,7 @@ export const RestockModule: React.FC = () => {
                              </span>
                           </div>
                           <div className="text-xs font-mono text-gray-400 mt-1 flex justify-between font-bold">
-                             <span>${eco.netProfit.toFixed(2)}/u</span>
+                             <span>${eco.netProfit.toFixed(2)}/件</span>
                              <span className={eco.margin > 15 ? "text-cyber-green" : "text-orange-500"}>{eco.margin.toFixed(0)}%</span>
                           </div>
                        </div>
