@@ -32,11 +32,12 @@ interface Product {
     trackingNo: string;
     mode: 'air' | 'sea' | 'rail';
     warehouseDest: string; 
-    unitRateRMB: number; 
+    unitRateRMB: number; // Estimated Unit Rate
+    totalFreightRMB?: number; // Manual Total Override
     dutyRate: number; 
     hsCode: string; 
     status: 'Plan' | 'Shipped' | 'Customs' | 'Received' | 'Exception';
-    priority: 'urgent' | 'normal' | 'defer'; // New editable priority field
+    priority: 'urgent' | 'normal' | 'defer';
   };
 
   packing: {
@@ -82,7 +83,7 @@ const initialProducts: Product[] = [
         { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
     ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '30/70' },
-    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
@@ -107,7 +108,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -209,6 +210,7 @@ const sanitizeProduct = (p: any): Product => {
       mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
       unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
+      totalFreightRMB: fuzzyVal(mixedPool, ['totalFreightRMB', 'Total Freight', '总运费', '头程总额'], 'number', 0),
       dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0),
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
@@ -470,12 +472,19 @@ export const RestockModule: React.FC = () => {
     let totalFreightRMB = 0;
     const mode = p.logistics?.mode || 'sea';
     const rate = p.logistics?.unitRateRMB || 0;
-    
-    if (mode === 'air') {
-       totalFreightRMB = totalWeight * rate; 
+    const manualTotalFreight = p.logistics?.totalFreightRMB || 0;
+
+    // Logic Priority: If manual total freight is set, use it. Otherwise, calculate from rate.
+    if (manualTotalFreight > 0) {
+        totalFreightRMB = manualTotalFreight;
     } else {
-       totalFreightRMB = totalVolume * rate;
+        if (mode === 'air') {
+           totalFreightRMB = totalWeight * rate; 
+        } else {
+           totalFreightRMB = totalVolume * rate;
+        }
     }
+
     const unitFreightUSD = (totalFreightRMB / totalUnits) / exchangeRate;
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
     const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
@@ -595,7 +604,7 @@ export const RestockModule: React.FC = () => {
           image: '',
           variants: [],
           supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
-          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
+          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
           inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
@@ -896,7 +905,7 @@ export const RestockModule: React.FC = () => {
                                     <Truck size={14}/> 物流单证
                                 </h3>
                              </div>
-                             <div className="grid grid-cols-2 gap-4 mb-2">
+                             <div className="grid grid-cols-3 gap-4 mb-2">
                                 <div>
                                    <label className="lbl flex items-center gap-1 text-cyber-cyan"><FileText size={10} /> 入库单号 (Inbound ID)</label>
                                    <input 
@@ -931,6 +940,19 @@ export const RestockModule: React.FC = () => {
                                       <option value="Exception">异常延误 (Exception)</option>
                                    </select>
                                 </div>
+                                <div className="col-span-2">
+                                   <label className="lbl text-cyber-cyan">头程总运费 (Total RMB)</label>
+                                   <input 
+                                     type="number" 
+                                     value={selectedProduct.logistics?.totalFreightRMB || 0} 
+                                     onChange={e => handleUpdate('logistics.totalFreightRMB', parseFloat(e.target.value))} 
+                                     className="input-holo w-full p-2 text-sm font-bold text-cyber-cyan border-cyber-cyan/30" 
+                                     placeholder="0.00" 
+                                   />
+                                   <div className="text-[9px] text-gray-500 mt-1 text-right">
+                                      {(selectedProduct.logistics?.totalFreightRMB || 0) > 0 ? '已覆盖预估计算' : '使用单价自动计算'}
+                                   </div>
+                                </div>
                              </div>
                           </div>
 
@@ -949,7 +971,7 @@ export const RestockModule: React.FC = () => {
                                 </div>
                                 <div>
                                    <label className="lbl">运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
-                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" disabled={(selectedProduct.logistics?.totalFreightRMB || 0) > 0} />
                                 </div>
                                 <div>
                                    <label className="lbl">海关编码 (HS Code)</label>
