@@ -475,7 +475,9 @@ export const RestockModule: React.FC = () => {
   };
 
   const calculateEconomics = (p: Product) => {
-    const unitProductCostUSD = (p.supplier?.unitPriceRMB || 0) / exchangeRate;
+    const unitProductCostRMB = p.supplier?.unitPriceRMB || 0; // Explicit RMB
+    const unitProductCostUSD = unitProductCostRMB / exchangeRate;
+    
     const boxCount = p.packing?.boxCount || 0;
     const boxWeight = p.packing?.boxWeightKg || 0;
     const boxVol = p.packing?.boxVolumeCbm || 0;
@@ -501,7 +503,9 @@ export const RestockModule: React.FC = () => {
         }
     }
 
-    const unitFreightUSD = (totalFreightRMB / totalUnits) / exchangeRate;
+    const unitFreightRMB = totalUnits > 0 ? totalFreightRMB / totalUnits : 0; // Explicit RMB
+    const unitFreightUSD = unitFreightRMB / exchangeRate;
+    
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
     const landedCostUSD = unitProductCostUSD + unitFreightUSD + unitDutyUSD + (p.financials?.miscCostUSD || 0);
 
@@ -535,6 +539,7 @@ export const RestockModule: React.FC = () => {
     const totalProfitBatchUSD = netProfit * reorderQty;
 
     return {
+      unitProductCostRMB, unitFreightRMB, // Return raw RMB
       unitProductCostUSD, unitFreightUSD, unitDutyUSD, landedCostUSD,
       referralFeeUSD, transactionFeeUSD, affiliateFeeUSD, 
       fulfillmentTotalUSD, storageCostUSD, returnLossUSD, 
@@ -999,7 +1004,7 @@ export const RestockModule: React.FC = () => {
                                    </select>
                                 </div>
                                 <div>
-                                   <label className="lbl">运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
+                                   <label className="lbl">头程运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/KG' : '¥/CBM'})</label>
                                    <input type="number" value={selectedProduct.logistics?.unitRateRMB || 0} onChange={e => handleUpdate('logistics.unitRateRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" disabled={(selectedProduct.logistics?.totalFreightRMB || 0) > 0} />
                                 </div>
                                 <div>
@@ -1062,7 +1067,7 @@ export const RestockModule: React.FC = () => {
                                         {/* Row 3: Fulfillment & Ops */}
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
-                                                <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 一件代发 (Fulfill)</label>
+                                                <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 尾程配送费 (Last Mile $)</label>
                                                 <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
                                                     <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e=>handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
@@ -1169,8 +1174,8 @@ export const RestockModule: React.FC = () => {
                                             </div>
 
                                             {[
-                                                { l: '产品成本 (COGS)', v: eco.unitProductCostUSD, c: 'text-gray-400', b: 'bg-gray-800' },
-                                                { l: '头程运费 (Freight)', v: eco.unitFreightUSD, c: 'text-blue-300', b: 'bg-blue-900' },
+                                                { l: '产品成本 (COGS)', v: eco.unitProductCostUSD, c: 'text-gray-400', b: 'bg-gray-800', original: `¥${eco.unitProductCostRMB.toFixed(2)}` },
+                                                { l: '头程运费 (Freight)', v: eco.unitFreightUSD, c: 'text-blue-300', b: 'bg-blue-900', original: `¥${eco.unitFreightRMB.toFixed(2)}` },
                                                 { l: '进口关税 (Duty)', v: eco.unitDutyUSD, c: 'text-gray-400', b: 'bg-gray-800' },
                                                 { l: '平台费率 (Platform)', v: eco.totalServiceFees, c: 'text-red-300', b: 'bg-red-900' },
                                                 { l: '履约操作 (Fulfillment)', v: eco.fulfillmentTotalUSD, c: 'text-blue-400', b: 'bg-blue-800' },
@@ -1182,7 +1187,10 @@ export const RestockModule: React.FC = () => {
                                                     <div className="flex-1">
                                                         <div className="flex justify-between text-[11px] mb-1">
                                                             <span className={`${item.c} font-bold`}>{item.l}</span>
-                                                            <span className="text-gray-300 font-mono">-${item.v.toFixed(2)}</span>
+                                                            <div className="text-right">
+                                                                <span className="text-gray-300 font-mono block">-${item.v.toFixed(2)}</span>
+                                                                {item.original && <span className="text-[9px] text-gray-500 font-mono block">{item.original}</span>}
+                                                            </div>
                                                         </div>
                                                         <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
                                                             <div className={`h-full ${item.c.replace('text-', 'bg-')} opacity-50`} style={{width: `${Math.min(100, (item.v / (selectedProduct.financials?.sellingPriceUSD || 1)) * 100)}%`}}></div>
@@ -1249,8 +1257,8 @@ export const RestockModule: React.FC = () => {
                           </div>
 
                           {[
-                            { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400' },
-                            { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400' },
+                            { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400', original: `¥${eco.unitProductCostRMB.toFixed(2)}` },
+                            { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400', original: `¥${eco.unitFreightRMB.toFixed(2)}` },
                             { l: '进口关税', v: eco.unitDutyUSD, c: 'text-gray-400' },
                             { l: '平台费率', v: eco.totalServiceFees, c: 'text-red-400' },
                             { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, 
@@ -1260,7 +1268,10 @@ export const RestockModule: React.FC = () => {
                             <div key={i} className="flex justify-between text-[10px] relative pl-8 py-0.5">
                                <div className="absolute left-[8px] top-[6px] w-[6px] h-[6px] rounded-full bg-[#1c1c1e] border-2 border-gray-600"></div>
                                <span className={`${item.c} opacity-90 tracking-wide font-bold uppercase`}>{item.l}</span>
-                               <span className="text-gray-300 font-bold">${item.v.toFixed(2)}</span>
+                               <div className="flex flex-col items-end leading-tight">
+                                  <span className="text-gray-300 font-bold">${item.v.toFixed(2)}</span>
+                                  {item.original && <span className="text-[9px] text-gray-600 font-mono">{item.original}</span>}
+                               </div>
                             </div>
                           ))}
 
