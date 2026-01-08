@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, BarChart, Bar, Cell, ComposedChart, Line, Legend, PieChart, Pie
@@ -8,7 +8,8 @@ import {
   Bitcoin, Globe, RefreshCcw, Landmark, FileText, PieChart as PieIcon,
   TrendingUp, TrendingDown, ArrowRightLeft, ShieldCheck, Download,
   Plus, Filter, Search, Calendar, Tag, MoreHorizontal, X, Check, Trash2,
-  ChevronDown
+  ChevronDown, Calculator, ShoppingBag, Navigation, Megaphone, Percent,
+  Package, Warehouse, AlertTriangle, Zap
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
@@ -84,14 +85,12 @@ export const FinanceModule: React.FC = () => {
           try {
               const d = new Date(t.date);
               if(isNaN(d.getTime())) return;
-              const key = d.toLocaleString('zh-CN', { month: 'short' }); 
               const m = d.getMonth() + 1 + '月';
               if (!monthMap[m]) monthMap[m] = { revenue: 0, expenses: 0 };
               if (t.type === 'in') monthMap[m].revenue += t.amount;
               else monthMap[m].expenses += t.amount;
           } catch(e) {}
       });
-      // Sort by month index if possible, simplified here
       const flowData = Object.keys(monthMap).map(m => ({
             name: m, revenue: monthMap[m].revenue, expenses: monthMap[m].expenses, net: monthMap[m].revenue - monthMap[m].expenses
         }));
@@ -276,7 +275,7 @@ export const FinanceModule: React.FC = () => {
           </div>
        </div>
 
-       {/* Middle: Charts */}
+       {/* Middle: Cash Flow Chart (Existing) */}
        <div className="tech-border p-6">
           <div className="flex justify-between items-center mb-6">
              <h3 className="text-lg font-bold text-white flex items-center gap-2">

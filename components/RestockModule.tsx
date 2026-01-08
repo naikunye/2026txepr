@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Package, Edit2, Trash2, Plane, Ship, Box, Save, Calculator, Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle } from 'lucide-react';
+import { 
+  Search, Plus, Package, Edit2, Trash2, Plane, Ship, Box, Save, Calculator, 
+  Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
+  Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
+  Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
+  Zap, Megaphone, Globe, RefreshCcw, Percent
+} from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
 // --- World-Class ERP Data Model ---
@@ -87,10 +93,10 @@ const initialProducts: Product[] = [
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
-        referralFeeRate: 0.08, 
+        referralFeeRate: 0.05, 
         transactionFeeRate: 0.029, 
         fixedTransactionFeeUSD: 0.3, 
-        affiliateRate: 0.10, 
+        affiliateRate: 0.15, 
         fulfillmentFeeUSD: 5.80, 
         outboundHandlingFeeUSD: 1.50, 
         storageFeeUSD: 0.20,          
@@ -112,10 +118,10 @@ const initialProducts: Product[] = [
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
-        referralFeeRate: 0.08, 
+        referralFeeRate: 0.05, 
         transactionFeeRate: 0.029, 
         fixedTransactionFeeUSD: 0.3, 
-        affiliateRate: 0.15, 
+        affiliateRate: 0.20, 
         fulfillmentFeeUSD: 9.20, 
         outboundHandlingFeeUSD: 2.00, 
         storageFeeUSD: 0.50,          
@@ -616,6 +622,7 @@ export const RestockModule: React.FC = () => {
   const renderDetailModal = () => {
     if (!selectedProduct) return null;
     const eco = calculateEconomics(selectedProduct);
+    const showSidebar = activeTab !== 'finance'; // Sidebar visible for Supply AND Logistics
 
     const TabButton = ({ id, label, icon: Icon }: any) => (
       <button 
@@ -714,11 +721,11 @@ export const RestockModule: React.FC = () => {
             {/* 2. Main Content Grid */}
             <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-12 bg-transparent relative z-10">
                {/* LEFT PANEL */}
-               <div className="col-span-12 lg:col-span-8 flex flex-col border-r border-white/5 bg-transparent lg:h-full min-h-0">
+               <div className={`col-span-12 ${showSidebar ? 'lg:col-span-8' : 'lg:col-span-12'} flex flex-col border-r border-white/5 bg-transparent lg:h-full min-h-0 transition-all duration-300`}>
                   <div className="flex border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0 z-20 lg:static overflow-x-auto no-scrollbar">
                      <TabButton id="supply" label="供应链 (SUPPLY)" icon={Layers} />
                      <TabButton id="logistics" label="物流 (LOGISTICS)" icon={Truck} />
-                     <TabButton id="finance" label="财务 (FINANCE)" icon={DollarSign} />
+                     <TabButton id="finance" label="TikTok 售价 (PRICING)" icon={DollarSign} />
                   </div>
 
                   <div className="p-5 lg:flex-1 lg:overflow-y-auto custom-scrollbar bg-black/20">
@@ -992,89 +999,295 @@ export const RestockModule: React.FC = () => {
                           </div>
                        </div>
                      )}
+
+                     {activeTab === 'finance' && (
+                        <div className="flex flex-col lg:flex-row h-full animate-in fade-in slide-in-from-bottom-4 duration-500 gap-6">
+                            {/* LEFT: Inputs */}
+                            <div className="flex-1 space-y-4">
+                                <div className="apple-glass p-5 border-l-4 border-l-cyber-cyan">
+                                    <h3 className="text-cyber-cyan font-bold text-lg mb-6 flex items-center gap-2">
+                                        <Calculator className="text-cyber-cyan" size={20}/> TikTok 利润模型 (Unit Econ)
+                                    </h3>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Row 1: Selling Price */}
+                                        <div>
+                                            <label className="lbl text-cyber-cyan flex items-center gap-1"><DollarSign size={10}/> 最终售价 (Selling Price)</label>
+                                            <div className="flex items-center bg-black border border-white/20 rounded-lg px-3 py-2.5 focus-within:border-cyber-cyan transition-colors">
+                                                <span className="text-gray-400 mr-2 text-lg font-mono">$</span>
+                                                <input type="number" value={selectedProduct.financials?.sellingPriceUSD || 0} onChange={e=>handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono text-xl flex-1 outline-none font-bold"/>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Commission & Platform */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="lbl text-yellow-500 flex items-center gap-1"><Megaphone size={10}/> 达人佣金 (Affiliate %)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="bg-transparent text-yellow-400 font-mono flex-1 outline-none text-right font-bold"/>
+                                                    <span className="text-gray-500 text-xs ml-1">%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="lbl flex items-center gap-1"><Globe size={10}/> 平台佣金 (Referral)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <span className="text-gray-500 text-xs ml-1">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Fulfillment & Ops */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 一件代发 (Fulfill)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <span className="text-gray-500 text-[10px]">$</span>
+                                                    <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e=>handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="lbl flex items-center gap-1"><Package size={10}/> 操作费 (Pick/Pack)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <span className="text-gray-500 text-[10px]">$</span>
+                                                    <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e=>handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="lbl flex items-center gap-1"><Warehouse size={10}/> 仓储费 (Storage)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <span className="text-gray-500 text-[10px]">$</span>
+                                                    <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e=>handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 4: Ads & Returns */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="lbl flex items-center gap-1 text-purple-400"><Zap size={10}/> 广告 CPA (Ad Cost)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <span className="text-gray-500 text-[10px]">$</span>
+                                                    <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e=>handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="bg-transparent text-purple-400 font-bold font-mono flex-1 outline-none text-right"/>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="lbl flex items-center gap-1 text-red-400"><RefreshCcw size={10}/> 退货率 (Return %)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="bg-transparent text-red-400 font-bold font-mono flex-1 outline-none text-right"/>
+                                                    <span className="text-gray-500 text-xs ml-1">%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Fees Row */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="lbl">交易费率 (Tx %)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e=>handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <span className="text-gray-500 text-xs ml-1">%</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="lbl">固定费 (Fixed Fee)</label>
+                                                <div className="flex items-center bg-black border border-white/10 rounded-lg px-2 py-2">
+                                                    <span className="text-gray-500 text-[10px]">$</span>
+                                                    <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e=>handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* RIGHT: Visuals & Waterfall */}
+                            <div className="w-full lg:w-[45%] flex flex-col gap-4">
+                                {/* Profit Display */}
+                                <div className="flex flex-col bg-black/40 border border-white/10 rounded-2xl overflow-hidden relative">
+                                    {/* Profit Card */}
+                                    <div className="p-6 border-b border-white/10 bg-white/5 relative group overflow-hidden">
+                                         <div className={`absolute inset-0 opacity-10 transition-colors duration-500 ${eco.netProfit > 0 ? 'bg-cyber-green' : 'bg-red-600'}`}></div>
+                                         
+                                         <div className="relative z-10 flex justify-between items-start">
+                                             <div>
+                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">净利润 (NET PROFIT)</div>
+                                                <div className={`text-5xl font-black font-mono tracking-tighter ${eco.netProfit > 0 ? 'text-cyber-green text-glow-green' : 'text-red-500 text-glow-red'}`}>
+                                                    ${eco.netProfit.toFixed(2)}
+                                                </div>
+                                             </div>
+                                             <div className="text-right space-y-2">
+                                                 <div>
+                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">Margin</div>
+                                                     <div className={`text-xl font-black ${eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}`}>{eco.margin.toFixed(1)}%</div>
+                                                 </div>
+                                                 <div>
+                                                     <div className="text-[10px] text-gray-500 uppercase font-bold">ROI</div>
+                                                     <div className="text-xl font-black text-blue-400">{eco.roi.toFixed(0)}%</div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                    </div>
+
+                                    {/* Waterfall List */}
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#080808]">
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase mb-4 flex items-center gap-2">
+                                            <Scale size={14}/> 利润瀑布流 (Waterfall)
+                                        </h4>
+                                        
+                                        <div className="space-y-3 relative">
+                                            <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-white/10 z-0"></div>
+
+                                            <div className="flex items-center gap-3 relative z-10">
+                                                <div className="w-6 h-6 rounded-full bg-cyber-green flex items-center justify-center text-black font-bold text-xs shadow-[0_0_10px_rgba(48,209,88,0.5)]">$</div>
+                                                <div className="flex-1 flex justify-between text-xs">
+                                                    <span className="text-white font-bold">销售价格 (Price)</span>
+                                                    <span className="text-white font-mono font-bold">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+
+                                            {[
+                                                { l: '产品成本 (COGS)', v: eco.unitProductCostUSD, c: 'text-gray-400', b: 'bg-gray-800' },
+                                                { l: '头程运费 (Freight)', v: eco.unitFreightUSD, c: 'text-blue-300', b: 'bg-blue-900' },
+                                                { l: '进口关税 (Duty)', v: eco.unitDutyUSD, c: 'text-gray-400', b: 'bg-gray-800' },
+                                                { l: '平台费率 (Platform)', v: eco.totalServiceFees, c: 'text-red-300', b: 'bg-red-900' },
+                                                { l: '履约操作 (Fulfillment)', v: eco.fulfillmentTotalUSD, c: 'text-blue-400', b: 'bg-blue-800' },
+                                                { l: '仓储与损耗 (Whse/Loss)', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400', b: 'bg-orange-900' },
+                                                { l: '广告支出 (Ads)', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-purple-400', b: 'bg-purple-900' },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex items-center gap-3 relative z-10 group">
+                                                    <div className={`w-6 h-6 rounded-full ${item.b} border border-white/10 flex items-center justify-center text-[10px] text-white shrink-0`}>-</div>
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between text-[11px] mb-1">
+                                                            <span className={`${item.c} font-bold`}>{item.l}</span>
+                                                            <span className="text-gray-300 font-mono">-${item.v.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                                            <div className={`h-full ${item.c.replace('text-', 'bg-')} opacity-50`} style={{width: `${Math.min(100, (item.v / (selectedProduct.financials?.sellingPriceUSD || 1)) * 100)}%`}}></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {eco.netProfit < 0 && (
+                                            <div className="mt-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
+                                                <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5"/>
+                                                <div>
+                                                    <div className="text-xs font-bold text-red-400 mb-1">亏损预警</div>
+                                                    <p className="text-[10px] text-red-300/80 leading-relaxed">
+                                                        当前模型显示该产品处于亏损状态。建议提高售价、降低采购成本或优化广告投放策略。
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* Integrated Restock Suggestion (Inside Finance Tab) */}
+                                <div className="border border-white/10 bg-black/40 p-4 rounded-xl relative overflow-hidden group hover:border-cyber-yellow/50 transition-colors">
+                                     <div className="absolute top-0 right-0 p-2 opacity-20"><Calculator size={48}/></div>
+                                     <h4 className="text-cyber-yellow font-bold text-xs mb-4 flex items-center gap-2 tracking-widest relative z-10">
+                                        <Calculator size={14}/> 智能备货建议 (Smart Restock)
+                                     </h4>
+                                     
+                                     <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
+                                        <span className="uppercase font-bold tracking-wider">建议采购量:</span>
+                                        <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
+                                     </div>
+                                     <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
+                                        生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
+                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                     )}
                   </div>
                </div>
 
-               {/* RIGHT PANEL: LIVE ANALYTICS (Fixed) */}
-               <div className="col-span-12 lg:col-span-4 bg-black/40 p-5 flex flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto backdrop-blur-xl relative">
-                  {/* Subtle Background Mesh for Analytics */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 pointer-events-none"></div>
-                  
-                  <div className="mb-4 relative z-10">
-                     <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2 tracking-wide">
-                        <Scale size={16} className="text-cyber-green"/> 利润瀑布流
-                     </h3>
+               {/* RIGHT PANEL: LIVE ANALYTICS (SIDEBAR) */}
+               {/* Hidden when in Finance Tab to prevent layout breakage and redundancy */}
+               {showSidebar && (
+                 <div className="hidden lg:flex col-span-12 lg:col-span-4 bg-black/40 p-5 flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto backdrop-blur-xl relative">
+                    {/* Subtle Background Mesh for Analytics */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 pointer-events-none"></div>
+                    
+                    <div className="mb-4 relative z-10">
+                       <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2 tracking-wide">
+                          <Scale size={16} className="text-cyber-green"/> 利润摘要
+                       </h3>
 
-                     <div className="space-y-2 font-mono text-xs relative">
-                        {/* Connecting Line */}
-                        <div className="absolute left-[11px] top-3 bottom-12 w-[2px] bg-gradient-to-b from-white/20 to-transparent"></div>
-                        
-                        <div className="flex justify-between items-center py-2 border-b border-white/10 relative z-10 bg-transparent">
-                           <span className="text-gray-300 font-bold">销售价格 (Price)</span>
-                           <span className="text-white font-bold text-lg">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
-                        </div>
-
-                        {[
-                          { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400' },
-                          { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400' },
-                          { l: '进口关税', v: eco.unitDutyUSD, c: 'text-gray-400' },
-                          { l: '平台费率', v: eco.totalServiceFees, c: 'text-red-400' },
-                          { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, 
-                          { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, 
-                          { l: '广告支出', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-cyber-purple' },
-                        ].map((item, i) => (
-                          <div key={i} className="flex justify-between text-[10px] relative pl-8 py-0.5">
-                             <div className="absolute left-[8px] top-[6px] w-[6px] h-[6px] rounded-full bg-[#1c1c1e] border-2 border-gray-600"></div>
-                             <span className={`${item.c} opacity-90 tracking-wide font-bold uppercase`}>{item.l}</span>
-                             <span className="text-gray-300 font-bold">${item.v.toFixed(2)}</span>
+                       <div className="space-y-2 font-mono text-xs relative">
+                          {/* Connecting Line */}
+                          <div className="absolute left-[11px] top-3 bottom-12 w-[2px] bg-gradient-to-b from-white/20 to-transparent"></div>
+                          
+                          <div className="flex justify-between items-center py-2 border-b border-white/10 relative z-10 bg-transparent">
+                             <span className="text-gray-300 font-bold">销售价格 (Price)</span>
+                             <span className="text-white font-bold text-lg">${(selectedProduct.financials?.sellingPriceUSD || 0).toFixed(2)}</span>
                           </div>
-                        ))}
 
-                        <div className="mt-4 pt-4 border-t border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden group">
-                           <div className={`absolute inset-0 opacity-10 transition-colors duration-500 ${eco.netProfit > 0 ? 'bg-cyber-green' : 'bg-cyber-red'}`}></div>
-                           
-                           <div className="flex justify-between items-center mb-2 relative z-10">
-                              <span className="text-white font-bold text-[10px] uppercase tracking-widest opacity-80">净利润 (Net Profit)</span>
-                              <span className={`text-3xl font-black ${eco.netProfit > 0 ? 'text-cyber-green text-glow-green' : 'text-cyber-red text-glow-red'}`}>
-                                 ${eco.netProfit.toFixed(2)}
-                              </span>
-                           </div>
-                           <div className="flex justify-between gap-2 text-[10px] font-bold font-mono mt-2 relative z-10">
-                              <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
-                              <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
+                          {[
+                            { l: '产品成本', v: eco.unitProductCostUSD, c: 'text-gray-400' },
+                            { l: '头程运费', v: eco.unitFreightUSD, c: 'text-gray-400' },
+                            { l: '进口关税', v: eco.unitDutyUSD, c: 'text-gray-400' },
+                            { l: '平台费率', v: eco.totalServiceFees, c: 'text-red-400' },
+                            { l: '履约与操作', v: eco.fulfillmentTotalUSD, c: 'text-blue-400' }, 
+                            { l: '仓储与损耗', v: eco.storageCostUSD + eco.returnLossUSD, c: 'text-orange-400' }, 
+                            { l: '广告支出', v: selectedProduct.financials?.adCostUSD || 0, c: 'text-cyber-purple' },
+                          ].map((item, i) => (
+                            <div key={i} className="flex justify-between text-[10px] relative pl-8 py-0.5">
+                               <div className="absolute left-[8px] top-[6px] w-[6px] h-[6px] rounded-full bg-[#1c1c1e] border-2 border-gray-600"></div>
+                               <span className={`${item.c} opacity-90 tracking-wide font-bold uppercase`}>{item.l}</span>
+                               <span className="text-gray-300 font-bold">${item.v.toFixed(2)}</span>
+                            </div>
+                          ))}
 
-                  <div className="border border-white/10 bg-black/30 p-4 rounded-xl mt-auto relative overflow-hidden group hover:border-cyber-yellow/50 transition-colors">
-                     <div className="absolute top-0 right-0 p-2 opacity-20"><Calculator size={48}/></div>
-                     <h4 className="text-cyber-yellow font-bold text-xs mb-4 flex items-center gap-2 tracking-widest relative z-10">
-                        <Calculator size={14}/> 智能备货建议
-                     </h4>
-                     
-                     <div className="grid grid-cols-2 gap-3 mb-4 text-[10px] font-mono relative z-10">
-                        <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                           <div className="text-gray-500 mb-1 font-bold uppercase">安全库存</div>
-                           <div className="text-white font-black text-sm">{selectedProduct.inventory?.safetyDays || 0} 天</div>
-                        </div>
-                        <div className="bg-white/5 p-2 rounded-lg border border-white/5">
-                           <div className="text-gray-500 mb-1 font-bold uppercase">当前可售</div>
-                           <div className={`text-sm font-black ${eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-red animate-pulse" : "text-white"}`}>
-                              {eco.daysOfCover.toFixed(0)} 天
-                           </div>
-                        </div>
-                     </div>
+                          <div className="mt-4 pt-4 border-t border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4 rounded-xl border border-white/5 shadow-2xl relative overflow-hidden group">
+                             <div className={`absolute inset-0 opacity-10 transition-colors duration-500 ${eco.netProfit > 0 ? 'bg-cyber-green' : 'bg-cyber-red'}`}></div>
+                             
+                             <div className="flex justify-between items-center mb-2 relative z-10">
+                                <span className="text-white font-bold text-[10px] uppercase tracking-widest opacity-80">净利润 (Net Profit)</span>
+                                <span className={`text-3xl font-black ${eco.netProfit > 0 ? 'text-cyber-green text-glow-green' : 'text-cyber-red text-glow-red'}`}>
+                                   ${eco.netProfit.toFixed(2)}
+                                </span>
+                             </div>
+                             <div className="flex justify-between gap-2 text-[10px] font-bold font-mono mt-2 relative z-10">
+                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">Margin: <span className={eco.margin > 15 ? 'text-cyber-green' : 'text-orange-500'}>{eco.margin.toFixed(1)}%</span></span>
+                                <span className="bg-black/40 px-2 py-1 rounded text-gray-300 border border-white/5">ROI: <span className="text-blue-400">{eco.roi.toFixed(0)}%</span></span>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
 
-                     <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
-                        <span className="uppercase font-bold tracking-wider">建议采购量:</span>
-                        <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
-                     </div>
-                     <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
-                        生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
-                     </button>
-                  </div>
-               </div>
+                    <div className="border border-white/10 bg-black/30 p-4 rounded-xl mt-auto relative overflow-hidden group hover:border-cyber-yellow/50 transition-colors">
+                       <div className="absolute top-0 right-0 p-2 opacity-20"><Calculator size={48}/></div>
+                       <h4 className="text-cyber-yellow font-bold text-xs mb-4 flex items-center gap-2 tracking-widest relative z-10">
+                          <Calculator size={14}/> 智能备货建议
+                       </h4>
+                       
+                       <div className="grid grid-cols-2 gap-3 mb-4 text-[10px] font-mono relative z-10">
+                          <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                             <div className="text-gray-500 mb-1 font-bold uppercase">安全库存</div>
+                             <div className="text-white font-black text-sm">{selectedProduct.inventory?.safetyDays || 0} 天</div>
+                          </div>
+                          <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                             <div className="text-gray-500 mb-1 font-bold uppercase">当前可售</div>
+                             <div className={`text-sm font-black ${eco.daysOfCover < (selectedProduct.inventory?.safetyDays || 0) ? "text-cyber-red animate-pulse" : "text-white"}`}>
+                                {eco.daysOfCover.toFixed(0)} 天
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-3 border-t border-white/10 pt-3 relative z-10">
+                          <span className="uppercase font-bold tracking-wider">建议采购量:</span>
+                          <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">pcs</span></span>
+                       </div>
+                       <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
+                          生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
+                       </button>
+                    </div>
+                 </div>
+               )}
             </div>
          </div>
       </div>
