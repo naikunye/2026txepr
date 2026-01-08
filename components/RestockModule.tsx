@@ -1580,6 +1580,9 @@ export const RestockModule: React.FC = () => {
               const eco = calculateEconomics(product);
               const isSelected = selectedIds.includes(product.id);
               
+              // Normalize mode logic to prevent case sensitivity issues
+              const mode = (product.logistics?.mode || 'sea').toLowerCase();
+
               // Priority Styling
               const priorityMap: any = {
                  'urgent': { label: 'URGENT', class: 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' },
@@ -1622,8 +1625,8 @@ export const RestockModule: React.FC = () => {
                              <div className="text-base font-bold text-white truncate max-w-[400px] tracking-tight group-hover:text-cyber-cyan transition-colors">{product.productName}</div>
                              <div className="flex items-center gap-3 pr-10">
                                 <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-white/5">
-                                    {product.logistics?.mode === 'air' ? <Plane size={14} className="text-blue-400"/> : <Ship size={14} className="text-blue-600"/>}
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.logistics?.mode}</span>
+                                    {mode === 'air' ? <Plane size={14} className="text-blue-400"/> : <Ship size={14} className="text-blue-600"/>}
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{mode}</span>
                                 </div>
 
                                 <div onClick={e => e.stopPropagation()} className="relative z-10 flex flex-col items-end gap-1">
@@ -1722,7 +1725,7 @@ export const RestockModule: React.FC = () => {
 
                        <div className="p-4 hover:bg-white/5 transition-colors relative group/stat">
                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                             {product.logistics?.mode === 'air' ? (
+                             {mode === 'air' ? (
                                 <Plane size={12} className="text-blue-400 group-hover/stat:translate-x-1 transition-transform"/>
                              ) : (
                                 <Ship size={12} className="text-blue-600 group-hover/stat:translate-x-1 transition-transform"/>
