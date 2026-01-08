@@ -5,7 +5,7 @@ import {
   Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
-  Zap, Megaphone, Globe, RefreshCcw, Percent
+  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
@@ -36,6 +36,7 @@ interface Product {
   logistics: {
     inboundId: string; 
     trackingNo: string;
+    carrier: 'UPS' | 'FedEx' | 'DHL' | 'USPS' | 'Other'; // Added Carrier
     mode: 'air' | 'sea' | 'rail';
     warehouseDest: string; 
     unitRateRMB: number; // Estimated Unit Rate
@@ -89,7 +90,7 @@ const initialProducts: Product[] = [
         { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
     ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '30/70' },
-    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', carrier: 'UPS', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
@@ -114,7 +115,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -213,6 +214,7 @@ const sanitizeProduct = (p: any): Product => {
     logistics: {
       inboundId: fuzzyVal(mixedPool, inboundKeys, 'string', ''),
       trackingNo: fuzzyVal(mixedPool, ['trackingNo', 'tracking', 'waybill', 'Tracking Number', '追踪号', '运单号', '快递单号'], 'string', ''),
+      carrier: fuzzyVal(mixedPool, ['carrier', 'courier', 'logistics_provider', '承运商', '物流商'], 'string', 'UPS') as any,
       mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
       unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
@@ -335,11 +337,19 @@ export const RestockModule: React.FC = () => {
 
 
   // --- Logic Helpers ---
-  const handleTrackingClick = (e: React.MouseEvent, trackingNo?: string) => {
+  const handleTrackingClick = (e: React.MouseEvent, trackingNo?: string, carrier: string = 'UPS') => {
     e.stopPropagation();
-    if (trackingNo && trackingNo !== '待填追踪号') {
-        window.open(`https://www.ups.com/track?loc=zh_CN&tracknum=${trackingNo}`, '_blank');
-    }
+    if (!trackingNo || trackingNo === '待填追踪号') return;
+    
+    let url = '';
+    const c = carrier.toUpperCase();
+    if (c.includes('UPS')) url = `https://www.ups.com/track?loc=zh_CN&tracknum=${trackingNo}`;
+    else if (c.includes('FEDEX')) url = `https://www.fedex.com/fedextrack/?trknbr=${trackingNo}`;
+    else if (c.includes('DHL')) url = `https://www.dhl.com/en/express/tracking.html?AWB=${trackingNo}`;
+    else if (c.includes('USPS')) url = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNo}`;
+    else url = `https://t.17track.net/en#nums=${trackingNo}`;
+
+    window.open(url, '_blank');
   };
 
   const handleStatusUpdate = (e: React.ChangeEvent<HTMLSelectElement>, productId: string) => {
@@ -552,14 +562,15 @@ export const RestockModule: React.FC = () => {
     alert("SKU 信息保存成功！");
   };
 
-  const handleSkuSplit = () => {
-    if (!selectedProduct) return;
+  const handleSkuSplit = (targetProduct?: Product) => {
+    const target = targetProduct || selectedProduct;
+    if (!target) return;
     const newSku = {
-      ...selectedProduct,
+      ...target,
       id: Date.now().toString(),
-      skuCode: `${selectedProduct.skuCode}-V2`,
-      productName: `${selectedProduct.productName} (Copy)`,
-      logistics: { ...selectedProduct.logistics, inboundId: '', trackingNo: '' },
+      skuCode: `${target.skuCode}-V2`,
+      productName: `${target.productName} (Copy)`,
+      logistics: { ...target.logistics, inboundId: '', trackingNo: '' },
       variants: [] 
     };
     setProducts([newSku, ...products]);
@@ -610,7 +621,7 @@ export const RestockModule: React.FC = () => {
           image: '',
           variants: [],
           supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
-          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
+          logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
           inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
@@ -690,7 +701,7 @@ export const RestockModule: React.FC = () => {
                
                <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
                    <button 
-                     onClick={handleSkuSplit}
+                     onClick={() => handleSkuSplit()}
                      className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold hover:bg-purple-500 hover:text-white transition-all rounded-lg flex items-center gap-2 text-xs uppercase tracking-wider whitespace-nowrap"
                    >
                       <GitFork size={12} /> 复制
@@ -923,8 +934,19 @@ export const RestockModule: React.FC = () => {
                                    />
                                 </div>
                                 <div>
-                                   <label className="lbl flex items-center gap-1"><Anchor size={10} /> 追踪号 (Tracking)</label>
+                                   <label className="lbl flex items-center gap-1"><Anchor size={10} /> 承运商 & 追踪号</label>
                                    <div className="flex gap-2">
+                                       <select 
+                                          value={selectedProduct.logistics?.carrier || 'UPS'}
+                                          onChange={e => handleUpdate('logistics.carrier', e.target.value)}
+                                          className="input-holo w-24 p-2 text-xs"
+                                       >
+                                          <option value="UPS">UPS</option>
+                                          <option value="FedEx">FedEx</option>
+                                          <option value="DHL">DHL</option>
+                                          <option value="USPS">USPS</option>
+                                          <option value="Other">Other</option>
+                                       </select>
                                        <input 
                                          value={selectedProduct.logistics?.trackingNo || ''} 
                                          onChange={e => handleUpdate('logistics.trackingNo', e.target.value)} 
@@ -1454,8 +1476,7 @@ export const RestockModule: React.FC = () => {
               return (
                  <div 
                    key={product.id} 
-                   onClick={() => setSelectedProduct(product)} 
-                   className={`apple-glass p-0 cursor-pointer transition-all duration-300 group relative overflow-hidden rounded-2xl ${isSelected ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' : 'hover:border-white/30 hover:bg-white/10'}`}
+                   className={`apple-glass p-0 transition-all duration-300 group relative overflow-hidden rounded-2xl ${isSelected ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' : 'hover:border-white/30 hover:bg-white/10'}`}
                  >
                     {/* Active Border Indicator */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-white/30'}`}></div>
@@ -1464,7 +1485,7 @@ export const RestockModule: React.FC = () => {
                       className="absolute top-5 right-5 z-20"
                       onClick={(e) => toggleSelection(e, product.id)}
                     >
-                       <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black shadow-[0_0_10px_#40C8E0]' : 'bg-black/40 border-gray-600 text-transparent hover:border-white'}`}>
+                       <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer ${isSelected ? 'bg-cyber-cyan border-cyber-cyan text-black shadow-[0_0_10px_#40C8E0]' : 'bg-black/40 border-gray-600 text-transparent hover:border-white'}`}>
                           <Check size={16} strokeWidth={4} />
                        </div>
                     </div>
@@ -1533,11 +1554,12 @@ export const RestockModule: React.FC = () => {
                                    <span>{product.logistics?.inboundId || 'No Inbound'}</span>
                                 </div>
                                 <div 
-                                  onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo)}
+                                  onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo, product.logistics?.carrier)}
                                   className="flex items-center gap-2 bg-yellow-500/10 px-2.5 py-1 rounded-md border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
                                   title="查询物流"
                                 >
                                    <Truck size={12}/> 
+                                   <span className="opacity-75 mr-1 font-bold">{product.logistics?.carrier || 'UPS'}:</span>
                                    <span>{product.logistics?.trackingNo || 'No Tracking'}</span>
                                 </div>
                              </div>
@@ -1609,10 +1631,18 @@ export const RestockModule: React.FC = () => {
                            <Clock size={12} /> 生产周期: <span className="text-white">{product.supplier?.leadTime || 0} 天</span>
                         </div>
                         <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
-                           <button className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); handleSkuSplit(product); }}
+                             className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                             title="复制 SKU"
+                           >
                              <GitFork size={16}/>
                            </button>
-                           <button className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); }}
+                             className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                             title="编辑详情"
+                           >
                              <Edit2 size={16}/>
                            </button>
                         </div>
