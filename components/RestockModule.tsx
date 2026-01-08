@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, Package, Edit2, Trash2, Plane, Ship, Box, Save, Calculator, Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock } from 'lucide-react';
+import { Search, Plus, Package, Edit2, Trash2, Plane, Ship, Box, Save, Calculator, Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
 // --- World-Class ERP Data Model ---
@@ -35,7 +35,8 @@ interface Product {
     unitRateRMB: number; 
     dutyRate: number; 
     hsCode: string; 
-    status: 'Plan' | 'Shipped' | 'Customs' | 'Received';
+    status: 'Plan' | 'Shipped' | 'Customs' | 'Received' | 'Exception';
+    priority: 'urgent' | 'normal' | 'defer'; // New editable priority field
   };
 
   packing: {
@@ -81,7 +82,7 @@ const initialProducts: Product[] = [
         { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
     ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '30/70' },
-    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
@@ -106,7 +107,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '100% TT' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: 'MSK99882211', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -211,6 +212,7 @@ const sanitizeProduct = (p: any): Product => {
       dutyRate: fuzzyVal(mixedPool, ['dutyRate', 'taxRate', 'Duty', '关税', '税率'], 'number', 0),
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
+      priority: fuzzyVal(mixedPool, ['priority', 'Priority', '优先级'], 'string', 'normal') as any,
     },
     packing: {
       pcsPerBox: fuzzyVal(mixedPool, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton', '装箱量'], 'number', 0),
@@ -338,6 +340,16 @@ export const RestockModule: React.FC = () => {
       setProducts(products.map(p => 
           p.id === productId 
               ? { ...p, logistics: { ...p.logistics, status: newStatus } } 
+              : p
+      ));
+  };
+
+  const handlePriorityUpdate = (e: React.ChangeEvent<HTMLSelectElement>, productId: string) => {
+      e.stopPropagation();
+      const newPriority = e.target.value as any;
+      setProducts(products.map(p => 
+          p.id === productId 
+              ? { ...p, logistics: { ...p.logistics, priority: newPriority } } 
               : p
       ));
   };
@@ -583,7 +595,7 @@ export const RestockModule: React.FC = () => {
           image: '',
           variants: [],
           supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
-          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan' },
+          logistics: { inboundId: '', trackingNo: '', mode: 'sea', warehouseDest: '', unitRateRMB: 0, dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
           inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
@@ -916,6 +928,7 @@ export const RestockModule: React.FC = () => {
                                       <option value="Shipped">已发货 (Shipped)</option>
                                       <option value="Customs">清关中 (Customs)</option>
                                       <option value="Received">已入库 (Received)</option>
+                                      <option value="Exception">异常延误 (Exception)</option>
                                    </select>
                                 </div>
                              </div>
@@ -952,120 +965,6 @@ export const RestockModule: React.FC = () => {
                                 <div>
                                    <label className="lbl">杂费预估 (USD/Unit)</label>
                                    <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
-                                </div>
-                             </div>
-                          </div>
-                       </div>
-                     )}
-
-                     {activeTab === 'finance' && (
-                       <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          {/* ... Finance content ... */}
-                          <div className="apple-glass p-5 relative overflow-hidden">
-                             <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-pink/20 blur-[60px] pointer-events-none"></div>
-                             
-                             <h3 className="text-cyber-pink font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest relative z-10">
-                                <TrendingUp size={14}/> 定价与利润模型
-                             </h3>
-                             
-                             <div className="mb-5 relative z-10">
-                                <label className="text-[10px] text-cyber-pink font-bold uppercase mb-2 block tracking-[0.2em]">TikTok 售价 (Selling Price)</label>
-                                <div className="relative group">
-                                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-xl group-focus-within:text-white transition-colors">$</span>
-                                   <input 
-                                     type="number" 
-                                     value={selectedProduct.financials?.sellingPriceUSD || 0} 
-                                     onChange={e => handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} 
-                                     className="w-full bg-black/50 border border-cyber-pink/30 text-3xl font-black text-white p-3 pl-10 outline-none focus:shadow-[0_0_20px_rgba(255,55,95,0.3)] focus:border-cyber-pink rounded-xl transition-all font-mono tracking-tight" 
-                                   />
-                                </div>
-                             </div>
-
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
-                                <div className="space-y-4">
-                                   <h4 className="text-white text-[10px] font-bold uppercase border-b border-white/10 pb-2 mb-2 tracking-wider flex justify-between items-center">
-                                      平台费率 (Fees)
-                                      <span className="text-[9px] bg-white/10 px-1.5 py-0.5 rounded">TikTok Shop</span>
-                                   </h4>
-                                   <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                         <label className="lbl">平台佣金 (Referral)</label>
-                                         <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
-                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <label className="lbl">达人佣金 (Affiliate)</label>
-                                         <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(0)} onChange={e => handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
-                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
-                                         </div>
-                                      </div>
-                                      <div className="col-span-2">
-                                         <label className="lbl">交易手续费 (Trans % + Fixed)</label>
-                                         <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
-                                                <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
-                                            </div>
-                                            <div className="relative flex-1">
-                                                <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e => handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
-                                                <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
-                                            </div>
-                                         </div>
-                                      </div>
-                                   </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                   <h4 className="text-white text-[10px] font-bold uppercase border-b border-white/10 pb-2 mb-2 tracking-wider">
-                                      履约与隐形成本 (Fulfillment)
-                                   </h4>
-                                   <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                         <label className="lbl">尾程配送 (Fulfillment)</label>
-                                         <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e => handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
-                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <label className="lbl text-cyber-yellow">海外仓操作费</label>
-                                         <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e => handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4 border-cyber-yellow/20 focus:border-cyber-yellow" />
-                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <label className="lbl">月度仓储费</label>
-                                         <div className="relative">
-                                            <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e => handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm pl-4" />
-                                            <span className="absolute left-2 top-2.5 text-[10px] text-gray-500 font-bold">$</span>
-                                         </div>
-                                      </div>
-                                      <div>
-                                         <label className="lbl flex items-center gap-1 text-red-400"><ShieldAlert size={8}/> 预估退货率 %</label>
-                                         <div className="relative">
-                                            <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e => handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6 text-red-400 border-red-500/30 focus:border-red-500" />
-                                            <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
-                                         </div>
-                                      </div>
-                                   </div>
-                                </div>
-                             </div>
-                             
-                             <div className="border-t border-white/5 pt-4 mt-4 relative z-10">
-                                <h4 className="text-cyber-purple font-bold text-[10px] uppercase mb-2 tracking-wider">营销推广 (Marketing)</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                   <div>
-                                      <label className="lbl text-cyber-purple">单次获客成本 (CPA)</label>
-                                      <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e => handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm border-cyber-purple/30 text-cyber-purple font-bold" />
-                                   </div>
-                                   <div>
-                                      <label className="lbl">目标投产比 (Target ROAS)</label>
-                                      <input type="number" value={selectedProduct.financials?.targetRoas || 0} onChange={e => handleUpdate('financials.targetRoas', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
-                                   </div>
                                 </div>
                              </div>
                           </div>
@@ -1307,6 +1206,16 @@ export const RestockModule: React.FC = () => {
            {filteredProducts.map((product) => {
               const eco = calculateEconomics(product);
               const isSelected = selectedIds.includes(product.id);
+              
+              // Priority Styling
+              const priorityMap: any = {
+                 'urgent': { label: 'URGENT', class: 'text-red-500 border-red-500/30 bg-red-500/10 animate-pulse' },
+                 'normal': { label: 'NORMAL', class: 'text-blue-400 border-blue-400/30 bg-blue-400/10' },
+                 'defer': { label: 'DEFER', class: 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' }
+              };
+              const currentPrio = product.logistics?.priority || 'normal';
+              const pStyle = priorityMap[currentPrio] || priorityMap['normal'];
+
               return (
                  <div 
                    key={product.id} 
@@ -1338,7 +1247,18 @@ export const RestockModule: React.FC = () => {
                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{product.logistics?.mode}</span>
                                 </div>
 
-                                <div onClick={e => e.stopPropagation()} className="relative z-10">
+                                <div onClick={e => e.stopPropagation()} className="relative z-10 flex flex-col items-end gap-1">
+                                    {/* Editable Priority Label */}
+                                    <select
+                                        value={currentPrio}
+                                        onChange={(e) => handlePriorityUpdate(e, product.id)}
+                                        className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border appearance-none text-center outline-none cursor-pointer hover:bg-black transition-all ${pStyle.class}`}
+                                    >
+                                        <option value="urgent" className="bg-black text-red-500">紧急 (URGENT)</option>
+                                        <option value="normal" className="bg-black text-blue-400">正常 (NORMAL)</option>
+                                        <option value="defer" className="bg-black text-yellow-500">延后 (DEFER)</option>
+                                    </select>
+                                    
                                     <select
                                         value={product.logistics?.status || 'Plan'}
                                         onChange={(e) => handleStatusUpdate(e, product.id)}
@@ -1347,10 +1267,12 @@ export const RestockModule: React.FC = () => {
                                             ${product.logistics?.status === 'Received' 
                                                 ? 'border-green-500/30 text-green-400 bg-green-500/10' 
                                                 : product.logistics?.status === 'Customs'
-                                                    ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10 animate-pulse shadow-[0_0_15px_rgba(234,179,8,0.4)]'
-                                                    : product.logistics?.status === 'Shipped'
-                                                        ? 'border-blue-500/50 text-blue-400 bg-blue-500/10 animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.4)]'
-                                                        : 'border-white/20 text-gray-400 bg-white/5 hover:border-white/40'
+                                                    ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.4)]'
+                                                    : product.logistics?.status === 'Exception'
+                                                        ? 'border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                                                        : product.logistics?.status === 'Shipped'
+                                                            ? 'border-blue-500/50 text-blue-400 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                                                            : 'border-white/20 text-gray-400 bg-white/5 hover:border-white/40'
                                             }
                                         `}
                                     >
@@ -1358,6 +1280,7 @@ export const RestockModule: React.FC = () => {
                                         <option value="Shipped" className="bg-[#1c1c1e] text-blue-400">✈️ 已发货</option>
                                         <option value="Customs" className="bg-[#1c1c1e] text-yellow-400">🛃 清关中</option>
                                         <option value="Received" className="bg-[#1c1c1e] text-green-400">✅ 已入库</option>
+                                        <option value="Exception" className="bg-[#1c1c1e] text-red-400">⚠️ 异常延误</option>
                                     </select>
                                 </div>
                              </div>
