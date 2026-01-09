@@ -508,7 +508,7 @@ export const RestockModule: React.FC = () => {
     // 4. Freight Logic (Smart Divisor)
     let currentTotalFreightRMB = 0; 
     const rawMode = p.logistics?.mode || 'sea';
-    const mode = rawMode.toLowerCase().trim(); // Normalize mode
+    const mode = String(rawMode).toLowerCase().trim(); // Normalize mode
     const rate = Number(p.logistics?.unitRateRMB) || 0;
     const manualTotalFreight = Number(p.logistics?.totalFreightRMB) || 0;
 
@@ -529,7 +529,7 @@ export const RestockModule: React.FC = () => {
         }
     } else {
         // Auto-calc based on rate * dimensions
-        if (mode === 'air') {
+        if (mode.includes('air')) {
            // Air uses Weight
            currentTotalFreightRMB = totalWeight * rate; 
         } else {
@@ -694,7 +694,8 @@ export const RestockModule: React.FC = () => {
       </button>
     );
 
-    const currentMode = (selectedProduct.logistics?.mode || 'sea').toLowerCase();
+    const rawMode = selectedProduct.logistics?.mode || 'sea';
+    const currentMode = String(rawMode).toLowerCase().trim();
 
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
@@ -1100,7 +1101,7 @@ export const RestockModule: React.FC = () => {
                                    </select>
                                 </div>
                                 <div>
-                                   <label className="lbl">头程运费单价 ({currentMode === 'air' ? '¥/kg' : '¥/m³'})</label>
+                                   <label className="lbl">头程运费单价 ({currentMode.includes('air') ? '¥/kg' : '¥/m³'})</label>
                                    <input 
                                       type="number" 
                                       value={selectedProduct.logistics?.unitRateRMB || 0} 
@@ -1115,7 +1116,7 @@ export const RestockModule: React.FC = () => {
                                           setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
                                       }}
                                       className="input-holo w-full p-2 text-sm" 
-                                      placeholder={currentMode === 'air' ? '¥/kg' : '¥/m³'}
+                                      placeholder={currentMode.includes('air') ? '¥/kg' : '¥/m³'}
                                    />
                                 </div>
                                 <div>
