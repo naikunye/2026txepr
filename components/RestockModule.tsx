@@ -1711,7 +1711,15 @@ export const RestockModule: React.FC = () => {
                                 <span className="text-white/10 hidden sm:inline">|</span>
 
                                 {product.logistics?.inboundId && (
-                                    <div className="flex items-center gap-2 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300 text-[11px] shrink-0">
+                                    <div 
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigator.clipboard.writeText(product.logistics.inboundId);
+                                          alert(`已复制入库单号: ${product.logistics.inboundId}`);
+                                      }}
+                                      className="flex items-center gap-2 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300 text-[11px] shrink-0 cursor-pointer hover:bg-blue-500/30 hover:text-white transition-all"
+                                      title="点击复制入库单号"
+                                    >
                                        <FileText size={12}/> 
                                        <span>{product.logistics.inboundId}</span>
                                     </div>
