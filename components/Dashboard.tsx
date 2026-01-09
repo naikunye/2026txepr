@@ -1,11 +1,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
-import { Wallet, Globe, ArrowUpRight, TrendingUp, Package, Clock, Zap, Cpu, Activity, RefreshCcw, Sun, Map } from 'lucide-react';
+import { Wallet, Globe, ArrowUpRight, TrendingUp, Package, Clock, Zap, Cpu, Activity, RefreshCcw, Sun, Map, Layers, AlertTriangle, Coins, Database } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
 interface Transaction { amount: number; type: 'in' | 'out'; currency?: string; }
 interface Shipment { status: string; id: string; }
-interface Product { inventory: { current: number; safetyDays: number; dailyVelocity: number }; productName: string; }
+// Updated Product Interface to match RestockModule
+interface Product { 
+    id: string;
+    productName: string;
+    inventory: { current: number; incoming: number; safetyDays: number; dailyVelocity: number }; 
+    supplier: { unitPriceRMB: number };
+}
 
 const RATES: Record<string, number> = { 'USD': 7.25, 'GBP': 9.10, 'EUR': 7.85, 'CNY': 1.00, 'USDT': 7.28, 'HKD': 0.92 };
 
@@ -28,6 +34,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const metrics = useMemo(() => {
+    // 1. Finance Calculation
     let totalRevCNY = 0;
     let totalExpCNY = 0;
 
@@ -39,6 +46,7 @@ export const Dashboard: React.FC = () => {
         else totalExpCNY += amountCNY;
     });
     
+    // Chart Mock Data based on total rev
     const avgDaily = totalRevCNY / 30; 
     const chartData = [
        { name: '周一', value: avgDaily * 0.8 },
@@ -50,12 +58,39 @@ export const Dashboard: React.FC = () => {
        { name: '周日', value: avgDaily * 1.5 },
     ];
 
+    // 2. Logistics Stats
     const activeShipments = shipments.filter(s => s.status === 'transport' || s.status === 'customs').length;
     const exceptionShipments = shipments.filter(s => s.status === 'exception').length;
-    const lowStockCount = products.filter(p => {
-       const daysCover = p.inventory.dailyVelocity > 0 ? p.inventory.current / p.inventory.dailyVelocity : 999;
-       return daysCover < p.inventory.safetyDays;
-    }).length;
+
+    // 3. Smart Restock Linkage
+    let lowStockCount = 0;
+    let inventoryAssetRMB = 0;     // Total value of current stock
+    let restockCapitalNeededRMB = 0; // Estimated money needed for restock
+
+    products.forEach(p => {
+       const inv = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
+       const cost = p.supplier?.unitPriceRMB || 0;
+       
+       // Asset Valuation
+       inventoryAssetRMB += inv.current * cost;
+
+       // Restock Logic
+       const totalStock = inv.current + inv.incoming;
+       const dailyBurn = inv.dailyVelocity || 0;
+       
+       if (dailyBurn > 0) {
+           const daysCover = totalStock / dailyBurn;
+           if (daysCover < (inv.safetyDays || 0)) {
+               lowStockCount++;
+               // Simple formula: Fill up to safety days
+               // Really smart logic would cover lead time + safety, but let's keep it simple for dashboard summary
+               const needed = ((inv.safetyDays * 1.5) * dailyBurn) - totalStock; 
+               if (needed > 0) {
+                   restockCapitalNeededRMB += needed * cost;
+               }
+           }
+       }
+    });
 
     return {
       revenue: totalRevCNY,
@@ -64,15 +99,18 @@ export const Dashboard: React.FC = () => {
       exceptionShipments,
       lowStockCount,
       totalProducts: products.length,
+      inventoryAssetRMB,
+      restockCapitalNeededRMB,
       chartData
     };
   }, [transactions, shipments, products]);
 
   const aiInsight = useMemo(() => {
-    if (metrics.exceptionShipments > 0) return `⚠️ 警报: 检测到 ${metrics.exceptionShipments} 个物流异常，请及时处理。`;
-    else if (metrics.lowStockCount > 2) return `📦 库存预警: ${metrics.lowStockCount} 个 SKU 低于安全库存水位。`;
-    else if (metrics.revenue > 0 && metrics.profit < 0) return `📉 财务预警: 本周期检测到净利润为负，请检查支出。`;
-    else return `✅ 系统正常: 各项运营指标运行平稳。`;
+    if (metrics.exceptionShipments > 0) return `⚠️ 物流警报: 监控到 ${metrics.exceptionShipments} 个异常运单，请立即介入。`;
+    if (metrics.restockCapitalNeededRMB > 50000) return `💰 资金预警: 预计近期需 ¥${(metrics.restockCapitalNeededRMB/10000).toFixed(1)}万 用于备货，请预留现金流。`;
+    if (metrics.lowStockCount > 2) return `📦 补货提醒: ${metrics.lowStockCount} 个 SKU 低于安全水位，建议立即生成采购单。`;
+    if (metrics.revenue > 0 && metrics.profit < 0) return `📉 财务洞察: 本周期净利润为负，建议检查广告投放效率。`;
+    return `✅ 系统全域正常: 供应链资产周转健康，资金流稳定。`;
   }, [metrics]);
 
   return (
@@ -86,7 +124,7 @@ export const Dashboard: React.FC = () => {
             </h1>
             <p className="text-cyber-dim mt-2 text-sm font-medium tracking-wide flex items-center gap-2">
                <span className="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
-               全域实时监控系统 • {now.toLocaleDateString()}
+               AERO.OS 神经网络在线 • {now.toLocaleDateString()}
             </p>
          </div>
 
@@ -118,39 +156,49 @@ export const Dashboard: React.FC = () => {
       {/* BENTO GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[220px]">
          
-         {/* Widget 1: Global Status (Rich Dark Blue/Purple Mesh) */}
-         <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 apple-glass p-10 relative overflow-hidden group">
+         {/* Widget 1: Global Status & Assets (Rich Dark Blue/Purple Mesh) */}
+         <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 apple-glass p-10 relative overflow-hidden group flex flex-col justify-between">
             {/* Background Gradient Animation */}
             <div className="absolute inset-0 bg-gradient-to-br from-cyber-indigo/30 via-transparent to-cyber-blue/10 pointer-events-none animate-pulse-slow"></div>
             <div className="absolute top-[-50%] right-[-20%] w-[400px] h-[400px] bg-cyber-blue/20 rounded-full blur-[100px] pointer-events-none"></div>
             
-            <div className="relative z-10 h-full flex flex-col justify-between">
-               <div>
-                  <div className="w-14 h-14 bg-gradient-to-br from-cyber-blue to-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-glow-blue">
+            <div className="relative z-10">
+               <div className="flex items-start justify-between mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-cyber-blue to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-glow-blue">
                      <Globe size={28} />
                   </div>
-                  <h3 className="text-3xl font-bold text-white tracking-tight text-glow">
-                     全球运营状态
-                  </h3>
-                  <p className="text-gray-300 mt-3 text-sm max-w-lg leading-relaxed font-light">
-                     正在实时监控 <span className="text-white font-bold">{metrics.totalProducts}</span> 个活跃 SKU，跨越 <span className="text-white font-bold">{metrics.activeShipments}</span> 个国际物流单。系统核心神经网络运行平稳。
-                  </p>
+                  <div className="text-right">
+                      <div className="text-xs font-bold text-cyber-blue uppercase tracking-widest mb-1">总库存资产 (Inventory Assets)</div>
+                      <div className="text-4xl font-black text-white font-mono text-glow-blue">
+                          ¥{(metrics.inventoryAssetRMB / 10000).toFixed(1)}w
+                      </div>
+                  </div>
                </div>
                
-               <div className="grid grid-cols-2 gap-6 mt-8">
-                  <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
-                     <div className={`w-3 h-3 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red shadow-[0_0_10px_#FF453A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
-                     <div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">物流运输</div>
-                        <div className="text-base font-bold text-white">{metrics.exceptionShipments > 0 ? `${metrics.exceptionShipments} 个异常` : '运转正常'}</div>
+               <h3 className="text-2xl font-bold text-white tracking-tight">
+                  供应链全景监控
+               </h3>
+               <p className="text-gray-400 mt-2 text-sm max-w-lg leading-relaxed font-mono">
+                  Active SKUs: <span className="text-white font-bold">{metrics.totalProducts}</span> &nbsp;|&nbsp; 
+                  In Transit: <span className="text-white font-bold">{metrics.activeShipments}</span> Orders
+               </p>
+            </div>
+            
+            <div className="relative z-10 grid grid-cols-2 gap-6 mt-8">
+               <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
+                  <div className={`w-3 h-3 rounded-full ${metrics.restockCapitalNeededRMB > 0 ? 'bg-cyber-yellow shadow-[0_0_10px_#FFD60A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
+                  <div>
+                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">补货资金需求</div>
+                     <div className="text-base font-bold text-white font-mono">
+                        {metrics.restockCapitalNeededRMB > 0 ? `¥${metrics.restockCapitalNeededRMB.toLocaleString(undefined, {maximumFractionDigits:0})}` : '暂无需求'}
                      </div>
                   </div>
-                  <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
-                     <div className={`w-3 h-3 rounded-full ${metrics.lowStockCount > 0 ? 'bg-cyber-orange shadow-[0_0_10px_#FF9F0A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
-                     <div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">库存状况</div>
-                        <div className="text-base font-bold text-white">{metrics.lowStockCount > 0 ? `${metrics.lowStockCount} 个告急` : '健康'}</div>
-                     </div>
+               </div>
+               <div className={`p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4 transition-all hover:bg-white/10 hover:border-white/20 hover:translate-y-[-2px]`}>
+                  <div className={`w-3 h-3 rounded-full ${metrics.exceptionShipments > 0 ? 'bg-cyber-red shadow-[0_0_10px_#FF453A]' : 'bg-cyber-green shadow-[0_0_10px_#30D158]'}`}></div>
+                  <div>
+                     <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">物流异常监控</div>
+                     <div className="text-base font-bold text-white">{metrics.exceptionShipments > 0 ? `${metrics.exceptionShipments} 单延误` : '航线通畅'}</div>
                   </div>
                </div>
             </div>
@@ -163,7 +211,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex justify-between items-start z-10">
                <div>
                   <div className="text-xs font-bold text-cyber-green uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-cyber-green rounded-full"></div> 总营收 (CNY)
+                      <div className="w-1.5 h-1.5 bg-cyber-green rounded-full"></div> 财务营收 (Revenue)
                   </div>
                   <div className="text-4xl font-black text-white tracking-tight font-mono text-glow">
                      ¥{metrics.revenue.toLocaleString(undefined, {maximumFractionDigits: 0})}
@@ -171,7 +219,7 @@ export const Dashboard: React.FC = () => {
                </div>
                <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 backdrop-blur-md border ${metrics.profit >= 0 ? 'bg-cyber-green/10 text-cyber-green border-cyber-green/20' : 'bg-cyber-red/10 text-cyber-red border-cyber-red/20'}`}>
                   {metrics.profit >= 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />}
-                  {metrics.profit >= 0 ? '+12.5%' : '-2.1%'}
+                  {metrics.profit >= 0 ? 'Profitable' : 'Loss'}
                </div>
             </div>
             <div className="h-24 w-full mt-4 -mx-4 opacity-60 group-hover:opacity-100 transition-opacity duration-500">
@@ -206,24 +254,33 @@ export const Dashboard: React.FC = () => {
             </div>
          </div>
 
-         {/* Widget 3: Inventory (Pink/Purple) */}
+         {/* Widget 3: Smart Restock (Yellow/Orange) - LINKED TO SMART RESTOCK */}
          <div className="apple-glass p-8 flex flex-col justify-between relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyber-pink/20 to-transparent pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-cyber-yellow/20 via-transparent to-transparent pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity"></div>
             
             <div className="flex justify-between items-start relative z-10">
-               <div className="w-12 h-12 bg-gradient-to-br from-cyber-pink to-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <Package size={22} />
+               <div className="w-12 h-12 bg-gradient-to-br from-cyber-yellow to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Layers size={22} />
                </div>
                {metrics.lowStockCount > 0 && <span className="w-3 h-3 bg-cyber-red rounded-full shadow-[0_0_10px_#FF453A] animate-pulse"></span>}
             </div>
+            
             <div className="relative z-10 mt-4">
-               <div className="text-4xl font-black text-white font-mono tracking-tight text-glow-purple">
-                  {metrics.lowStockCount} <span className="text-base font-bold text-gray-400">SKU</span>
+               <div className="flex items-baseline gap-2">
+                   <div className="text-4xl font-black text-white font-mono tracking-tight text-glow">
+                      {metrics.lowStockCount}
+                   </div>
+                   <span className="text-xs font-bold text-gray-400 uppercase">SKU 缺货</span>
                </div>
-               <div className="text-xs text-cyber-pink font-bold mt-2 uppercase tracking-widest">需紧急补货</div>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-4 relative z-10">
-               <div className="h-full bg-cyber-pink rounded-full shadow-[0_0_10px_rgba(255,55,95,0.8)]" style={{ width: `${Math.min(100, (metrics.lowStockCount / Math.max(1, metrics.totalProducts))*100)}%` }}></div>
+               
+               <div className="mt-3 pt-3 border-t border-white/10">
+                   <div className="text-[10px] text-cyber-yellow font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+                       <Coins size={10} /> 建议补货投入
+                   </div>
+                   <div className="text-lg font-black text-white font-mono">
+                       ¥{metrics.restockCapitalNeededRMB.toLocaleString(undefined, { notation: "compact" })}
+                   </div>
+               </div>
             </div>
          </div>
 
@@ -239,7 +296,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="relative z-10 mt-4">
                <div className="text-4xl font-black text-white font-mono tracking-tight text-glow-blue">{metrics.activeShipments}</div>
-               <div className="text-xs text-cyber-cyan font-bold mt-2 uppercase tracking-widest">正在运输中</div>
+               <div className="text-xs text-cyber-cyan font-bold mt-2 uppercase tracking-widest">在途运单 (Tracking)</div>
             </div>
          </div>
       </div>

@@ -272,8 +272,8 @@ export const FinanceModule: React.FC = () => {
   return (
     <div className="h-full flex flex-col px-6 pb-6 animate-in fade-in duration-500 relative overflow-hidden">
         
-        {/* TOP BAR */}
-        <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-2xl mb-6 flex flex-col lg:flex-row justify-between lg:items-end gap-4">
+        {/* TOP BAR - UPDATED: Transparent & Blur */}
+        <div className="sticky top-0 z-30 bg-transparent backdrop-blur-2xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-sm mb-6 flex flex-col lg:flex-row justify-between lg:items-end gap-4 transition-all">
             <div>
                 <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3 text-glow">
                     财务驾驶舱 <span className="px-2 py-0.5 rounded border border-cyber-green text-[10px] text-cyber-green font-mono tracking-widest bg-cyber-green/10">FINANCE_OS</span>

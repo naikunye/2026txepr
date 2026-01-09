@@ -1543,8 +1543,8 @@ export const RestockModule: React.FC = () => {
 
       {renderDetailModal()}
 
-      {/* Main Table Header & Tools */}
-      <div className="sticky top-0 z-30 bg-black/60 backdrop-blur-xl border-b border-white/10 pb-6 pt-6 -mx-8 px-8 shadow-2xl mb-8 flex flex-col md:flex-row justify-between items-end gap-6 transition-all">
+      {/* Main Table Header & Tools - UPDATED: Transparent & Blur */}
+      <div className="sticky top-0 z-30 bg-transparent backdrop-blur-2xl border-b border-white/10 pb-6 pt-6 -mx-8 px-8 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-end gap-6 transition-all">
          <div>
             <h1 className="text-4xl font-black text-white tracking-tight text-glow">智能备货中心</h1>
             <p className="text-gray-400 font-medium text-xs mt-2 flex items-center gap-2 tracking-wide">

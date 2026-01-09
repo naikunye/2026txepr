@@ -449,8 +449,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
        <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
 
-       {/* Header */}
-       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-lg mb-6 flex justify-between items-end">
+       {/* Header - Unified Glass */}
+       <div className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-sm mb-6 flex justify-between items-end">
           <div>
              <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
                 <Settings className="text-gray-400" />

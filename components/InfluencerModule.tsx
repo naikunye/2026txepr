@@ -301,8 +301,8 @@ export const InfluencerModule: React.FC = () => {
   return (
     <div className="h-full flex flex-col px-6 pb-6 animate-in fade-in duration-700">
       
-      {/* 1. Futuristic Header */}
-      <div className="sticky top-0 z-40 bg-[#000000]/80 backdrop-blur-2xl border-b border-white/10 pb-6 pt-6 -mx-6 px-6 shadow-2xl">
+      {/* 1. Futuristic Header - Unified Glass (Transparent + Blur) */}
+      <div className="sticky top-0 z-40 bg-transparent backdrop-blur-2xl border-b border-white/10 pb-6 pt-6 -mx-6 px-6 shadow-sm mb-6 transition-all">
          <div className="flex flex-col md:flex-row justify-between items-end gap-6">
             <div>
                <h1 className="text-4xl font-black text-white tracking-tighter flex items-center gap-3 text-glow">

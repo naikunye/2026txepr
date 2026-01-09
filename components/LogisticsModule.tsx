@@ -310,8 +310,8 @@ export const LogisticsModule: React.FC = () => {
   return (
     <div className="px-6 pb-6 h-screen flex flex-col animate-in fade-in duration-500 overflow-hidden">
       
-      {/* 1. Header Area - Slim & Sticky */}
-      <div className="flex-shrink-0 pt-6 pb-4">
+      {/* 1. Header Area - Unified Glass Sticky Header */}
+      <div className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/10 pb-6 pt-6 -mx-6 px-6 shadow-sm mb-6 flex-shrink-0">
           <div className="flex justify-between items-end mb-6">
              <div>
                 <h1 className="text-3xl font-black text-white tracking-wider flex items-center gap-3">
