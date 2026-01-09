@@ -487,11 +487,11 @@ export const RestockModule: React.FC = () => {
     const unitProductCostRMB = p.supplier?.unitPriceRMB || 0; 
     const unitProductCostUSD = unitProductCostRMB / exchangeRate;
     
-    // 2. Packing & Dimensions
-    const boxCount = p.packing?.boxCount || 0;
-    const boxWeight = p.packing?.boxWeightKg || 0;
-    const boxVol = p.packing?.boxVolumeCbm || 0;
-    const pcsPerBox = p.packing?.pcsPerBox || 1;
+    // 2. Packing & Dimensions - Ensure numbers
+    const boxCount = Number(p.packing?.boxCount) || 0;
+    const boxWeight = Number(p.packing?.boxWeightKg) || 0;
+    const boxVol = Number(p.packing?.boxVolumeCbm) || 0;
+    const pcsPerBox = Number(p.packing?.pcsPerBox) || 1;
 
     const totalWeight = boxCount * boxWeight;
     const totalVolume = boxCount * boxVol;
@@ -507,9 +507,10 @@ export const RestockModule: React.FC = () => {
     
     // 4. Freight Logic (Smart Divisor)
     let currentTotalFreightRMB = 0; 
-    const mode = p.logistics?.mode || 'sea';
-    const rate = p.logistics?.unitRateRMB || 0;
-    const manualTotalFreight = p.logistics?.totalFreightRMB || 0;
+    const rawMode = p.logistics?.mode || 'sea';
+    const mode = rawMode.toLowerCase().trim(); // Normalize mode
+    const rate = Number(p.logistics?.unitRateRMB) || 0;
+    const manualTotalFreight = Number(p.logistics?.totalFreightRMB) || 0;
 
     let freightDivisor = totalUnitsConfigured;
 
@@ -529,8 +530,10 @@ export const RestockModule: React.FC = () => {
     } else {
         // Auto-calc based on rate * dimensions
         if (mode === 'air') {
+           // Air uses Weight
            currentTotalFreightRMB = totalWeight * rate; 
         } else {
+           // Sea/Rail/Truck uses Volume
            currentTotalFreightRMB = totalVolume * rate;
         }
     }
@@ -690,6 +693,8 @@ export const RestockModule: React.FC = () => {
         <Icon size={14} /> {label}
       </button>
     );
+
+    const currentMode = (selectedProduct.logistics?.mode || 'sea').toLowerCase();
 
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
@@ -1095,7 +1100,7 @@ export const RestockModule: React.FC = () => {
                                    </select>
                                 </div>
                                 <div>
-                                   <label className="lbl">头程运费单价 ({selectedProduct.logistics?.mode === 'air' ? '¥/kg' : '¥/m³'})</label>
+                                   <label className="lbl">头程运费单价 ({currentMode === 'air' ? '¥/kg' : '¥/m³'})</label>
                                    <input 
                                       type="number" 
                                       value={selectedProduct.logistics?.unitRateRMB || 0} 
@@ -1110,6 +1115,7 @@ export const RestockModule: React.FC = () => {
                                           setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
                                       }}
                                       className="input-holo w-full p-2 text-sm" 
+                                      placeholder={currentMode === 'air' ? '¥/kg' : '¥/m³'}
                                    />
                                 </div>
                                 <div>
