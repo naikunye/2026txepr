@@ -497,18 +497,18 @@ export const RestockModule: React.FC = () => {
     const totalVolume = boxCount * boxVol;
     const totalUnitsConfigured = boxCount * pcsPerBox || 1; // From Packing Config
 
-    // 3. Inventory & Reorder Logic (Moved Up for Freight Calc)
+    // 3. Inventory & Reorder Logic
     const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
     const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
     
     const daysOfCover = inventory.dailyVelocity > 0 ? (inventory.current + inventory.incoming) / inventory.dailyVelocity : 999;
     const needed = Math.max(0, (inventory.safetyDays - daysOfCover) * inventory.dailyVelocity);
-    const reorderQty = Math.max(needed, supplier.moq);
+    const reorderQty = Math.ceil(Math.max(needed, supplier.moq)); // Use Ceil for integer items
     
     // 4. Freight Logic (Smart Divisor)
     let currentTotalFreightRMB = 0; 
     const rawMode = p.logistics?.mode || 'sea';
-    const mode = String(rawMode).toLowerCase().trim(); // Normalize mode
+    const mode = String(rawMode).toLowerCase().trim(); 
     const rate = Number(p.logistics?.unitRateRMB) || 0;
     const manualTotalFreight = Number(p.logistics?.totalFreightRMB) || 0;
 
@@ -517,23 +517,17 @@ export const RestockModule: React.FC = () => {
     if (manualTotalFreight > 0) {
         currentTotalFreightRMB = manualTotalFreight;
         
-        // Smart Divisor Logic:
-        // If the configured packing quantity is very low (e.g. default 1 or sample 4),
-        // but the calculated reorder quantity is significant (e.g. > 20),
-        // we assume the manual freight entered corresponds to the Reorder Batch, not the Packing Config.
-        if (totalUnitsConfigured < 20 && reorderQty > 20) {
-             freightDivisor = Math.ceil(reorderQty);
-        } else if (totalUnitsConfigured === 1 && reorderQty > 1) {
-             // Catch-all for default initialized products
-             freightDivisor = Math.ceil(reorderQty);
-        }
+        // Smart Divisor Fix:
+        // Use the larger of packing config OR reorder quantity to avoid inflated unit costs
+        // when packing config is small/placeholder but reorder quantity is large.
+        freightDivisor = Math.max(totalUnitsConfigured, reorderQty);
+        
+        if (freightDivisor <= 0) freightDivisor = 1;
     } else {
         // Auto-calc based on rate * dimensions
         if (mode.includes('air')) {
-           // Air uses Weight
            currentTotalFreightRMB = totalWeight * rate; 
         } else {
-           // Sea/Rail/Truck uses Volume
            currentTotalFreightRMB = totalVolume * rate;
         }
     }
@@ -564,8 +558,11 @@ export const RestockModule: React.FC = () => {
     
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    const totalFreightBatchRMB = unitFreightRMB * reorderQty; // Theoretical Reorder Freight (Derived from unit cost)
-    const totalFreightBatchUSD = unitFreightUSD * reorderQty;
+    // Display Logic Adjustments
+    const displayTotalFreightRMB = manualTotalFreight > 0 
+        ? manualTotalFreight 
+        : unitFreightRMB * reorderQty;
+
     const totalProfitBatchUSD = netProfit * reorderQty;
 
     return {
@@ -577,9 +574,8 @@ export const RestockModule: React.FC = () => {
       netProfit, margin, roi,
       daysOfCover, reorderQty, capitalRequiredRMB,
       totalUnits: totalUnitsConfigured, totalWeight, totalVolume,
-      totalFreightBatchUSD, totalProfitBatchUSD,
-      totalFreightBatchRMB, 
-      currentTotalFreightRMB // Added for precise display in list view
+      totalProfitBatchUSD,
+      currentTotalFreightRMB: displayTotalFreightRMB // Context-aware display value
     };
   };
 
