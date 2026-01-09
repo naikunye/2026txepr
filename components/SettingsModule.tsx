@@ -73,6 +73,22 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           return;
       }
 
+      // 2. Check Mixed Content (HTTPS -> HTTP)
+      const isPageHttps = window.location.protocol === 'https:';
+      const isServerHttp = pb.baseUrl.startsWith('http:');
+      
+      if (isPageHttps && isServerHttp) {
+          addLog('> [安全阻断] ⛔ 混合内容错误 (Mixed Content)');
+          addLog('> 原因: 当前网页运行在 HTTPS 安全协议下，');
+          addLog('> 无法连接不安全的 HTTP 服务器。浏览器已拦截请求。');
+          addLog('> 解决方案:');
+          addLog('> 1. (推荐) 使用 http://localhost 本地运行前端');
+          addLog('> 2. 或为您的 PocketBase 服务器配置 SSL 证书');
+          setNetworkLatency(null);
+          alert('连接失败：浏览器安全策略阻止 HTTPS 网站连接 HTTP 服务器。\n\n请尝试在本地环境 (http://localhost) 运行此项目，或者为您的云服务器配置 SSL 证书。');
+          return;
+      }
+
       addLog(`> 正在 Ping: ${pb.baseUrl}...`);
       const start = Date.now();
       
@@ -89,7 +105,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           console.error(err);
           addLog('> [错误] ❌ 服务器连接失败');
           if (err.status === 0) {
-              addLog('> 原因: 网络不可达或防火墙拦截');
+              addLog('> 原因: 网络不可达、防火墙拦截或混合内容限制');
               addLog('> 建议: 1.检查IP是否正确 2.腾讯云防火墙是否放行 8090 端口');
           } else {
               addLog(`> 错误代码: ${err.status} ${err.message}`);
