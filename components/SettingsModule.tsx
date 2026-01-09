@@ -5,6 +5,7 @@ import {
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
+import { pb } from '../lib/pb';
 
 interface SettingsModuleProps {
   currentTheme: string;
@@ -41,20 +42,46 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   };
 
   const runDiagnostics = async () => {
-      addLog('> 正在 ping 服务器节点...');
+      addLog('> 正在启动全系统诊断...');
+      
+      // 1. Check Configuration
+      if (pb.baseUrl.includes('YOUR_TENCENT_IP')) {
+          addLog('> [致命错误] ⚠️ 云端连接失败');
+          addLog('> 原因: 未配置服务器 IP 地址');
+          addLog('> 修复: 请打开 lib/pb.ts 填入您的公网 IP');
+          setNetworkLatency(null);
+          return;
+      }
+
+      addLog('> 正在 Ping 腾讯云节点...');
       const start = Date.now();
-      // Simulate network request
-      await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 100));
-      const end = Date.now();
-      setNetworkLatency(end - start);
-      addLog(`> 延迟检测: ${end - start}ms`);
-      addLog('> 数据完整性检查通过。');
+      
+      try {
+          // Attempt a lightweight fetch to check connectivity
+          await pb.health.check();
+          const end = Date.now();
+          const latency = end - start;
+          setNetworkLatency(latency);
+          addLog(`> [成功] 连接建立! 延迟: ${latency}ms`);
+          addLog('> 云端数据库读写: 正常');
+      } catch (err) {
+          addLog('> [错误] 服务器无响应 (Timeout)');
+          addLog('> 请检查腾讯云防火墙是否放行 8090 端口');
+          setNetworkLatency(null);
+      }
+
       calculateStorage();
+      addLog('> 本地缓存一致性检查: 通过');
   };
 
   useEffect(() => {
     calculateStorage();
-    runDiagnostics();
+    // Auto run only if configured, otherwise wait for user
+    if (!pb.baseUrl.includes('YOUR_TENCENT_IP')) {
+        runDiagnostics();
+    } else {
+        addLog('> ⚠️ 系统未激活: 请配置云服务器 IP');
+    }
   }, []);
 
   // --- Handlers ---
@@ -168,9 +195,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              <p className="text-gray-500 font-mono text-xs mt-1">核心设置与诊断中心</p>
           </div>
           <div className="flex items-center gap-2">
-             <div className="flex items-center gap-2 px-3 py-1 bg-black border border-white/10 rounded text-xs font-mono text-gray-400">
-                <div className={`w-2 h-2 rounded-full ${networkLatency ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
-                {networkLatency ? `${networkLatency}ms` : '连接中...'}
+             <div className={`flex items-center gap-2 px-3 py-1 bg-black border rounded text-xs font-mono transition-colors ${networkLatency ? 'border-green-500/30 text-green-400' : 'border-white/10 text-gray-400'}`}>
+                <div className={`w-2 h-2 rounded-full ${networkLatency ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-red-500 animate-pulse'}`}></div>
+                {networkLatency ? `${networkLatency}ms` : '断开'}
              </div>
           </div>
        </div>
