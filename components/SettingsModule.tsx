@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
-  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy
+  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
+  UploadCloud, DownloadCloud, ArrowRightLeft
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -18,6 +19,16 @@ const themes = [
   { id: 'aurora', name: '极光白 (Aurora)', desc: '清爽明亮 / 办公风格', icon: Sun, activeColor: 'text-blue-400', activeBorder: 'border-blue-400', activeBg: 'bg-blue-400/10' },
 ];
 
+const SYNC_KEYS = [
+    'AERO_LOGISTICS_DATA',
+    'AERO_FINANCE_DATA',
+    'AERO_RESTOCK_DATA',
+    'AERO_TASKS_DATA',
+    'AERO_INFLUENCER_DATA',
+    'AERO_THEME',
+    'AERO_FILES_DATA'
+];
+
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS 系统监控初始化...', '> 等待诊断指令...']);
@@ -25,6 +36,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   // Server Config State
   const [serverInput, setServerInput] = useState(pb.baseUrl === DEFAULT_PB_URL || pb.baseUrl.includes('YOUR_TENCENT_IP') ? '' : pb.baseUrl);
   const [showHttpsTip, setShowHttpsTip] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   // Real System Stats
   const [storageUsage, setStorageUsage] = useState(0); // in KB
@@ -84,8 +96,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           addLog('> 浏览器可能会因 "Mixed Content" 安全策略拦截请求。');
           addLog('> 正在尝试强制连接...');
           setShowHttpsTip(true);
-          // We do NOT return here anymore, we let it try to fail naturally
-          // so users with disabled browser security can still connect.
       }
 
       addLog(`> 正在 Ping: ${pb.baseUrl}...`);
@@ -100,12 +110,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
           addLog('> 数据库读写权限: 正常');
           setShowHttpsTip(false); // Hide tip if successful
-          alert('连接成功！云端同步已激活。');
+          // alert('连接成功！云端同步已激活。'); // Removed annoying alert on re-run
       } catch (err: any) {
           console.error(err);
           addLog('> [错误] ❌ 服务器连接失败');
           if (err.status === 0) {
-              // Status 0 usually means Network Error or Blocked by Browser
               if (isPageHttps && isServerHttp) {
                   addLog('> [安全阻断] 浏览器拦截了请求。');
                   addLog('> 根本原因: HTTPS 网页无法连接 HTTP 接口。');
@@ -134,23 +143,114 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     }
   }, []);
 
+  // --- Sync Handlers ---
+
+  const handlePushToCloud = async () => {
+    if (!networkLatency) {
+        alert("无法连接服务器，请先确保服务器配置正确且显示“在线”。");
+        return;
+    }
+    if (!confirm('⚠️ 覆盖警告\n\n确定要将【本地数据】强制推送到云端吗？\n云端现有的数据将被覆盖，此操作不可撤销。')) return;
+
+    setIsSyncing(true);
+    addLog('> 🚀 开始推送本地数据至云端...');
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const key of SYNC_KEYS) {
+        const localRaw = localStorage.getItem(key);
+        if (!localRaw) continue;
+
+        try {
+            const val = JSON.parse(localRaw);
+            
+            // Try to find existing record
+            try {
+                const existing = await pb.collection('sync_store').getFirstListItem(`key="${key}"`);
+                await pb.collection('sync_store').update(existing.id, { key, val });
+                addLog(`> [更新] ${key} ✅`);
+            } catch (err: any) {
+                // If not found, create new
+                if (err.status === 404) {
+                    await pb.collection('sync_store').create({ key, val });
+                    addLog(`> [创建] ${key} ✅`);
+                } else {
+                    throw err;
+                }
+            }
+            successCount++;
+        } catch (err: any) {
+            console.error(err);
+            addLog(`> [失败] ${key}: ${err.message}`);
+            failCount++;
+        }
+    }
+
+    setIsSyncing(false);
+    addLog(`> 🎉 推送完成: 成功 ${successCount} / 失败 ${failCount}`);
+    if (successCount > 0) alert(`同步成功！已将 ${successCount} 个模块的数据推送到云端。`);
+  };
+
+  const handlePullFromCloud = async () => {
+    if (!networkLatency) {
+        alert("无法连接服务器，请先确保服务器配置正确且显示“在线”。");
+        return;
+    }
+    if (!confirm('⚠️ 覆盖警告\n\n确定要从【云端】拉取数据覆盖本地吗？\n本地未保存的更改将会丢失。')) return;
+
+    setIsSyncing(true);
+    addLog('> 📥 开始从云端拉取数据...');
+    let successCount = 0;
+
+    try {
+        const records = await pb.collection('sync_store').getFullList();
+        
+        if (records.length === 0) {
+            addLog('> [提示] 云端暂无数据。');
+            alert('云端数据库是空的，没有数据可拉取。');
+            setIsSyncing(false);
+            return;
+        }
+
+        for (const record of records) {
+            if (SYNC_KEYS.includes(record.key) && record.val) {
+                localStorage.setItem(record.key, JSON.stringify(record.val));
+                window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: record.key } }));
+                
+                // Special handling for theme
+                if (record.key === 'AERO_THEME' && typeof record.val === 'string') {
+                    onThemeChange(record.val);
+                }
+                
+                addLog(`> [拉取] ${record.key} ✅`);
+                successCount++;
+            }
+        }
+        
+        addLog(`> 🎉 拉取完成: 更新了 ${successCount} 个模块`);
+        calculateStorage();
+        alert(`同步成功！已从云端恢复了 ${successCount} 个模块的数据。`);
+
+    } catch (err: any) {
+        console.error(err);
+        addLog(`> [致命错误] 拉取失败: ${err.message}`);
+        alert('拉取失败，请检查网络连接或控制台日志。');
+    }
+    setIsSyncing(false);
+  };
+
   // --- Handlers ---
 
   const handleExport = () => {
     try {
       addLog('> 开始导出系统数据...');
       
-      const data = {
-        meta: { exportedAt: new Date().toISOString(), version: '3.1.0', user: 'Admin' },
-        data: {
-          logistics: localStorage.getItem('AERO_LOGISTICS_DATA') ? JSON.parse(localStorage.getItem('AERO_LOGISTICS_DATA')!) : null,
-          finance: localStorage.getItem('AERO_FINANCE_DATA') ? JSON.parse(localStorage.getItem('AERO_FINANCE_DATA')!) : null,
-          restock: localStorage.getItem('AERO_RESTOCK_DATA') ? JSON.parse(localStorage.getItem('AERO_RESTOCK_DATA')!) : null,
-          theme: localStorage.getItem('AERO_THEME') || 'cyber',
-          tasks: localStorage.getItem('AERO_TASKS_DATA') ? JSON.parse(localStorage.getItem('AERO_TASKS_DATA')!) : null, 
-          influencers: localStorage.getItem('AERO_INFLUENCER_DATA') ? JSON.parse(localStorage.getItem('AERO_INFLUENCER_DATA')!) : null,
-        }
-      };
+      const data: any = { meta: { exportedAt: new Date().toISOString(), version: '3.1.0', user: 'Admin' }, data: {} };
+      
+      SYNC_KEYS.forEach(key => {
+          const item = localStorage.getItem(key);
+          if (item) data.data[key] = JSON.parse(item);
+      });
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -185,6 +285,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         const json = JSON.parse(raw);
         const payload = json.data || json;
         
+        let count = 0;
+        // Handle legacy map if needed, but prefer direct keys
         const map: Record<string, string> = {
             'logistics': 'AERO_LOGISTICS_DATA',
             'finance': 'AERO_FINANCE_DATA',
@@ -194,26 +296,36 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             'influencers': 'AERO_INFLUENCER_DATA'
         };
 
-        let count = 0;
-        Object.keys(map).forEach(k => {
-            if (payload[k]) {
-                const key = map[k];
-                const val = typeof payload[k] === 'string' ? payload[k] : JSON.stringify(payload[k]);
-                localStorage.setItem(key, val);
-                // Dispatch update event
+        // 1. Try direct keys
+        SYNC_KEYS.forEach(key => {
+            if (payload[key]) {
+                localStorage.setItem(key, JSON.stringify(payload[key]));
                 window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key } }));
                 count++;
             }
         });
+
+        // 2. Try legacy keys if direct keys failed
+        if (count === 0) {
+            Object.keys(map).forEach(k => {
+                if (payload[k]) {
+                    const key = map[k];
+                    const val = typeof payload[k] === 'string' ? payload[k] : JSON.stringify(payload[k]);
+                    localStorage.setItem(key, val);
+                    window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key } }));
+                    count++;
+                }
+            });
+        }
         
-        if (payload.theme) {
-            onThemeChange(payload.theme);
+        if (payload.theme || payload.AERO_THEME) {
+            onThemeChange(payload.theme || payload.AERO_THEME);
         }
 
         addLog(`> 导入完成。更新了 ${count} 个模块。`);
         alert(`成功恢复了 ${count} 个模块的数据。`);
         calculateStorage();
-      } catch (err) {
+    } catch (err) {
         addLog('> 致命错误: 数据文件损坏。');
         alert('导入失败：文件格式错误或数据损坏。');
       }
@@ -261,29 +373,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                <div className="flex-1">
                    <h4 className="text-yellow-500 font-bold text-sm mb-1">连接被浏览器拦截 (Protocol Error)</h4>
                    <p className="text-gray-400 text-xs mb-3 leading-relaxed">
-                       由于当前网页是 <strong>HTTPS</strong> 安全协议，浏览器禁止其连接不安全的 <strong>HTTP</strong> 服务器 IP。这是浏览器的硬性安全规定，不是代码错误。
+                       由于当前网页是 <strong>HTTPS</strong> 安全协议，浏览器禁止其连接不安全的 <strong>HTTP</strong> 服务器 IP。
                    </p>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                        <div className="bg-black/40 p-3 rounded-lg border border-white/5">
                            <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 A: 本地运行 (推荐调试)</div>
-                           <div className="text-xs text-white">请在本地电脑运行此项目：</div>
                            <code className="block mt-1 text-xs text-cyber-cyan bg-white/5 p-1 rounded">http://localhost:xxxx</code>
-                           <div className="text-[10px] text-gray-500 mt-1">Localhost 不受此限制。</div>
                        </div>
                        <div className="bg-black/40 p-3 rounded-lg border border-white/5">
                            <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 B: 使用 ngrok (推荐云端)</div>
-                           <div className="text-xs text-white">在服务器运行以下命令获得 HTTPS 地址：</div>
                            <div className="flex items-center gap-2 mt-1">
                                <code className="text-xs text-cyber-green bg-white/5 p-1 rounded flex-1">ngrok http 8090</code>
                            </div>
-                           <div className="text-[10px] text-gray-500 mt-1">将生成的 https://... 地址填入下方即可。</div>
                        </div>
                    </div>
                </div>
            </div>
        )}
 
-       {/* New Server Config Card */}
+       {/* 1. Server Config Card */}
        <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${showHttpsTip ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
           <div className="flex flex-col md:flex-row gap-6 items-end">
              <div className="flex-1 w-full">
@@ -292,8 +400,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                     云服务器配置 (Cloud Server)
                 </h3>
                 <p className="text-xs text-gray-400 mb-4 font-mono">
-                    请输入 PocketBase 服务器地址。
-                    <br/>如果网页是 HTTPS，则服务器地址必须也是 <span className="text-cyber-yellow">HTTPS</span> (或使用 localhost)。
+                    请输入 PocketBase 服务器地址 (例如 http://119.28.xx.xx:8090)。
                 </p>
                 <div className="flex gap-4">
                     <div className="relative flex-1 group/input">
@@ -325,6 +432,51 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                  </span>
              </div>
           </div>
+       </div>
+
+       {/* 2. Cloud Sync Card (NEW) */}
+       <div className="tech-border p-6 bg-purple-500/5 border-purple-500/20 relative overflow-hidden">
+           <div className="flex justify-between items-start mb-4 relative z-10">
+               <div>
+                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                       <ArrowRightLeft size={18} className="text-cyber-purple" /> 
+                       云端数据同步 (Cloud Sync)
+                   </h3>
+                   <p className="text-xs text-gray-400 mt-1">手动在本地与云端数据库之间同步数据。</p>
+               </div>
+               {isSyncing && (
+                   <div className="flex items-center gap-2 text-cyber-purple animate-pulse">
+                       <RefreshCw size={14} className="animate-spin"/>
+                       <span className="text-xs font-bold">同步中...</span>
+                   </div>
+               )}
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+               <button 
+                  onClick={handlePushToCloud}
+                  disabled={isSyncing || !networkLatency}
+                  className="group flex flex-col items-center justify-center p-6 bg-black/40 border border-white/10 hover:border-cyber-purple hover:bg-cyber-purple/10 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                   <div className="w-12 h-12 rounded-full bg-cyber-purple/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-cyber-purple">
+                       <UploadCloud size={24} />
+                   </div>
+                   <div className="text-sm font-bold text-white mb-1">推送到云端 (Push)</div>
+                   <div className="text-[10px] text-gray-500 text-center">本地 LocalStorage <span className="text-cyber-purple">→</span> 云端数据库</div>
+               </button>
+
+               <button 
+                  onClick={handlePullFromCloud}
+                  disabled={isSyncing || !networkLatency}
+                  className="group flex flex-col items-center justify-center p-6 bg-black/40 border border-white/10 hover:border-cyber-cyan hover:bg-cyber-cyan/10 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+               >
+                   <div className="w-12 h-12 rounded-full bg-cyber-cyan/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-cyber-cyan">
+                       <DownloadCloud size={24} />
+                   </div>
+                   <div className="text-sm font-bold text-white mb-1">从云端拉取 (Pull)</div>
+                   <div className="text-[10px] text-gray-500 text-center">云端数据库 <span className="text-cyber-cyan">→</span> 本地 LocalStorage</div>
+               </button>
+           </div>
        </div>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
