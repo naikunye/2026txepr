@@ -9,7 +9,7 @@ import {
   TrendingUp, TrendingDown, ArrowRightLeft, ShieldCheck, Download,
   Plus, Filter, Search, Calendar, Tag, MoreHorizontal, X, Check, Trash2,
   ChevronDown, Calculator, ShoppingBag, Navigation, Megaphone, Percent,
-  Package, Warehouse, AlertTriangle, Zap
+  Package, Warehouse, AlertTriangle, Zap, Coins, Save, Edit3, Settings
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
@@ -21,340 +21,592 @@ interface Transaction {
   type: 'in' | 'out';
   currency: string;
   category: string;
+  platform: string; // New: e.g. Amazon, TikTok, Shopify
   date: string;
   status: 'Cleared' | 'Processing' | 'Pending';
+  note?: string;
 }
 
-// ... Initial transactions kept simplified for this view ...
+interface ExchangeRate {
+  [key: string]: number; // Base is USD
+}
+
+// --- Initial Data ---
 const initialTransactions: Transaction[] = [
-  { id: 'TX-9921', desc: 'Amazon 结算款 (US)', amount: 45230.00, type: 'in', currency: 'USD', category: '销售收入', date: '2025-01-04 14:20', status: 'Cleared' },
-  { id: 'TX-9920', desc: '供应商付款: 深圳科技', amount: 120000.00, type: 'out', currency: 'CNY', category: '采购成本', date: '2025-01-04 09:15', status: 'Processing' },
-  { id: 'TX-9919', desc: 'FedEx 物流账单', amount: 3450.50, type: 'out', currency: 'USD', category: '物流费用', date: '2025-01-03 18:00', status: 'Cleared' },
-  { id: 'TX-9918', desc: 'TikTok Shop 提现 (UK)', amount: 8200.00, type: 'in', currency: 'GBP', category: '销售收入', date: '2025-01-02 11:30', status: 'Cleared' },
-  { id: 'TX-9917', desc: 'AWS 云服务费', amount: 450.00, type: 'out', currency: 'USD', category: '运营杂费', date: '2025-01-01 10:00', status: 'Cleared' },
+  { id: 'TX-9921', desc: 'Amazon 北美站回款', amount: 45230.00, type: 'in', currency: 'USD', category: '销售收入', platform: 'Amazon', date: '2025-01-04T14:20', status: 'Cleared' },
+  { id: 'TX-9920', desc: '采购付款: 深圳科技', amount: 120000.00, type: 'out', currency: 'CNY', category: '采购成本', platform: 'N/A', date: '2025-01-04T09:15', status: 'Processing' },
+  { id: 'TX-9919', desc: 'FedEx 物流月结', amount: 3450.50, type: 'out', currency: 'USD', category: '物流费用', platform: 'FedEx', date: '2025-01-03T18:00', status: 'Cleared' },
+  { id: 'TX-9918', desc: 'TikTok Shop 英国提现', amount: 8200.00, type: 'in', currency: 'GBP', category: '销售收入', platform: 'TikTok', date: '2025-01-02T11:30', status: 'Cleared' },
+  { id: 'TX-9917', desc: 'AWS 云服务器费用', amount: 450.00, type: 'out', currency: 'USD', category: '运营杂费', platform: 'AWS', date: '2025-01-01T10:00', status: 'Cleared' },
 ];
 
-const categories = ['销售收入', '采购成本', '物流费用', '市场营销', '运营杂费', '税费', '薪资人力'];
-const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'USDT'];
+const initialRates: ExchangeRate = {
+    'USD': 1,
+    'CNY': 7.25,
+    'EUR': 0.92,
+    'GBP': 0.79,
+    'HKD': 7.82,
+    'USDT': 1.00
+};
 
-// Vibrant Apple Colors for Categories
-const categoryColors: Record<string, string> = {
-    '采购成本': '#8E8E93',
-    '物流费用': '#0A84FF', // Blue
-    '市场营销': '#BF5AF2', // Purple
-    '平台佣金': '#FF453A', // Red
-    '运营杂费': '#FFD60A', // Yellow
-    '税费': '#FF9F0A', // Orange
-    '薪资人力': '#30D158', // Green
-    '销售收入': '#30D158'
+const CATEGORIES = ['销售收入', '采购成本', '物流费用', '平台佣金', '市场营销', '运营杂费', '税费', '薪资人力', '其他'];
+const PLATFORMS = ['Amazon', 'TikTok', 'Shopify', 'Temu', 'Independent', 'Offline', 'Other'];
+const CURRENCIES = ['USD', 'CNY', 'EUR', 'GBP', 'HKD', 'USDT'];
+
+const CATEGORY_COLORS: Record<string, string> = {
+    '销售收入': '#30D158',
+    '采购成本': '#FF453A',
+    '物流费用': '#0A84FF',
+    '平台佣金': '#FF9F0A',
+    '市场营销': '#BF5AF2',
+    '运营杂费': '#FFD60A',
+    '税费': '#AC8E68',
+    '薪资人力': '#64D2FF',
+    '其他': '#8E8E93'
+};
+
+const CurrencyCard = ({ curr, balance, rate }: { curr: string, balance: number, rate: number }) => {
+    const valUSD = curr === 'USD' ? balance : balance / rate;
+    
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col justify-between group hover:bg-white/10 transition-colors relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity transform rotate-12">
+              <Coins size={64} />
+          </div>
+          
+          <div className="flex justify-between items-start z-10">
+             <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-black border border-white/10 flex items-center justify-center text-xs font-bold text-white shadow-inner">
+                   {curr.substring(0,1)}
+                </div>
+                <span className="font-mono font-bold text-sm text-gray-300">{curr}</span>
+             </div>
+             {curr !== 'USD' && (
+                 <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-gray-500 font-mono">
+                     1 USD ≈ {rate}
+                 </span>
+             )}
+          </div>
+
+          <div className="z-10 mt-4">
+              <div className="text-xl font-black text-white tracking-tight truncate">
+                  {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-1 font-mono">
+                  ≈ ${valUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })} USD
+              </div>
+          </div>
+      </div>
+    );
 };
 
 export const FinanceModule: React.FC = () => {
-  const [activeCurrency, setActiveCurrency] = useState('USD');
+  // --- State ---
   const [transactions, setTransactions] = usePersistence<Transaction[]>('AERO_FINANCE_DATA', initialTransactions);
+  const [rates, setRates] = usePersistence<ExchangeRate>('AERO_EXCHANGE_RATES', initialRates);
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ledger'>('overview');
   
-  // Chart States
-  const [cashFlowData, setCashFlowData] = useState<any[]>([]);
-  const [costStructureData, setCostStructureData] = useState<any[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
+  // Editor State
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null); // null means creating new
+  const [tempTx, setTempTx] = useState<Partial<Transaction>>({});
 
-  // Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newTx, setNewTx] = useState<Partial<Transaction>>({
-    type: 'out', currency: 'USD', category: '运营杂费', status: 'Cleared'
-  });
+  // Rate Editor State
+  const [isRateEditorOpen, setIsRateEditorOpen] = useState(false);
+  const [tempRates, setTempRates] = useState<ExchangeRate>(initialRates);
 
-  useEffect(() => {
-      // Logic same as previous, just need to update colors for charts
-      const expenses = transactions.filter(t => t.type === 'out');
-      const totalExpense = expenses.reduce((acc, t) => acc + t.amount, 0);
-      const costMap: Record<string, number> = {};
-      expenses.forEach(t => { costMap[t.category] = (costMap[t.category] || 0) + t.amount; });
-      const costs = Object.keys(costMap).map(cat => ({
-          name: cat,
-          value: totalExpense > 0 ? parseFloat(((costMap[cat] / totalExpense) * 100).toFixed(1)) : 0,
-          color: categoryColors[cat] || '#888'
-      })).sort((a, b) => b.value - a.value);
-      setCostStructureData(costs);
+  // --- Calculations ---
+  const financials = useMemo(() => {
+      let totalAssetUSD = 0;
+      let incomeUSD = 0;
+      let expenseUSD = 0;
+      
+      const balanceMap: Record<string, number> = {};
 
-      // Simple Cash Flow Calc
-      const monthMap: Record<string, { revenue: number, expenses: number }> = {};
       transactions.forEach(t => {
-          try {
-              const d = new Date(t.date);
-              if(isNaN(d.getTime())) return;
-              const m = d.getMonth() + 1 + '月';
-              if (!monthMap[m]) monthMap[m] = { revenue: 0, expenses: 0 };
-              if (t.type === 'in') monthMap[m].revenue += t.amount;
-              else monthMap[m].expenses += t.amount;
-          } catch(e) {}
+          // Calculate Balances per currency
+          const rawAmount = t.type === 'in' ? t.amount : -t.amount;
+          balanceMap[t.currency] = (balanceMap[t.currency] || 0) + rawAmount;
+
+          // Convert to USD for global stats
+          const rateToUSD = rates[t.currency] || 1; // Actually rates are USD based? Assuming rate is e.g. 1 USD = 7.25 CNY
+          // If rates are 1 USD = X Currency:
+          // Amount in USD = Amount / Rate
+          
+          const amountInUSD = t.currency === 'USD' ? t.amount : (t.amount / (rates[t.currency] || 1));
+
+          if (t.type === 'in') incomeUSD += amountInUSD;
+          else expenseUSD += amountInUSD;
       });
-      const flowData = Object.keys(monthMap).map(m => ({
-            name: m, revenue: monthMap[m].revenue, expenses: monthMap[m].expenses, net: monthMap[m].revenue - monthMap[m].expenses
-        }));
-      if (flowData.length === 0) {
-          const currentMonth = (new Date().getMonth() + 1) + '月';
-          setCashFlowData([{ name: currentMonth, revenue: 0, expenses: 0, net: 0 }]);
+
+      // Calculate Total Asset Valuation based on balances
+      Object.entries(balanceMap).forEach(([curr, amount]) => {
+          const valUSD = curr === 'USD' ? amount : (amount / (rates[curr] || 1));
+          totalAssetUSD += valUSD;
+      });
+
+      return { totalAssetUSD, incomeUSD, expenseUSD, balanceMap };
+  }, [transactions, rates]);
+
+  const chartData = useMemo(() => {
+      // 1. Cost Structure (Pie)
+      const costMap: Record<string, number> = {};
+      transactions.filter(t => t.type === 'out').forEach(t => {
+          const usd = t.currency === 'USD' ? t.amount : t.amount / (rates[t.currency] || 1);
+          costMap[t.category] = (costMap[t.category] || 0) + usd;
+      });
+      const costPie = Object.keys(costMap).map(k => ({
+          name: k, value: costMap[k], color: CATEGORY_COLORS[k] || '#888'
+      })).sort((a,b) => b.value - a.value);
+
+      // 2. Trend (Bar/Line)
+      // Group by Month
+      const trendMap: Record<string, {in: number, out: number}> = {};
+      transactions.forEach(t => {
+          const d = new Date(t.date);
+          const key = `${d.getMonth() + 1}月`;
+          if (!trendMap[key]) trendMap[key] = { in: 0, out: 0 };
+          const usd = t.currency === 'USD' ? t.amount : t.amount / (rates[t.currency] || 1);
+          if (t.type === 'in') trendMap[key].in += usd;
+          else trendMap[key].out += usd;
+      });
+      const trendChart = Object.keys(trendMap).map(k => ({
+          name: k, revenue: trendMap[k].in, expense: trendMap[k].out, net: trendMap[k].in - trendMap[k].out
+      })); // In real app, sort by date
+
+      return { costPie, trendChart };
+  }, [transactions, rates]);
+
+  // --- Handlers ---
+
+  const openEditor = (tx?: Transaction) => {
+      if (tx) {
+          setEditingTx(tx);
+          setTempTx({ ...tx });
       } else {
-          setCashFlowData(flowData);
+          setEditingTx(null);
+          setTempTx({
+              id: `TX-${Date.now()}`,
+              type: 'out',
+              currency: 'USD',
+              category: '运营杂费',
+              platform: 'Other',
+              status: 'Cleared',
+              date: new Date().toISOString().slice(0, 16), // datetime-local format
+              amount: 0,
+              desc: ''
+          });
       }
-
-      setTotalBalance(transactions.reduce((acc, t) => t.type === 'in' ? acc + t.amount : acc - t.amount, 0));
-  }, [transactions]);
-
-  // Helpers
-  const handleAddTransaction = () => {
-    if (!newTx.amount || !newTx.desc) return;
-    const tx: Transaction = {
-      id: `TX-${Math.floor(Math.random() * 10000)}`, desc: newTx.desc, amount: Number(newTx.amount),
-      type: newTx.type as 'in' | 'out', currency: newTx.currency as string, category: newTx.category as string,
-      date: new Date().toISOString(), status: newTx.status as any
-    };
-    setTransactions([tx, ...transactions]);
-    setIsModalOpen(false);
-    setNewTx({ type: 'out', currency: 'USD', category: '运营杂费', status: 'Cleared', desc: '', amount: undefined });
+      setIsEditorOpen(true);
   };
-  
-  const handleDelete = (id: string) => { if (confirm('确认删除?')) setTransactions(transactions.filter(t => t.id !== id)); };
 
-  const filteredTransactions = transactions.filter(t => {
-    return (t.desc.toLowerCase().includes(searchTerm.toLowerCase()) || t.id.toLowerCase().includes(searchTerm.toLowerCase())) &&
-           (filterType === 'all' || t.type === filterType);
-  });
-
-  // --- Components ---
-
-  const CurrencyCard = ({ code, symbol, balance, trend, trendVal, gradient }: any) => (
-    <div 
-      onClick={() => setActiveCurrency(code)}
-      className={`relative overflow-hidden cursor-pointer transition-all duration-300 rounded-3xl p-6 h-40 flex flex-col justify-between shadow-lg hover:shadow-2xl hover:scale-[1.02] ${
-        activeCurrency === code ? 'ring-2 ring-white/50' : ''
-      }`}
-      style={{ background: gradient }}
-    >
-       {/* Glass Overlay */}
-       <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]"></div>
-       
-       <div className="flex justify-between items-start z-10 relative text-white">
-          <div className="flex items-center gap-2">
-             <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white font-mono text-xs shadow-sm">
-                {symbol}
-             </div>
-             <span className="font-bold text-sm tracking-wide opacity-90">{code}</span>
-          </div>
-          <div className="bg-black/20 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1 text-[10px] font-bold">
-             {trend === 'up' ? <TrendingUp size={10} className="text-white"/> : <TrendingDown size={10} className="text-white"/>}
-             {trendVal}
-          </div>
-       </div>
-       
-       <div className="z-10 relative text-white">
-          <div className="text-3xl font-black tracking-tight drop-shadow-md">{balance}</div>
-          <div className="text-[10px] opacity-70 font-mono mt-1 uppercase tracking-widest">可用余额 (Available)</div>
-       </div>
-
-       {/* Decorative Lines */}
-       <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-    </div>
-  );
-
-  const Modal = () => {
-    if (!isModalOpen) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 animate-in fade-in duration-200">
-        <div className="bg-[#1c1c1e] w-full max-w-md rounded-3xl shadow-2xl relative overflow-hidden border border-white/10">
-           <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">新建交易记录</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
-           </div>
-           <div className="p-6 space-y-4">
-              <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
-                 <button onClick={() => setNewTx({...newTx, type: 'in'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'in' ? 'bg-cyber-green text-black' : 'text-gray-400 hover:text-white'}`}>收入 (Income)</button>
-                 <button onClick={() => setNewTx({...newTx, type: 'out'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'out' ? 'bg-cyber-red text-white' : 'text-gray-400 hover:text-white'}`}>支出 (Expense)</button>
-              </div>
-              <div>
-                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">金额</label>
-                 <input type="number" value={newTx.amount || ''} onChange={e => setNewTx({...newTx, amount: e.target.valueAsNumber})} placeholder="0.00" className="input-holo w-full p-3 text-xl font-mono font-bold text-white placeholder-gray-600" autoFocus />
-              </div>
-              <div>
-                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">摘要</label>
-                 <input value={newTx.desc || ''} onChange={e => setNewTx({...newTx, desc: e.target.value})} placeholder="输入交易描述..." className="input-holo w-full p-3 text-sm text-white placeholder-gray-600" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                  <div>
-                     <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">分类</label>
-                     <select value={newTx.category} onChange={e => setNewTx({...newTx, category: e.target.value})} className="input-holo w-full p-3 text-sm">
-                          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                     </select>
-                  </div>
-                  <div>
-                     <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">币种</label>
-                     <select value={newTx.currency} onChange={e => setNewTx({...newTx, currency: e.target.value})} className="input-holo w-full p-3 text-sm">
-                          {currencies.map(c => <option key={c} value={c}>{c}</option>)}
-                     </select>
-                  </div>
-              </div>
-              <button onClick={handleAddTransaction} className="w-full py-3.5 bg-cyber-blue text-white font-bold rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/30 mt-2">保存记录</button>
-           </div>
-        </div>
-      </div>
-    );
+  const saveTransaction = () => {
+      if (!tempTx.desc || !tempTx.amount) {
+          alert("请填写描述和金额");
+          return;
+      }
+      
+      const payload = tempTx as Transaction;
+      
+      if (editingTx) {
+          // Update
+          setTransactions(prev => prev.map(t => t.id === editingTx.id ? payload : t));
+      } else {
+          // Create
+          setTransactions(prev => [payload, ...prev]);
+      }
+      setIsEditorOpen(false);
   };
+
+  const deleteTransaction = () => {
+      if (!editingTx) return;
+      if (confirm('确定要删除这条记录吗？')) {
+          setTransactions(prev => prev.filter(t => t.id !== editingTx.id));
+          setIsEditorOpen(false);
+      }
+  };
+
+  const saveRates = () => {
+      setRates(tempRates);
+      setIsRateEditorOpen(false);
+  };
+
+  // --- Render Components ---
 
   return (
-    <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500 relative">
-       <Modal />
-
-       {/* Header */}
-       <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-sm mb-6 flex justify-between items-end">
-          <div>
-             <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                财务中心 <span className="text-cyber-blue text-xs px-2 py-0.5 border border-cyber-blue rounded-full bg-cyber-blue/10">PRO</span>
-             </h1>
-          </div>
-          <div className="flex gap-3">
-             <button className="flex items-center gap-2 px-4 py-2 border border-white/20 text-gray-300 text-xs font-bold rounded-xl hover:bg-white/10 transition-all">
-                <RefreshCcw size={14} /> 同步
-             </button>
-             <button className="flex items-center gap-2 px-4 py-2 bg-cyber-blue text-white text-xs font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-blue-900/30">
-                <ArrowRightLeft size={14} /> 转账
-             </button>
-          </div>
-       </div>
-       
-       {/* Top Row: Global Assets */}
-       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          <div className="lg:col-span-8 flex flex-col gap-6">
-             {/* Total Asset Card */}
-             <div className="apple-glass p-8 relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-black pointer-events-none"></div>
-                <div className="flex flex-col md:flex-row justify-between items-end relative z-10">
-                   <div>
-                      <div className="flex items-center gap-2 text-cyber-blue font-mono text-xs mb-2">
-                         <ShieldCheck size={14} /> 资金保险箱 (SECURE VAULT)
-                      </div>
-                      <h2 className="text-gray-400 text-sm font-bold uppercase tracking-widest">总资产估值 (USD)</h2>
-                      <div className="text-5xl font-black text-white mt-2 tracking-tight flex items-baseline gap-2 text-glow">
-                         ${totalBalance.toLocaleString()} <span className="text-2xl text-gray-600">.00</span>
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             {/* Currency Grid (Apple Wallet Style) */}
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <CurrencyCard code="USD" symbol="$" balance="1,240,500" trend="up" trendVal="2.4%" gradient="linear-gradient(135deg, #0A84FF 0%, #007AFF 100%)" />
-                <CurrencyCard code="CNY" symbol="¥" balance="8,400,200" trend="down" trendVal="0.5%" gradient="linear-gradient(135deg, #FF453A 0%, #FF3B30 100%)" />
-                <CurrencyCard code="EUR" symbol="€" balance="45,200" trend="up" trendVal="1.2%" gradient="linear-gradient(135deg, #30D158 0%, #28CD41 100%)" />
-                <CurrencyCard code="USDT" symbol="₮" balance="125,000" trend="up" trendVal="0.1%" gradient="linear-gradient(135deg, #BF5AF2 0%, #AF52DE 100%)" />
-             </div>
-          </div>
-
-          {/* Right: Cost Structure */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-             <div className="apple-glass p-6 h-full flex flex-col">
-                <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-6">
-                   <PieIcon size={16} className="text-cyber-purple"/> 成本结构分析
-                </h3>
-                <div className="flex-1 min-h-[250px] relative w-full">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                         <Pie data={costStructureData} cx="50%" cy="50%" innerRadius="60%" outerRadius="80%" paddingAngle={5} dataKey="value" stroke="none">
-                            {costStructureData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                         </Pie>
-                         <Tooltip contentStyle={{ backgroundColor: '#1c1c1e', border: 'none', borderRadius: '12px', color: '#fff' }} />
-                      </PieChart>
-                   </ResponsiveContainer>
-                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-gray-500 text-[10px] uppercase">净利率</span>
-                      <span className="text-3xl font-black text-white">18%</span>
-                   </div>
-                </div>
-                <div className="space-y-3 mt-4">
-                   {costStructureData.slice(0, 4).map((item) => (
-                      <div key={item.name} className="flex items-center justify-between text-xs">
-                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
-                            <span className="text-gray-300">{item.name}</span>
-                         </div>
-                         <span className="text-white font-mono font-bold">{item.value}%</span>
-                      </div>
-                   ))}
-                </div>
-             </div>
-          </div>
-       </div>
-
-       {/* Middle: Cash Flow Chart (Existing) */}
-       <div className="apple-glass p-6">
-          <div className="flex justify-between items-center mb-6">
-             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <TrendingUp size={20} className="text-cyber-green"/> 现金流与利润趋势
-             </h3>
-          </div>
-          <div className="h-[300px] w-full">
-             <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={cashFlowData}>
-                   <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                         <stop offset="5%" stopColor="#0A84FF" stopOpacity={0.3}/>
-                         <stop offset="95%" stopColor="#0A84FF" stopOpacity={0}/>
-                      </linearGradient>
-                   </defs>
-                   <CartesianGrid stroke="#333" vertical={false} strokeDasharray="3 3" />
-                   <XAxis dataKey="name" stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
-                   <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                   <Tooltip contentStyle={{ backgroundColor: '#1c1c1e', border: 'none', borderRadius: '12px', color: '#fff' }} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
-                   <Bar dataKey="revenue" barSize={12} fill="url(#colorRev)" radius={[4, 4, 0, 0]} />
-                   <Line type="monotone" dataKey="net" stroke="#30D158" strokeWidth={3} dot={{r: 4, fill: '#000', stroke: '#30D158', strokeWidth: 2}} />
-                </ComposedChart>
-             </ResponsiveContainer>
-          </div>
-       </div>
-
-       {/* Transactions Table */}
-       <div className="apple-glass p-0 overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-             <h3 className="text-lg font-bold text-white">交易明细</h3>
-             <div className="flex gap-3">
-                <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-white text-black text-xs font-bold rounded-xl hover:scale-105 transition-all flex items-center gap-2 shadow-lg">
-                   <Plus size={14} /> 新建
+    <div className="h-full flex flex-col px-6 pb-6 animate-in fade-in duration-500 relative overflow-hidden">
+        
+        {/* HEADER */}
+        <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-lg mb-6 flex justify-between items-end">
+            <div>
+                <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3 text-glow">
+                    财务核算 <span className="text-cyber-green text-xs px-2 py-0.5 border border-cyber-green rounded-full bg-cyber-green/10 font-mono">FINANCE_OS</span>
+                </h1>
+                <p className="text-gray-500 font-mono text-xs mt-1 flex items-center gap-2">
+                    全域资金流监控 • 实时汇率折算
+                </p>
+            </div>
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => { setTempRates({...rates}); setIsRateEditorOpen(true); }}
+                    className="flex items-center gap-2 px-4 py-2 border border-white/20 text-gray-300 text-xs font-bold rounded-xl hover:bg-white/10 transition-all"
+                >
+                    <Settings size={14} /> 汇率配置
                 </button>
-             </div>
-          </div>
-          <div className="overflow-x-auto">
-             <table className="w-full text-left text-sm">
-                <thead className="bg-black/40 text-gray-500 font-medium text-xs uppercase sticky top-0 backdrop-blur-md">
-                   <tr>
-                      <th className="p-4 pl-6">状态</th>
-                      <th className="p-4">摘要说明</th>
-                      <th className="p-4">日期</th>
-                      <th className="p-4 text-right pr-6">金额</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                   {filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
-                         <td className="p-4 pl-6">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tx.status === 'Cleared' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{tx.status}</span>
-                         </td>
-                         <td className="p-4">
-                            <div className="text-white font-medium">{tx.desc}</div>
-                            <div className="text-xs text-gray-500">{tx.category} • {tx.type === 'in' ? '收入' : '支出'}</div>
-                         </td>
-                         <td className="p-4 text-gray-500 text-xs font-mono">{new Date(tx.date).toLocaleDateString()}</td>
-                         <td className={`p-4 pr-6 text-right font-mono font-bold ${tx.type === 'in' ? 'text-cyber-green' : 'text-white'}`}>
-                            {tx.type === 'in' ? '+' : '-'} {tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                         </td>
-                      </tr>
-                   ))}
-                </tbody>
-             </table>
-          </div>
-       </div>
+                <button 
+                    onClick={() => openEditor()}
+                    className="flex items-center gap-2 px-6 py-2 bg-white text-black text-xs font-black rounded-xl hover:scale-105 transition-all shadow-lg shadow-white/10 uppercase tracking-wide"
+                >
+                    <Plus size={16} /> 记一笔
+                </button>
+            </div>
+        </div>
+
+        {/* CONTENT SCROLLABLE */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar -mr-2 pr-2">
+            
+            {/* 1. Global Asset Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Main Card */}
+                <div className="lg:col-span-2 apple-glass p-8 relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 to-transparent pointer-events-none"></div>
+                    <div className="relative z-10 flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 text-cyber-green font-mono text-xs mb-2 font-bold uppercase tracking-widest">
+                                <ShieldCheck size={14} /> Global Net Worth
+                            </div>
+                            <div className="text-5xl font-black text-white mt-1 tracking-tight flex items-baseline gap-2 text-glow">
+                                ${financials.totalAssetUSD.toLocaleString(undefined, { minimumFractionDigits: 2 })} 
+                                <span className="text-sm font-bold text-gray-500 bg-black/30 px-2 py-1 rounded">USD EST.</span>
+                            </div>
+                        </div>
+                        <div className="text-right space-y-1">
+                            <div className="text-xs text-gray-400 font-mono">本月收入 (Income)</div>
+                            <div className="text-xl font-bold text-white flex items-center justify-end gap-1">
+                                <ArrowDownRight size={16} className="text-cyber-green" /> 
+                                ${financials.incomeUSD.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-400 font-mono mt-2">本月支出 (Expense)</div>
+                            <div className="text-xl font-bold text-white flex items-center justify-end gap-1">
+                                <ArrowUpRight size={16} className="text-red-500" /> 
+                                ${financials.expenseUSD.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Currency Strip */}
+                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {CURRENCIES.map(c => (
+                            <CurrencyCard key={c} curr={c} balance={financials.balanceMap[c] || 0} rate={rates[c] || 1} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Quick Charts */}
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                    {/* Cost Structure Mini */}
+                    <div className="bg-black/40 border border-white/10 rounded-3xl p-5 flex-1 flex flex-col relative overflow-hidden">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <PieIcon size={14} className="text-cyber-purple"/> 成本分布
+                        </h3>
+                        <div className="flex-1 relative min-h-[150px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={chartData.costPie} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" stroke="none">
+                                        {chartData.costPie.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                    </Pie>
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }}
+                                        itemStyle={{ color: '#fff' }}
+                                        formatter={(val: number) => `$${val.toFixed(0)}`}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-xl font-black text-white tracking-tighter">Cost</span>
+                            </div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-1">
+                            {chartData.costPie.slice(0,4).map(c => (
+                                <div key={c.name} className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                                    <div className="w-1.5 h-1.5 rounded-full" style={{background:c.color}}></div>
+                                    <span className="truncate">{c.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2. Transaction Ledger */}
+            <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="p-5 border-b border-white/10 bg-white/5 flex justify-between items-center sticky top-0 z-20 backdrop-blur-md">
+                    <div className="flex items-center gap-4">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                            <FileText size={16} className="text-cyber-blue"/> 交易明细 (Ledger)
+                        </h3>
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                            <input 
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="搜索订单号 / 描述..." 
+                                className="pl-9 pr-4 py-1.5 bg-black/50 border border-white/10 rounded-lg text-xs text-white focus:border-cyber-blue outline-none transition-all w-64"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        {['in', 'out', 'all'].map(t => (
+                            <button key={t} className="px-3 py-1 bg-white/5 border border-white/10 hover:bg-white/10 rounded text-[10px] font-bold uppercase text-gray-400 transition-all">
+                                {t === 'in' ? '收入' : t === 'out' ? '支出' : '全部'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto min-h-[400px]">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-black/40 text-gray-500 text-[10px] font-bold uppercase tracking-wider sticky top-0 z-10 backdrop-blur-md">
+                            <tr>
+                                <th className="p-4 pl-6">交易时间</th>
+                                <th className="p-4">描述 / 订单号</th>
+                                <th className="p-4">分类 & 平台</th>
+                                <th className="p-4 text-right">金额</th>
+                                <th className="p-4 text-center">状态</th>
+                                <th className="p-4 pr-6 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5 text-xs font-mono">
+                            {transactions
+                                .filter(t => t.desc.toLowerCase().includes(searchTerm.toLowerCase()) || t.id.toLowerCase().includes(searchTerm.toLowerCase()))
+                                .map((tx) => (
+                                <tr key={tx.id} onClick={() => openEditor(tx)} className="hover:bg-white/5 transition-colors group cursor-pointer">
+                                    <td className="p-4 pl-6 text-gray-400">
+                                        <div className="text-white">{tx.date.split('T')[0]}</div>
+                                        <div className="text-[10px] opacity-60">{tx.date.split('T')[1]}</div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-white text-sm mb-0.5">{tx.desc}</div>
+                                        <div className="text-gray-500 text-[10px]">{tx.id}</div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="w-2 h-2 rounded-full" style={{background: CATEGORY_COLORS[tx.category] || '#888'}}></span>
+                                            <span className="text-gray-300">{tx.category}</span>
+                                        </div>
+                                        <span className="text-[10px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-gray-500">{tx.platform}</span>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        <div className={`text-sm font-black ${tx.type === 'in' ? 'text-cyber-green' : 'text-white'}`}>
+                                            {tx.type === 'in' ? '+' : '-'} {tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                        </div>
+                                        <div className="text-gray-500 font-bold">{tx.currency}</div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <span className={`px-2 py-1 rounded text-[10px] font-bold border ${
+                                            tx.status === 'Cleared' ? 'bg-green-900/20 text-green-400 border-green-900/50' :
+                                            tx.status === 'Processing' ? 'bg-blue-900/20 text-blue-400 border-blue-900/50' :
+                                            'bg-yellow-900/20 text-yellow-400 border-yellow-900/50'
+                                        }`}>
+                                            {tx.status}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 pr-6 text-center">
+                                        <button className="p-1.5 text-gray-500 hover:text-white bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                                            <Edit3 size={14} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {/* --- DRAWER: RATE EDITOR --- */}
+        {isRateEditorOpen && (
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in">
+                <div className="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 w-96 shadow-2xl relative">
+                    <button onClick={() => setIsRateEditorOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={20}/></button>
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <Settings size={18} className="text-cyber-blue"/> 汇率配置 (Base: USD)
+                    </h3>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {CURRENCIES.filter(c => c !== 'USD').map(curr => (
+                            <div key={curr} className="flex items-center gap-3">
+                                <div className="w-12 text-sm font-bold text-gray-400 font-mono">{curr}</div>
+                                <input 
+                                    type="number"
+                                    value={tempRates[curr]}
+                                    onChange={e => setTempRates({...tempRates, [curr]: parseFloat(e.target.value)})}
+                                    className="flex-1 bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-white text-right font-mono focus:border-cyber-blue outline-none"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-6 flex gap-3">
+                        <button onClick={() => setTempRates(initialRates)} className="flex-1 py-2 text-xs font-bold text-gray-500 hover:text-white">重置</button>
+                        <button onClick={saveRates} className="flex-[2] py-2 bg-cyber-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-all shadow-lg">
+                            保存配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- DRAWER: TRANSACTION EDITOR --- */}
+        {isEditorOpen && (
+            <>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity" onClick={() => setIsEditorOpen(false)}></div>
+                <div className="absolute inset-y-0 right-0 w-full md:w-[480px] bg-[#121212] border-l border-white/10 z-50 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+                    <div className="p-6 border-b border-white/10 flex justify-between items-center bg-[#18181a]">
+                        <h2 className="text-xl font-black text-white flex items-center gap-2">
+                            {editingTx ? '编辑交易' : '新建交易'}
+                            <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">{editingTx?.id || 'NEW'}</span>
+                        </h2>
+                        <button onClick={() => setIsEditorOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"><X size={20}/></button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                        {/* Type Switcher */}
+                        <div className="flex p-1 bg-black rounded-xl border border-white/10">
+                            <button 
+                                onClick={() => setTempTx({...tempTx, type: 'in'})}
+                                className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${tempTx.type === 'in' ? 'bg-cyber-green text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                            >
+                                <ArrowDownRight size={16}/> 收入 (Income)
+                            </button>
+                            <button 
+                                onClick={() => setTempTx({...tempTx, type: 'out'})}
+                                className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${tempTx.type === 'out' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                            >
+                                <ArrowUpRight size={16}/> 支出 (Expense)
+                            </button>
+                        </div>
+
+                        {/* Amount & Currency */}
+                        <div className="grid grid-cols-5 gap-4">
+                            <div className="col-span-3">
+                                <label className="lbl">金额 (Amount)</label>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        value={tempTx.amount || ''}
+                                        onChange={e => setTempTx({...tempTx, amount: parseFloat(e.target.value)})}
+                                        className={`input-holo w-full pl-4 pr-4 py-3 text-2xl font-black font-mono focus:ring-2 ${tempTx.type === 'in' ? 'text-cyber-green focus:ring-cyber-green/50' : 'text-white focus:ring-red-500/50'}`} 
+                                        placeholder="0.00" 
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <div className="col-span-2">
+                                <label className="lbl">币种 (Currency)</label>
+                                <select 
+                                    value={tempTx.currency} 
+                                    onChange={e => setTempTx({...tempTx, currency: e.target.value})}
+                                    className="input-holo w-full py-3 px-3 text-sm font-bold appearance-none"
+                                >
+                                    {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                            <label className="lbl">摘要 / 订单号 (Description)</label>
+                            <input 
+                                value={tempTx.desc || ''} 
+                                onChange={e => setTempTx({...tempTx, desc: e.target.value})}
+                                className="input-holo w-full p-3 text-sm text-white" 
+                                placeholder="例如: 1月采购款..."
+                            />
+                        </div>
+
+                        {/* Category & Platform */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="lbl">财务分类 (Category)</label>
+                                <select 
+                                    value={tempTx.category} 
+                                    onChange={e => setTempTx({...tempTx, category: e.target.value})}
+                                    className="input-holo w-full p-3 text-sm"
+                                >
+                                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="lbl">关联平台 (Platform)</label>
+                                <select 
+                                    value={tempTx.platform} 
+                                    onChange={e => setTempTx({...tempTx, platform: e.target.value})}
+                                    className="input-holo w-full p-3 text-sm"
+                                >
+                                    {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Date & Status */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="lbl">日期 (Date)</label>
+                                <input 
+                                    type="datetime-local"
+                                    value={tempTx.date}
+                                    onChange={e => setTempTx({...tempTx, date: e.target.value})}
+                                    className="input-holo w-full p-3 text-sm font-mono text-gray-300"
+                                />
+                            </div>
+                            <div>
+                                <label className="lbl">状态 (Status)</label>
+                                <select 
+                                    value={tempTx.status} 
+                                    onChange={e => setTempTx({...tempTx, status: e.target.value as any})}
+                                    className="input-holo w-full p-3 text-sm"
+                                >
+                                    <option value="Cleared">已入账 (Cleared)</option>
+                                    <option value="Processing">处理中 (Processing)</option>
+                                    <option value="Pending">待定 (Pending)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Note */}
+                        <div>
+                            <label className="lbl">备注 (Note)</label>
+                            <textarea 
+                                value={tempTx.note || ''}
+                                onChange={e => setTempTx({...tempTx, note: e.target.value})}
+                                className="input-holo w-full p-3 text-sm h-24 resize-none"
+                                placeholder="选填备注信息..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-6 border-t border-white/10 bg-[#18181a] flex gap-4">
+                        {editingTx && (
+                            <button 
+                                onClick={deleteTransaction}
+                                className="px-4 py-3 border border-red-500/30 text-red-500 rounded-xl hover:bg-red-500/10 transition-colors"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
+                        <button 
+                            onClick={saveTransaction}
+                            className="flex-1 py-3 bg-white text-black font-black uppercase tracking-wide rounded-xl hover:bg-cyber-cyan transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2"
+                        >
+                            <Save size={18} />
+                            Save Transaction
+                        </button>
+                    </div>
+                </div>
+            </>
+        )}
     </div>
   );
 };
