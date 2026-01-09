@@ -3,7 +3,7 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -38,6 +38,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const [showHttpsTip, setShowHttpsTip] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   
+  // Auth State
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [authModel, setAuthModel] = useState(pb.authStore.model);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+
   // Real System Stats
   const [storageUsage, setStorageUsage] = useState(0); // in KB
   const [networkLatency, setNetworkLatency] = useState<number | null>(null);
@@ -46,6 +52,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const addLog = (msg: string) => {
     setConsoleLogs(prev => [...prev.slice(-8), `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
+
+  useEffect(() => {
+      // Listen to auth changes
+      return pb.authStore.onChange((token, model) => {
+          setAuthModel(model);
+      });
+  }, []);
 
   // --- Helper: Calculate LocalStorage Usage ---
   const calculateStorage = () => {
@@ -108,9 +121,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           const latency = end - start;
           setNetworkLatency(latency);
           addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
-          addLog('> 数据库读写权限: 正常');
-          setShowHttpsTip(false); // Hide tip if successful
-          // alert('连接成功！云端同步已激活。'); // Removed annoying alert on re-run
+          addLog('> 数据库读写权限: ' + (pb.authStore.isValid ? '已授权 (Admin)' : '受限 (Anonymous)'));
+          setShowHttpsTip(false); 
       } catch (err: any) {
           console.error(err);
           addLog('> [错误] ❌ 服务器连接失败');
@@ -143,11 +155,39 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     }
   }, []);
 
+  // --- Auth Handlers ---
+  const handleAdminLogin = async () => {
+      if (!adminEmail || !adminPassword) return;
+      setIsAuthLoading(true);
+      addLog('> 正在验证管理员身份...');
+      try {
+          await pb.admins.authWithPassword(adminEmail, adminPassword);
+          addLog('> [认证成功] 🔓 管理员权限已获取');
+          setAdminEmail('');
+          setAdminPassword('');
+      } catch (e: any) {
+          console.error(e);
+          addLog(`> [认证失败] ⛔ ${e.message}`);
+          alert('登录失败，请检查账号密码。');
+      }
+      setIsAuthLoading(false);
+  };
+
+  const handleLogout = () => {
+      pb.authStore.clear();
+      addLog('> [已注销] 安全退出系统');
+  };
+
   // --- Sync Handlers ---
 
   const handlePushToCloud = async () => {
     if (!networkLatency) {
         alert("无法连接服务器，请先确保服务器配置正确且显示“在线”。");
+        return;
+    }
+    if (!pb.authStore.isValid) {
+        alert("权限不足：请先在下方【管理员安全访问】处登录，否则无法写入数据库。");
+        addLog('> [失败] 🚫 拒绝访问: 需要管理员权限');
         return;
     }
     if (!confirm('⚠️ 覆盖警告\n\n确定要将【本地数据】强制推送到云端吗？\n云端现有的数据将被覆盖，此操作不可撤销。')) return;
@@ -161,9 +201,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         const localRaw = localStorage.getItem(key);
         if (!localRaw) continue;
 
+        let val;
         try {
-            const val = JSON.parse(localRaw);
-            
+            // Attempt to parse JSON. If it fails, treat as raw string (e.g. AERO_THEME)
+            val = JSON.parse(localRaw);
+        } catch (e) {
+            val = localRaw; 
+        }
+
+        try {
             // Try to find existing record
             try {
                 const existing = await pb.collection('sync_store').getFirstListItem(`key="${key}"`);
@@ -181,7 +227,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             successCount++;
         } catch (err: any) {
             console.error(err);
-            addLog(`> [失败] ${key}: ${err.message}`);
+            if (err.status === 403) {
+                 addLog(`> [失败] ${key}: 权限不足 (403 Forbidden)`);
+            } else {
+                 addLog(`> [失败] ${key}: ${err.message}`);
+            }
             failCount++;
         }
     }
@@ -203,7 +253,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     let successCount = 0;
 
     try {
-        const records = await pb.collection('sync_store').getFullList();
+        // Try/Catch specifically for permission error on listing
+        let records;
+        try {
+            records = await pb.collection('sync_store').getFullList();
+        } catch (err: any) {
+            if (err.status === 404) {
+                 // Collection doesn't exist usually returns 404 if auto-creation off, or just empty
+                 records = [];
+            } else if (err.status === 403) {
+                 throw new Error("权限不足：请先登录管理员账号。");
+            } else {
+                 throw err;
+            }
+        }
         
         if (records.length === 0) {
             addLog('> [提示] 云端暂无数据。');
@@ -214,7 +277,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
         for (const record of records) {
             if (SYNC_KEYS.includes(record.key) && record.val) {
-                localStorage.setItem(record.key, JSON.stringify(record.val));
+                const valueToStore = typeof record.val === 'string' ? record.val : JSON.stringify(record.val);
+                localStorage.setItem(record.key, valueToStore);
                 window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: record.key } }));
                 
                 // Special handling for theme
@@ -234,7 +298,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     } catch (err: any) {
         console.error(err);
         addLog(`> [致命错误] 拉取失败: ${err.message}`);
-        alert('拉取失败，请检查网络连接或控制台日志。');
+        alert(`拉取失败: ${err.message}`);
     }
     setIsSyncing(false);
   };
@@ -249,7 +313,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       
       SYNC_KEYS.forEach(key => {
           const item = localStorage.getItem(key);
-          if (item) data.data[key] = JSON.parse(item);
+          if (item) {
+              try {
+                  data.data[key] = JSON.parse(item);
+              } catch (e) {
+                  data.data[key] = item; // Handle raw strings
+              }
+          }
       });
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -286,7 +356,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         const payload = json.data || json;
         
         let count = 0;
-        // Handle legacy map if needed, but prefer direct keys
         const map: Record<string, string> = {
             'logistics': 'AERO_LOGISTICS_DATA',
             'finance': 'AERO_FINANCE_DATA',
@@ -299,7 +368,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         // 1. Try direct keys
         SYNC_KEYS.forEach(key => {
             if (payload[key]) {
-                localStorage.setItem(key, JSON.stringify(payload[key]));
+                const val = typeof payload[key] === 'string' ? payload[key] : JSON.stringify(payload[key]);
+                localStorage.setItem(key, val);
                 window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key } }));
                 count++;
             }
@@ -391,50 +461,104 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
            </div>
        )}
 
-       {/* 1. Server Config Card */}
-       <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${showHttpsTip ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
-          <div className="flex flex-col md:flex-row gap-6 items-end">
-             <div className="flex-1 w-full">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
-                    <Cloud size={18} className="text-cyber-blue" /> 
-                    云服务器配置 (Cloud Server)
-                </h3>
-                <p className="text-xs text-gray-400 mb-4 font-mono">
-                    请输入 PocketBase 服务器地址 (例如 http://119.28.xx.xx:8090)。
-                </p>
-                <div className="flex gap-4">
-                    <div className="relative flex-1 group/input">
-                        <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-cyber-blue transition-colors" />
-                        <input 
-                            value={serverInput}
-                            onChange={(e) => setServerInput(e.target.value)}
-                            placeholder="https://your-project.pockethost.io"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-sm focus:border-cyber-blue outline-none transition-all shadow-inner"
-                        />
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           {/* 1. Server Config Card */}
+           <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${showHttpsTip ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
+              <div className="flex flex-col gap-6">
+                 <div className="flex-1 w-full">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+                        <Cloud size={18} className="text-cyber-blue" /> 
+                        云服务器配置 (Cloud Server)
+                    </h3>
+                    <p className="text-xs text-gray-400 mb-4 font-mono">
+                        请输入 PocketBase 服务器地址 (例如 http://119.28.xx.xx:8090)。
+                    </p>
+                    <div className="flex gap-4">
+                        <div className="relative flex-1 group/input">
+                            <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-cyber-blue transition-colors" />
+                            <input 
+                                value={serverInput}
+                                onChange={(e) => setServerInput(e.target.value)}
+                                placeholder="https://your-project.pockethost.io"
+                                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-sm focus:border-cyber-blue outline-none transition-all shadow-inner"
+                            />
+                        </div>
+                        <button 
+                            onClick={handleSaveServer}
+                            className="px-6 py-2 bg-cyber-blue hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <RefreshCw size={16} /> 保存并连接
+                        </button>
                     </div>
-                    <button 
-                        onClick={handleSaveServer}
-                        className="px-6 py-2 bg-cyber-blue hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2 whitespace-nowrap"
-                    >
-                        <RefreshCw size={16} /> 保存并连接
-                    </button>
-                </div>
-             </div>
-             
-             {/* Mini Status Graphic */}
-             <div className="hidden md:flex flex-col items-center justify-center px-8 border-l border-white/5 opacity-80">
-                 <div className="relative">
-                     <Server size={32} className={networkLatency ? "text-green-500" : "text-gray-600"} />
-                     {networkLatency && <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping"></div>}
                  </div>
-                 <span className={`text-[10px] font-bold mt-2 uppercase ${networkLatency ? "text-green-500" : "text-gray-600"}`}>
-                     {networkLatency ? 'Connected' : 'Disconnected'}
-                 </span>
-             </div>
-          </div>
+              </div>
+           </div>
+
+           {/* 2. Admin Auth Card (NEW) */}
+           <div className={`tech-border p-6 border-cyber-green/20 relative overflow-hidden group transition-colors ${authModel ? 'bg-cyber-green/5' : 'bg-white/5'}`}>
+               {!authModel ? (
+                   <div>
+                       <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+                           <Shield size={18} className="text-cyber-green" /> 
+                           管理员安全访问 (Admin Access)
+                       </h3>
+                       <p className="text-xs text-gray-400 mb-4 font-mono">
+                           要写入云端数据库，请先验证管理员身份。
+                       </p>
+                       <div className="flex flex-col gap-3">
+                           <div className="relative group/input">
+                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-cyber-green transition-colors" />
+                                <input 
+                                    value={adminEmail}
+                                    onChange={(e) => setAdminEmail(e.target.value)}
+                                    placeholder="Admin Email"
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white font-mono text-xs focus:border-cyber-green outline-none transition-all"
+                                />
+                           </div>
+                           <div className="flex gap-3">
+                                <div className="relative flex-1 group/input">
+                                     <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-cyber-green transition-colors" />
+                                     <input 
+                                         type="password"
+                                         value={adminPassword}
+                                         onChange={(e) => setAdminPassword(e.target.value)}
+                                         placeholder="Password"
+                                         className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white font-mono text-xs focus:border-cyber-green outline-none transition-all"
+                                     />
+                                </div>
+                                <button 
+                                    onClick={handleAdminLogin}
+                                    disabled={isAuthLoading}
+                                    className="px-4 py-2 bg-cyber-green/20 hover:bg-cyber-green text-cyber-green hover:text-black border border-cyber-green/50 font-bold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap text-xs"
+                                >
+                                    {isAuthLoading ? <RefreshCw className="animate-spin" size={14}/> : <LogIn size={14} />} 登录
+                                </button>
+                           </div>
+                       </div>
+                   </div>
+               ) : (
+                   <div className="flex flex-col h-full justify-between">
+                       <div>
+                           <h3 className="text-lg font-bold text-cyber-green flex items-center gap-2 mb-2">
+                               <Shield size={18} className="fill-cyber-green text-black" /> 
+                               已授权 (Authorized)
+                           </h3>
+                           <p className="text-xs text-gray-400 font-mono">
+                               当前登录: <span className="text-white">{authModel.email}</span>
+                           </p>
+                       </div>
+                       <button 
+                           onClick={handleLogout}
+                           className="w-full mt-4 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+                       >
+                           <LogOut size={14} /> 安全注销
+                       </button>
+                   </div>
+               )}
+           </div>
        </div>
 
-       {/* 2. Cloud Sync Card (NEW) */}
+       {/* 3. Cloud Sync Card */}
        <div className="tech-border p-6 bg-purple-500/5 border-purple-500/20 relative overflow-hidden">
            <div className="flex justify-between items-start mb-4 relative z-10">
                <div>
