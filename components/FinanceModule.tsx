@@ -163,28 +163,40 @@ export const FinanceModule: React.FC = () => {
   const Modal = () => {
     if (!isModalOpen) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
-        <div className="bg-[#1c1c1e] w-full max-w-md rounded-3xl shadow-2xl relative overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 animate-in fade-in duration-200">
+        <div className="bg-[#1c1c1e] w-full max-w-md rounded-3xl shadow-2xl relative overflow-hidden border border-white/10">
            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">新建交易记录</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white"><X size={20} /></button>
            </div>
            <div className="p-6 space-y-4">
-              <div className="flex bg-black/20 p-1 rounded-xl">
-                 <button onClick={() => setNewTx({...newTx, type: 'in'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'in' ? 'bg-cyber-green text-black' : 'text-gray-400'}`}>收入 (Income)</button>
-                 <button onClick={() => setNewTx({...newTx, type: 'out'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'out' ? 'bg-cyber-red text-white' : 'text-gray-400'}`}>支出 (Expense)</button>
+              <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
+                 <button onClick={() => setNewTx({...newTx, type: 'in'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'in' ? 'bg-cyber-green text-black' : 'text-gray-400 hover:text-white'}`}>收入 (Income)</button>
+                 <button onClick={() => setNewTx({...newTx, type: 'out'})} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${newTx.type === 'out' ? 'bg-cyber-red text-white' : 'text-gray-400 hover:text-white'}`}>支出 (Expense)</button>
               </div>
-              <input type="number" value={newTx.amount || ''} onChange={e => setNewTx({...newTx, amount: e.target.valueAsNumber})} placeholder="0.00" className="input-cyber text-xl" autoFocus />
-              <input value={newTx.desc || ''} onChange={e => setNewTx({...newTx, desc: e.target.value})} placeholder="摘要说明" className="input-cyber" />
+              <div>
+                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">金额</label>
+                 <input type="number" value={newTx.amount || ''} onChange={e => setNewTx({...newTx, amount: e.target.valueAsNumber})} placeholder="0.00" className="input-holo w-full p-3 text-xl font-mono font-bold text-white placeholder-gray-600" autoFocus />
+              </div>
+              <div>
+                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">摘要</label>
+                 <input value={newTx.desc || ''} onChange={e => setNewTx({...newTx, desc: e.target.value})} placeholder="输入交易描述..." className="input-holo w-full p-3 text-sm text-white placeholder-gray-600" />
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                  <select value={newTx.category} onChange={e => setNewTx({...newTx, category: e.target.value})} className="input-cyber">
-                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select value={newTx.currency} onChange={e => setNewTx({...newTx, currency: e.target.value})} className="input-cyber">
-                       {currencies.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div>
+                     <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">分类</label>
+                     <select value={newTx.category} onChange={e => setNewTx({...newTx, category: e.target.value})} className="input-holo w-full p-3 text-sm">
+                          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                  </div>
+                  <div>
+                     <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">币种</label>
+                     <select value={newTx.currency} onChange={e => setNewTx({...newTx, currency: e.target.value})} className="input-holo w-full p-3 text-sm">
+                          {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                  </div>
               </div>
-              <button onClick={handleAddTransaction} className="w-full py-3 bg-cyber-blue text-white font-bold rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/50">保存记录</button>
+              <button onClick={handleAddTransaction} className="w-full py-3.5 bg-cyber-blue text-white font-bold rounded-xl hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/30 mt-2">保存记录</button>
            </div>
         </div>
       </div>
@@ -217,14 +229,15 @@ export const FinanceModule: React.FC = () => {
           
           <div className="lg:col-span-8 flex flex-col gap-6">
              {/* Total Asset Card */}
-             <div className="tech-border p-8 bg-gradient-to-br from-[#1c1c1e] to-black relative overflow-hidden group">
+             <div className="apple-glass p-8 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-black pointer-events-none"></div>
                 <div className="flex flex-col md:flex-row justify-between items-end relative z-10">
                    <div>
                       <div className="flex items-center gap-2 text-cyber-blue font-mono text-xs mb-2">
                          <ShieldCheck size={14} /> 资金保险箱 (SECURE VAULT)
                       </div>
                       <h2 className="text-gray-400 text-sm font-bold uppercase tracking-widest">总资产估值 (USD)</h2>
-                      <div className="text-5xl font-black text-white mt-2 tracking-tight flex items-baseline gap-2">
+                      <div className="text-5xl font-black text-white mt-2 tracking-tight flex items-baseline gap-2 text-glow">
                          ${totalBalance.toLocaleString()} <span className="text-2xl text-gray-600">.00</span>
                       </div>
                    </div>
@@ -242,7 +255,7 @@ export const FinanceModule: React.FC = () => {
 
           {/* Right: Cost Structure */}
           <div className="lg:col-span-4 flex flex-col gap-6">
-             <div className="tech-border p-6 h-full flex flex-col">
+             <div className="apple-glass p-6 h-full flex flex-col">
                 <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-6">
                    <PieIcon size={16} className="text-cyber-purple"/> 成本结构分析
                 </h3>
@@ -276,7 +289,7 @@ export const FinanceModule: React.FC = () => {
        </div>
 
        {/* Middle: Cash Flow Chart (Existing) */}
-       <div className="tech-border p-6">
+       <div className="apple-glass p-6">
           <div className="flex justify-between items-center mb-6">
              <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <TrendingUp size={20} className="text-cyber-green"/> 现金流与利润趋势
@@ -303,7 +316,7 @@ export const FinanceModule: React.FC = () => {
        </div>
 
        {/* Transactions Table */}
-       <div className="tech-border p-0 overflow-hidden flex flex-col">
+       <div className="apple-glass p-0 overflow-hidden flex flex-col">
           <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
              <h3 className="text-lg font-bold text-white">交易明细</h3>
              <div className="flex gap-3">
