@@ -3,11 +3,10 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Recycle, History, Clock, RotateCcw
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock
 } from 'lucide-react';
-import { LOCAL_STORAGE_UPDATE_EVENT, usePersistence } from '../hooks/usePersistence';
+import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
-import { DeletedItem, restoreFromBin, permanentDelete, emptyBin, cleanupExpiredItems } from '../lib/recycleBin';
 
 interface SettingsModuleProps {
   currentTheme: string;
@@ -34,10 +33,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS 系统监控初始化...', '> 等待诊断指令...']);
   
-  // Recycle Bin State
-  const [deletedItems, setDeletedItems] = usePersistence<DeletedItem[]>('AERO_RECYCLE_BIN', []);
-  const [showBinModal, setShowBinModal] = useState(false);
-
   // Server Config State
   const [serverInput, setServerInput] = useState(pb.baseUrl === DEFAULT_PB_URL || pb.baseUrl.includes('YOUR_TENCENT_IP') ? '' : pb.baseUrl);
   const [showHttpsTip, setShowHttpsTip] = useState(false);
@@ -63,10 +58,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       return pb.authStore.onChange((token, model) => {
           setAuthModel(model);
       });
-  }, []);
-
-  useEffect(() => {
-      cleanupExpiredItems();
   }, []);
 
   // --- Helper: Calculate LocalStorage Usage ---
@@ -454,96 +445,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       }
   };
 
-  // --- Recycle Bin UI ---
-  const RecycleBinModal = () => {
-    if (!showBinModal) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-[#1c1c1e] w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl relative overflow-hidden border border-white/10 flex flex-col">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-                    <div>
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                           <Recycle className="text-cyber-green"/> 系统回收站 (Recycle Bin)
-                        </h3>
-                        <p className="text-xs text-gray-500 font-mono mt-1 flex items-center gap-2">
-                           <Clock size={12}/> 自动保留 14 天 • 过期后永久清除
-                        </p>
-                    </div>
-                    <div className="flex gap-4">
-                        {deletedItems.length > 0 && (
-                            <button 
-                                onClick={() => { if(confirm('清空回收站将无法恢复任何数据，确定吗？')) emptyBin(); }}
-                                className="px-4 py-2 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-xs font-bold transition-all"
-                            >
-                                <Trash2 size={14} className="inline mr-1"/> 清空回收站
-                            </button>
-                        )}
-                        <button onClick={() => setShowBinModal(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white">✕</button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-black/40">
-                    {deletedItems.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-500">
-                            <Recycle size={48} className="mb-4 opacity-20"/>
-                            <p>回收站是空的 (Empty)</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {deletedItems.map((item) => {
-                                const daysLeft = Math.ceil((new Date(item.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                                return (
-                                    <div key={item.id} className="bg-white/5 border border-white/10 p-4 rounded-xl flex items-center justify-between hover:bg-white/10 transition-colors group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center text-gray-400">
-                                                {item.moduleKey.includes('RESTOCK') ? <HardDrive size={18}/> : 
-                                                 item.moduleKey.includes('FINANCE') ? <Activity size={18}/> : 
-                                                 item.moduleKey.includes('FILES') ? <Server size={18}/> :
-                                                 <Database size={18}/>}
-                                            </div>
-                                            <div>
-                                                <div className="text-white font-bold text-sm">{item.title}</div>
-                                                <div className="text-xs text-gray-500 font-mono flex items-center gap-2 mt-0.5">
-                                                    <span className="bg-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300">{item.moduleName}</span>
-                                                    <span>删除于: {new Date(item.deletedAt).toLocaleDateString()}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-6">
-                                            <div className="text-right text-xs">
-                                                <div className={`font-bold ${daysLeft < 3 ? 'text-red-500' : 'text-cyber-green'}`}>{daysLeft} 天后过期</div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button 
-                                                    onClick={() => { restoreFromBin(item.id); addLog(`> [恢复] 已还原: ${item.title}`); }}
-                                                    className="px-3 py-1.5 bg-cyber-green/10 text-cyber-green border border-cyber-green/30 rounded-lg text-xs font-bold hover:bg-cyber-green hover:text-black transition-all flex items-center gap-1"
-                                                >
-                                                    <RotateCcw size={12}/> 恢复
-                                                </button>
-                                                <button 
-                                                    onClick={() => permanentDelete(item.id)}
-                                                    className="px-3 py-1.5 border border-white/10 text-gray-500 rounded-lg text-xs font-bold hover:border-red-500 hover:text-red-500 transition-all"
-                                                >
-                                                    彻底删除
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-  };
-
   return (
     <div className="px-6 pb-6 space-y-6 animate-in fade-in duration-500">
        <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
-       
-       <RecycleBinModal />
 
        {/* Header */}
        <div className="sticky top-0 z-30 bg-cyber-bg/95 backdrop-blur-xl border-b border-white/10 pb-4 pt-6 -mx-6 px-6 shadow-lg mb-6 flex justify-between items-end">
@@ -746,7 +650,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           {/* Left Column: Tools */}
           <div className="space-y-6">
              
-             {/* Storage Card - Updated with Recycle Bin Button */}
+             {/* Storage Card */}
              <div className="tech-border p-6 bg-white/5 relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><Database size={18} className="text-cyber-cyan"/> 数据存储 (Storage)</h3>
@@ -765,11 +669,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                    </button>
                    <button onClick={handleImportClick} className="flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 text-white rounded font-bold text-sm transition-all border border-white/10">
                       <Upload size={16} /> 恢复数据
-                   </button>
-                   {/* NEW RECYCLE BIN BUTTON */}
-                   <button onClick={() => setShowBinModal(true)} className="col-span-2 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded font-bold text-sm transition-all border border-white/10">
-                      <Recycle size={16} className={deletedItems.length > 0 ? "text-cyber-green" : "text-gray-500"} /> 
-                      管理回收站 ({deletedItems.length})
                    </button>
                 </div>
              </div>

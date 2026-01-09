@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, FileText, Download, MoreHorizontal, FileJson, FileSpreadsheet, Image as ImageIcon, HardDrive, Trash2, Plus, Lock } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
-import { addToRecycleBin } from '../lib/recycleBin';
 
 interface FileItem {
   id: string;
@@ -24,9 +23,7 @@ export const UniversalDataModule: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDelete = (id: string) => {
-      const file = files.find(f => f.id === id);
-      if(file && confirm('确定要将此文档移入回收站吗？')) {
-          addToRecycleBin('AERO_FILES_DATA', 'Documents', file, file.name);
+      if(confirm('确定要永久销毁此文档吗？\n(模拟删除操作)')) {
           setFiles(files.filter(f => f.id !== id));
       }
   };

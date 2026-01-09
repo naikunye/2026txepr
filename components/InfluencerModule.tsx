@@ -10,7 +10,6 @@ import {
   PolarRadiusAxis, Radar, LineChart, Line, Tooltip 
 } from 'recharts';
 import { usePersistence } from '../hooks/usePersistence';
-import { addToRecycleBin } from '../lib/recycleBin';
 
 // --- Types ---
 
@@ -241,7 +240,7 @@ const KanbanColumn = ({ status, influencers, onSelect, onDelete }: any) => {
     );
 };
 
-// ... (The rest of the component (InfluencerModule) remains mostly the same, just handleAdd/handleDelete logic updated)
+// --- Main Module ---
 
 export const InfluencerModule: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'pipeline'>('pipeline');
@@ -287,13 +286,7 @@ export const InfluencerModule: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-      if(confirm("确定要移除该达人吗？")) {
-         const inf = influencers.find(i => i.id === id);
-         if(inf) {
-             addToRecycleBin('AERO_INFLUENCER_DATA', 'Talent', inf, inf.name);
-             setInfluencers(influencers.filter(i => i.id !== id));
-         }
-      }
+      if(confirm("确定要移除该达人吗？")) setInfluencers(influencers.filter(i => i.id !== id));
   };
 
   // --- Statistics ---
@@ -305,8 +298,6 @@ export const InfluencerModule: React.FC = () => {
       return { total, roiAvg, live, potential };
   }, [influencers]);
 
-  // ... (Return JSX is identical to previous, just using new handlers)
-  // Re-pasting the JSX structure to ensure context consistency.
   return (
     <div className="h-full flex flex-col px-6 pb-6 animate-in fade-in duration-700">
       
@@ -427,13 +418,11 @@ export const InfluencerModule: React.FC = () => {
          )}
       </div>
 
-      {/* 3. Detail Slide-Over Panel */}
+      {/* 3. Detail Slide-Over Panel (Premium Glass) */}
       {selectedInf && (
          <>
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity" onClick={() => setSelectedInf(null)}></div>
             <div className="fixed inset-y-0 right-0 w-full md:w-[550px] bg-[#0c0c0c]/95 border-l border-white/10 z-50 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
-               {/* ... (The detail panel JSX remains identical, omitted here for brevity but assumed present in real implementation) ... */}
-               {/* To be safe, I will include the detail panel to ensure nothing breaks */}
                
                {/* Cover Image */}
                <div className="h-64 relative shrink-0">

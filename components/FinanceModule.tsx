@@ -12,7 +12,6 @@ import {
   Package, Warehouse, AlertTriangle, Zap
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
-import { addToRecycleBin } from '../lib/recycleBin';
 
 // --- Types ---
 interface Transaction {
@@ -35,7 +34,7 @@ const initialTransactions: Transaction[] = [
   { id: 'TX-9917', desc: 'AWS 云服务费', amount: 450.00, type: 'out', currency: 'USD', category: '运营杂费', date: '2025-01-01 10:00', status: 'Cleared' },
 ];
 
-const categories = ['销售收入', '采购成本', '物流费用', '市场营销', '平台佣金', '运营杂费', '税费', '薪资人力'];
+const categories = ['销售收入', '采购成本', '物流费用', '市场营销', '运营杂费', '税费', '薪资人力'];
 const currencies = ['USD', 'CNY', 'EUR', 'GBP', 'USDT'];
 
 // Vibrant Apple Colors for Categories
@@ -118,22 +117,15 @@ export const FinanceModule: React.FC = () => {
     setNewTx({ type: 'out', currency: 'USD', category: '运营杂费', status: 'Cleared', desc: '', amount: undefined });
   };
   
-  const handleDelete = (id: string) => { 
-      if (confirm('确认删除此交易记录? (Move to Recycle Bin)')) {
-          const item = transactions.find(t => t.id === id);
-          if (item) {
-              addToRecycleBin('AERO_FINANCE_DATA', 'Finance', item, item.desc);
-              setTransactions(transactions.filter(t => t.id !== id));
-          }
-      }
-  };
+  const handleDelete = (id: string) => { if (confirm('确认删除?')) setTransactions(transactions.filter(t => t.id !== id)); };
 
   const filteredTransactions = transactions.filter(t => {
     return (t.desc.toLowerCase().includes(searchTerm.toLowerCase()) || t.id.toLowerCase().includes(searchTerm.toLowerCase())) &&
            (filterType === 'all' || t.type === filterType);
   });
 
-  // ... (Components like CurrencyCard, Modal remain similar)
+  // --- Components ---
+
   const CurrencyCard = ({ code, symbol, balance, trend, trendVal, gradient }: any) => (
     <div 
       onClick={() => setActiveCurrency(code)}
@@ -345,20 +337,13 @@ export const FinanceModule: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                    {filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-white/5 transition-colors group cursor-pointer group">
+                      <tr key={tx.id} className="hover:bg-white/5 transition-colors group cursor-pointer">
                          <td className="p-4 pl-6">
                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tx.status === 'Cleared' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{tx.status}</span>
                          </td>
-                         <td className="p-4 relative">
+                         <td className="p-4">
                             <div className="text-white font-medium">{tx.desc}</div>
                             <div className="text-xs text-gray-500">{tx.category} • {tx.type === 'in' ? '收入' : '支出'}</div>
-                            
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(tx.id); }}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                                <Trash2 size={16} />
-                            </button>
                          </td>
                          <td className="p-4 text-gray-500 text-xs font-mono">{new Date(tx.date).toLocaleDateString()}</td>
                          <td className={`p-4 pr-6 text-right font-mono font-bold ${tx.type === 'in' ? 'text-cyber-green' : 'text-white'}`}>
