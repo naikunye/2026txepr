@@ -5,7 +5,7 @@ import {
   Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
-  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory
+  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
 
@@ -76,6 +76,8 @@ interface Product {
     dailyVelocity: number; 
     safetyDays: number;
   };
+
+  remarks?: string; // New Remarks Field
 }
 
 // Mock Data
@@ -107,7 +109,8 @@ const initialProducts: Product[] = [
         returnRate: 0.05,             
         miscCostUSD: 0.50 
     },
-    inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 }
+    inventory: { current: 60, incoming: 200, dailyVelocity: 8.5, safetyDays: 20 },
+    remarks: '新款测试中，重点关注红色变体的销量趋势。'
   },
   { 
     id: '2', 
@@ -132,7 +135,8 @@ const initialProducts: Product[] = [
         returnRate: 0.08,             
         miscCostUSD: 1.00 
     },
-    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 }
+    inventory: { current: 990, incoming: 0, dailyVelocity: 42, safetyDays: 30 },
+    remarks: '供应商反馈春节后可能会涨价5%，建议提前锁定库存。'
   }
 ];
 
@@ -192,6 +196,7 @@ const sanitizeProduct = (p: any): Product => {
       'lx_id', 'lx_no',
       'plan_no', 'plan_id', 'plan_name', 'inbound_plan_id',
       'local_shipment_id',
+      'local_shipment_name',
       '入库单号', '入库单名称', '入库计划单号',
       '货件编号', '货件名称', '货件单号', '货件ID',
       'FBA货件号', 'FBA号', 'FBA单号',
@@ -251,7 +256,8 @@ const sanitizeProduct = (p: any): Product => {
         incoming: fuzzyVal(mixedPool, ['incoming', 'Incoming', '在途', '在途库存', 'Shipping'], 'number', 0),
         dailyVelocity: fuzzyVal(mixedPool, ['dailyVelocity', 'sales_velocity', 'Velocity', '日销', '销量', '日均'], 'number', 0),
         safetyDays: fuzzyVal(mixedPool, ['safetyDays', 'Safety Days', '安全库存天数', '周转天数'], 'number', 0),
-    }
+    },
+    remarks: fuzzyVal(mixedPool, ['remarks', 'note', 'notes', 'comment', 'comments', 'memo', '备注', '备忘录', '说明'], 'string', '')
   };
 };
 
@@ -664,7 +670,8 @@ export const RestockModule: React.FC = () => {
           logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, paymentStatus: '待支付', dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
-          inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 }
+          inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 },
+          remarks: ''
       };
       setProducts([newProduct, ...products]);
       setSelectedProduct(newProduct);
@@ -987,6 +994,19 @@ export const RestockModule: React.FC = () => {
                                 <span>总重量: <span className="text-white font-bold ml-1">{eco.totalWeight.toFixed(2)} kg</span></span>
                                 <span>总体积: <span className="text-white font-bold ml-1">{eco.totalVolume.toFixed(3)} m³</span></span>
                              </div>
+                          </div>
+
+                          {/* Section 4: Remarks (New) */}
+                          <div className="apple-glass p-5 mt-4">
+                             <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
+                                <FileText size={14}/> 备注信息 (REMARKS)
+                             </h3>
+                             <textarea
+                                value={selectedProduct.remarks || ''}
+                                onChange={e => handleUpdate('remarks', e.target.value)}
+                                className="input-holo w-full p-3 text-sm h-24 resize-none bg-black/40 border border-white/10 text-gray-300 focus:text-white"
+                                placeholder="在此输入产品备忘录、注意事项或特殊要求..."
+                             />
                           </div>
                        </div>
                      )}
@@ -1713,6 +1733,16 @@ export const RestockModule: React.FC = () => {
                                    {product.variants.length > 6 && (
                                       <span className="text-[10px] text-gray-500 self-center px-1">+{product.variants.length - 6} more</span>
                                    )}
+                                </div>
+                             )}
+
+                             {/* --- REMARKS MINI VIEW --- */}
+                             {product.remarks && (
+                                <div className="mt-2 px-3 py-2 bg-yellow-500/5 border border-yellow-500/10 rounded-lg flex items-start gap-2 max-w-2xl">
+                                    <StickyNote size={12} className="text-yellow-500 mt-0.5 shrink-0" />
+                                    <p className="text-[10px] text-yellow-200/80 leading-relaxed line-clamp-2">
+                                        {product.remarks}
+                                    </p>
                                 </div>
                              )}
                           </div>
