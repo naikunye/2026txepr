@@ -92,11 +92,11 @@ const initialInfluencers: Influencer[] = [
 // --- Configs ---
 
 const statusConfig: Record<PipelineStatus, { label: string, color: string, border: string, bg: string, glow: string }> = {
-  'scouted': { label: 'Scouted', color: 'text-gray-400', border: 'border-gray-600', bg: 'bg-gray-500/10', glow: 'shadow-gray-500/20' },
-  'contacted': { label: 'Contacted', color: 'text-cyber-cyan', border: 'border-cyber-cyan', bg: 'bg-cyber-cyan/10', glow: 'shadow-cyber-cyan/20' },
-  'sample_sent': { label: 'Sampled', color: 'text-cyber-purple', border: 'border-cyber-purple', bg: 'bg-cyber-purple/10', glow: 'shadow-cyber-purple/20' },
-  'content_live': { label: 'Content Live', color: 'text-cyber-yellow', border: 'border-cyber-yellow', bg: 'bg-cyber-yellow/10', glow: 'shadow-cyber-yellow/20' },
-  'paid': { label: 'Paid', color: 'text-cyber-green', border: 'border-cyber-green', bg: 'bg-cyber-green/10', glow: 'shadow-cyber-green/20' },
+  'scouted': { label: '挖掘中 (Scouted)', color: 'text-gray-400', border: 'border-gray-600', bg: 'bg-gray-500/10', glow: 'shadow-gray-500/20' },
+  'contacted': { label: '已建联 (Contacted)', color: 'text-cyber-cyan', border: 'border-cyber-cyan', bg: 'bg-cyber-cyan/10', glow: 'shadow-cyber-cyan/20' },
+  'sample_sent': { label: '已寄样 (Sampled)', color: 'text-cyber-purple', border: 'border-cyber-purple', bg: 'bg-cyber-purple/10', glow: 'shadow-cyber-purple/20' },
+  'content_live': { label: '内容上线 (Live)', color: 'text-cyber-yellow', border: 'border-cyber-yellow', bg: 'bg-cyber-yellow/10', glow: 'shadow-cyber-yellow/20' },
+  'paid': { label: '已结算 (Paid)', color: 'text-cyber-green', border: 'border-cyber-green', bg: 'bg-cyber-green/10', glow: 'shadow-cyber-green/20' },
 };
 
 const PlatformIcon = ({ p, className }: { p: string, className?: string }) => {
@@ -130,7 +130,7 @@ const HolographicCard: React.FC<HolographicCardProps> = ({ inf, onClick }) => {
             {/* Top Status Bar */}
             <div className="absolute top-0 left-0 right-0 p-5 flex justify-between items-start z-20">
                 <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md border ${statusConfig[inf.status].border} ${statusConfig[inf.status].color} ${statusConfig[inf.status].bg}`}>
-                    {statusConfig[inf.status].label}
+                    {statusConfig[inf.status].label.split(' ')[0]}
                 </div>
                 <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-black text-lg bg-black/50 backdrop-blur-md shadow-lg ${tierColor}`}>
                     {tier}
@@ -161,7 +161,7 @@ const HolographicCard: React.FC<HolographicCardProps> = ({ inf, onClick }) => {
 
                 <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
                     <div className="text-center">
-                        <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Fans</div>
+                        <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">粉丝数</div>
                         <div className="text-sm font-bold text-white font-mono">{inf.followers}</div>
                     </div>
                     <div className="text-center border-x border-white/10">
@@ -169,7 +169,7 @@ const HolographicCard: React.FC<HolographicCardProps> = ({ inf, onClick }) => {
                         <div className={`text-sm font-bold font-mono ${inf.roi >= 4 ? 'text-cyber-green' : 'text-white'}`}>{inf.roi}x</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Eng.</div>
+                        <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">互动率</div>
                         <div className="text-sm font-bold text-cyber-yellow font-mono">{inf.engagementRate}%</div>
                     </div>
                 </div>
@@ -324,10 +324,10 @@ export const InfluencerModule: React.FC = () => {
             {/* HUD Stats */}
             <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-2xl p-1.5 backdrop-blur-md">
                 {[
-                    { label: 'TOTAL TALENT', val: stats.total, icon: Layers, color: 'text-white' },
-                    { label: 'AVG ROI', val: `${stats.roiAvg}x`, icon: Trophy, color: 'text-cyber-yellow' },
-                    { label: 'CONTENT LIVE', val: stats.live, icon: Zap, color: 'text-cyber-green' },
-                    { label: 'SCOUTING', val: stats.potential, icon: Search, color: 'text-cyber-purple' },
+                    { label: '达人总数', val: stats.total, icon: Layers, color: 'text-white' },
+                    { label: '平均 ROI', val: `${stats.roiAvg}x`, icon: Trophy, color: 'text-cyber-yellow' },
+                    { label: '内容上线', val: stats.live, icon: Zap, color: 'text-cyber-green' },
+                    { label: '正在挖掘', val: stats.potential, icon: Search, color: 'text-cyber-purple' },
                 ].map((s, i) => (
                     <div key={i} className="px-6 border-r border-white/10 last:border-0 flex flex-col items-center min-w-[100px]">
                         <div className="text-[9px] text-gray-500 font-bold tracking-widest mb-1 flex items-center gap-1.5">
@@ -344,7 +344,7 @@ export const InfluencerModule: React.FC = () => {
                  className="h-12 px-6 bg-white text-black font-black text-sm hover:bg-cyber-cyan transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(64,200,224,0.6)] rounded-xl flex items-center gap-2 group uppercase tracking-wide"
                >
                   <Plus size={18} className="group-hover:rotate-90 transition-transform"/>
-                  New Talent
+                  录入达人
                </button>
             </div>
          </div>
@@ -359,7 +359,7 @@ export const InfluencerModule: React.FC = () => {
                  value={searchTerm}
                  onChange={e => setSearchTerm(e.target.value)}
                  className="block w-full pl-11 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder-gray-600 focus:border-cyber-cyan focus:ring-1 focus:ring-cyber-cyan outline-none transition-all font-mono backdrop-blur-sm"
-                 placeholder="SEARCH DATABASE..."
+                 placeholder="搜索达人库 / ID..."
                />
                <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
                   <kbd className="inline-flex items-center border border-gray-700 rounded px-2 text-[10px] font-sans font-medium text-gray-500">⌘K</kbd>
@@ -371,14 +371,14 @@ export const InfluencerModule: React.FC = () => {
                    onClick={() => setViewMode('pipeline')}
                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'pipeline' ? 'bg-white/10 text-white shadow-inner' : 'text-gray-500 hover:text-white'}`}
                 >
-                   <Kanban size={14} /> PIPELINE
+                   <Kanban size={14} /> 看板 (Pipeline)
                 </button>
                 <div className="w-[1px] bg-white/10 my-1 mx-1"></div>
                 <button 
                    onClick={() => setViewMode('grid')}
                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${viewMode === 'grid' ? 'bg-white/10 text-white shadow-inner' : 'text-gray-500 hover:text-white'}`}
                 >
-                   <LayoutGrid size={14} /> GRID
+                   <LayoutGrid size={14} /> 网格 (Grid)
                 </button>
             </div>
          </div>
@@ -412,7 +412,7 @@ export const InfluencerModule: React.FC = () => {
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyber-cyan group-hover:text-black transition-colors">
                      <Plus size={32} />
                   </div>
-                  <span className="font-bold text-gray-500 group-hover:text-white text-sm tracking-widest uppercase">Add Creator</span>
+                  <span className="font-bold text-gray-500 group-hover:text-white text-sm tracking-widest uppercase">添加达人 (Add)</span>
                </div>
             </div>
          )}
@@ -466,7 +466,7 @@ export const InfluencerModule: React.FC = () => {
                    {/* Pipeline Stage Selector */}
                    <div className="space-y-3">
                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                          <MapPin size={12} /> Pipeline Stage
+                          <MapPin size={12} /> 合作阶段 (Pipeline)
                        </label>
                        <div className="grid grid-cols-5 gap-1 bg-white/5 p-1 rounded-xl">
                           {Object.keys(statusConfig).map(s => (
@@ -488,10 +488,10 @@ export const InfluencerModule: React.FC = () => {
                    {/* Stats Grid */}
                    <div className="grid grid-cols-2 gap-4">
                        {[
-                         { l: 'Followers', f: 'followers', t: 'text' },
-                         { l: 'Avg. Views', f: 'avgViews', t: 'text' },
-                         { l: 'Engagement %', f: 'engagementRate', t: 'number', c: 'text-cyber-yellow' },
-                         { l: 'ROI (x)', f: 'roi', t: 'number', c: 'text-cyber-green' }
+                         { l: '粉丝总量 (Followers)', f: 'followers', t: 'text' },
+                         { l: '平均播放 (Avg. Views)', f: 'avgViews', t: 'text' },
+                         { l: '互动率 % (Eng.)', f: 'engagementRate', t: 'number', c: 'text-cyber-yellow' },
+                         { l: '投产比 (ROI)', f: 'roi', t: 'number', c: 'text-cyber-green' }
                        ].map((item, i) => (
                            <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:border-white/20 transition-colors">
                                <div className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-2">{item.l}</div>
@@ -509,7 +509,7 @@ export const InfluencerModule: React.FC = () => {
                    <div className="bg-black/40 border border-white/10 rounded-3xl p-6 relative overflow-hidden">
                        <div className="flex justify-between items-center mb-4">
                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                               <Zap size={16} className="text-cyber-purple"/> AI Talent Score
+                               <Zap size={16} className="text-cyber-purple"/> AI 达人评分
                            </h3>
                            <div className="px-2 py-1 bg-cyber-purple/10 text-cyber-purple text-[10px] font-bold rounded border border-cyber-purple/20">BETA</div>
                        </div>
@@ -534,15 +534,15 @@ export const InfluencerModule: React.FC = () => {
                    
                    {/* Logistics */}
                    <div className="border-t border-white/10 pt-6">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Logistics</h3>
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">样品物流 (Logistics)</h3>
                       <div className="flex items-center gap-4 bg-white/5 rounded-xl p-4">
                           <div className="p-3 bg-black rounded-lg text-cyber-cyan"><MapPin size={20} /></div>
                           <div className="flex-1">
-                             <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">Tracking Number</div>
+                             <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">物流单号 (Tracking)</div>
                              <input 
                                value={selectedInf.sampleTracking || ''}
                                onChange={e => handleUpdate('sampleTracking', e.target.value)}
-                               placeholder="ENTER TRACKING ID..."
+                               placeholder="输入物流追踪号..."
                                className="bg-transparent text-white font-mono w-full outline-none placeholder-gray-700"
                              />
                           </div>
@@ -552,10 +552,10 @@ export const InfluencerModule: React.FC = () => {
                    {/* Actions */}
                    <div className="grid grid-cols-2 gap-4 pt-4">
                        <button className="py-4 rounded-xl bg-white text-black font-black uppercase tracking-wide hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
-                          <MessageCircle size={18} /> Contact
+                          <MessageCircle size={18} /> 联系达人
                        </button>
                        <button className="py-4 rounded-xl border border-white/20 text-white font-black uppercase tracking-wide hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-                          <DollarSign size={18} /> Payout
+                          <DollarSign size={18} /> 支付佣金
                        </button>
                    </div>
                </div>
