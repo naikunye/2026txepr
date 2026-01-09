@@ -512,17 +512,14 @@ export const RestockModule: React.FC = () => {
     const rate = Number(p.logistics?.unitRateRMB) || 0;
     const manualTotalFreight = Number(p.logistics?.totalFreightRMB) || 0;
 
-    let freightDivisor = totalUnitsConfigured;
+    // Determine the Batch Quantity to allow proper unit cost calculation
+    // Priority: Reorder Qty > Packing Configuration > 1
+    const batchQty = reorderQty > 0 ? reorderQty : (totalUnitsConfigured > 0 ? totalUnitsConfigured : 1);
 
     if (manualTotalFreight > 0) {
+        // If Manual Total is provided, we assume it covers the ENTIRE batch.
+        // Therefore, we divide by the Batch Quantity to get the Unit Cost.
         currentTotalFreightRMB = manualTotalFreight;
-        
-        // Smart Divisor Fix:
-        // Use the larger of packing config OR reorder quantity to avoid inflated unit costs
-        // when packing config is small/placeholder but reorder quantity is large.
-        freightDivisor = Math.max(totalUnitsConfigured, reorderQty);
-        
-        if (freightDivisor <= 0) freightDivisor = 1;
     } else {
         // Auto-calc based on rate * dimensions
         if (mode.includes('air')) {
@@ -532,7 +529,7 @@ export const RestockModule: React.FC = () => {
         }
     }
 
-    const unitFreightRMB = freightDivisor > 0 ? currentTotalFreightRMB / freightDivisor : 0;
+    const unitFreightRMB = currentTotalFreightRMB / batchQty;
     const unitFreightUSD = unitFreightRMB / exchangeRate;
     
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
@@ -558,7 +555,9 @@ export const RestockModule: React.FC = () => {
     
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    // Display Logic Adjustments
+    // For display in the list view:
+    // If manual total is set, show that.
+    // Otherwise, show Unit * Quantity
     const displayTotalFreightRMB = manualTotalFreight > 0 
         ? manualTotalFreight 
         : unitFreightRMB * reorderQty;
