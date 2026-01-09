@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
-  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2
+  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 
@@ -10,6 +10,12 @@ interface SettingsModuleProps {
   currentTheme: string;
   onThemeChange: (theme: string) => void;
 }
+
+const themes = [
+  { id: 'cyber', name: '赛博朋克 (Cyber)', desc: '高对比度 / 霓虹光效', icon: Zap, activeColor: 'text-cyber-cyan', activeBorder: 'border-cyber-cyan', activeBg: 'bg-cyber-cyan/10' },
+  { id: 'obsidian', name: '黑曜石 (Obsidian)', desc: '纯黑极简 / 专注模式', icon: Moon, activeColor: 'text-white', activeBorder: 'border-white', activeBg: 'bg-white/10' },
+  { id: 'aurora', name: '极光白 (Aurora)', desc: '清爽明亮 / 办公风格', icon: Sun, activeColor: 'text-blue-400', activeBorder: 'border-blue-400', activeBg: 'bg-blue-400/10' },
+];
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,21 +203,42 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                 </div>
              </div>
 
-             {/* Theme/System Card */}
+             {/* Theme/System Card - Updated for Theme Selection */}
              <div className="tech-border p-6 bg-white/5">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6"><Monitor size={18} className="text-cyber-purple"/> 界面与视觉</h3>
-                <div className="flex items-center justify-between p-4 bg-black border border-white/10 rounded mb-4">
-                   <div className="flex items-center gap-3">
-                      <Palette size={20} className="text-gray-400" />
-                      <div>
-                         <div className="text-sm font-bold text-white">赛博模式 (Cyber Mode)</div>
-                         <div className="text-xs text-gray-500">高对比度，霓虹风格</div>
-                      </div>
-                   </div>
-                   <div className="flex items-center gap-2">
-                      <span className="text-xs text-cyber-green font-bold">使用中</span>
-                   </div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6"><Palette size={18} className="text-cyber-purple"/> 界面与视觉</h3>
+                
+                <div className="space-y-3 mb-6">
+                    {themes.map((t) => {
+                        const isActive = currentTheme === t.id;
+                        return (
+                            <button
+                                key={t.id}
+                                onClick={() => onThemeChange(t.id)}
+                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all duration-300 group relative overflow-hidden ${
+                                    isActive 
+                                    ? `${t.activeBg} ${t.activeBorder} shadow-lg` 
+                                    : 'bg-black/40 border-white/5 hover:bg-white/5 hover:border-white/20'
+                                }`}
+                            >
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${isActive ? `${t.activeBorder} ${t.activeBg} ${t.activeColor}` : 'border-white/10 bg-black/50 text-gray-500'}`}>
+                                        <t.icon size={20} />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className={`text-sm font-bold ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{t.name}</div>
+                                        <div className="text-[10px] text-gray-500">{t.desc}</div>
+                                    </div>
+                                </div>
+                                {isActive && (
+                                    <div className="relative z-10 text-cyber-cyan animate-in fade-in zoom-in duration-300">
+                                        <CheckCircle2 size={18} className={t.activeColor} />
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
+
                 <button onClick={runDiagnostics} className="w-full py-3 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-all rounded font-bold text-sm flex items-center justify-center gap-2">
                    <Activity size={16} /> 运行系统诊断
                 </button>
