@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, MoreVertical, Calendar, ArrowRight, ArrowLeft, Trash2, CheckCircle, ListTodo } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
+import { addToRecycleBin } from '../lib/recycleBin';
 
 interface Task { id: string; title: string; status: 'todo' | 'progress' | 'done'; tag: string; sub: string; user: string; date: string; }
 
@@ -39,7 +40,11 @@ export const TaskModule: React.FC = () => {
 
   const deleteTask = (id: string) => {
       if(confirm('Delete task?')) {
-          setTasks(tasks.filter(t => t.id !== id));
+          const task = tasks.find(t => t.id === id);
+          if (task) {
+              addToRecycleBin('AERO_TASKS_DATA', 'Tasks', task, task.title);
+              setTasks(tasks.filter(t => t.id !== id));
+          }
       }
   };
 
