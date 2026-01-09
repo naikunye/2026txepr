@@ -1623,9 +1623,7 @@ export const RestockModule: React.FC = () => {
               const pStyle = priorityMap[currentPrio] || priorityMap['normal'];
 
               // Logic to prioritize manual total freight display
-              const displayFreight = (product.logistics?.totalFreightRMB || 0) > 0 
-                  ? product.logistics.totalFreightRMB 
-                  : eco.totalFreightBatchRMB; // Fallback to restock calc if no manual freight
+              const displayFreight = eco.currentTotalFreightRMB;
               
               const isManualFreight = (product.logistics?.totalFreightRMB || 0) > 0;
 
@@ -1698,53 +1696,63 @@ export const RestockModule: React.FC = () => {
                              </div>
                           </div>
                           
-                          <div className="mt-3 flex flex-col gap-2">
-                             <div className="flex items-center gap-4 text-xs font-mono text-gray-500">
-                                <span className="text-white font-bold bg-white/10 px-2 py-1 rounded-md border border-white/10 shadow-inner">{product.skuCode}</span>
-                                <span className="flex items-center gap-1.5 text-gray-400"><Warehouse size={14} className="text-cyber-purple"/> {product.logistics?.warehouseDest || 'N/A'}</span>
-                             </div>
-                             
-                             <div className="flex items-center gap-3 text-[11px] font-mono font-medium mt-1">
-                                <div className="flex items-center gap-2 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20 text-blue-300">
-                                   <FileText size={12}/> 
-                                   <span>{product.logistics?.inboundId || 'No Inbound'}</span>
-                                </div>
-                                <div 
-                                  onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo, product.logistics?.carrier)}
-                                  className="flex items-center gap-2 bg-yellow-500/10 px-2.5 py-1 rounded-md border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all"
-                                  title="查询物流"
-                                >
-                                   <Truck size={12}/> 
-                                   <span className="opacity-75 mr-1 font-bold">{product.logistics?.carrier || 'UPS'}:</span>
-                                   <span>{product.logistics?.trackingNo || 'No Tracking'}</span>
-                                </div>
+                          <div className="mt-2 flex flex-col gap-1.5">
+                             {/* Line 1: SKU | Warehouse | Inbound | Tracking - All Horizontal */}
+                             <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-gray-500">
+                                <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded border border-white/10 shadow-inner shrink-0">
+                                    {product.skuCode}
+                                </span>
+                                <span className="flex items-center gap-1.5 text-gray-400 bg-black/20 px-2 py-0.5 rounded border border-white/5 shrink-0">
+                                    <Warehouse size={12} className="text-cyber-purple"/> {product.logistics?.warehouseDest || 'N/A'}
+                                </span>
+                                
+                                <span className="text-white/10 hidden sm:inline">|</span>
+
+                                {product.logistics?.inboundId && (
+                                    <div className="flex items-center gap-2 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300 text-[11px] shrink-0">
+                                       <FileText size={12}/> 
+                                       <span>{product.logistics.inboundId}</span>
+                                    </div>
+                                )}
+                                {product.logistics?.trackingNo && (
+                                    <div 
+                                      onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo, product.logistics?.carrier)}
+                                      className="flex items-center gap-2 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 text-yellow-300 cursor-pointer hover:bg-yellow-500 hover:text-black transition-all text-[11px] shrink-0"
+                                      title="查询物流"
+                                    >
+                                       <Truck size={12}/> 
+                                       <span className="opacity-75 mr-1 font-bold">{product.logistics?.carrier || 'Carrier'}:</span>
+                                       <span>{product.logistics.trackingNo}</span>
+                                    </div>
+                                )}
                              </div>
 
-                             {/* --- SKU MATRIX MINI VIEW --- */}
-                             {product.variants && product.variants.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/5">
-                                   {product.variants.slice(0, 6).map(v => (
-                                      <div key={v.id} className="flex items-center gap-1.5 bg-black/40 border border-white/10 px-2 py-1 rounded text-[10px] font-mono">
-                                         <span className="text-cyber-purple font-bold">{v.suffix}</span>
-                                         <span className="text-gray-500">|</span>
-                                         <span className="text-white">{v.quantity}</span>
-                                      </div>
-                                   ))}
-                                   {product.variants.length > 6 && (
-                                      <span className="text-[10px] text-gray-500 self-center px-1">+{product.variants.length - 6} more</span>
-                                   )}
-                                </div>
-                             )}
+                             {/* Line 2: Variants | Remarks - Flow Horizontal */}
+                             <div className="flex flex-wrap items-center gap-3">
+                                {/* --- SKU MATRIX MINI VIEW --- */}
+                                {product.variants && product.variants.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 items-center">
+                                       {product.variants.slice(0, 6).map(v => (
+                                          <div key={v.id} className="flex items-center gap-1 bg-black/40 border border-white/10 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                                             <span className="text-cyber-purple font-bold">{v.suffix}</span>
+                                             <span className="text-gray-500">|</span>
+                                             <span className="text-white">{v.quantity}</span>
+                                          </div>
+                                       ))}
+                                       {product.variants.length > 6 && (
+                                          <span className="text-[10px] text-gray-500 px-1">+{product.variants.length - 6}</span>
+                                       )}
+                                    </div>
+                                )}
 
-                             {/* --- REMARKS MINI VIEW --- */}
-                             {product.remarks && (
-                                <div className="mt-2 px-3 py-2 bg-yellow-500/5 border border-yellow-500/10 rounded-lg flex items-start gap-2 max-w-2xl">
-                                    <StickyNote size={12} className="text-yellow-500 mt-0.5 shrink-0" />
-                                    <p className="text-[10px] text-yellow-200/80 leading-relaxed line-clamp-2">
-                                        {product.remarks}
-                                    </p>
-                                </div>
-                             )}
+                                {/* --- REMARKS MINI VIEW --- */}
+                                {product.remarks && (
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/5 border border-yellow-500/10 rounded text-[10px] text-yellow-200/80 max-w-sm truncate shrink-0">
+                                        <StickyNote size={10} className="text-yellow-500 shrink-0" />
+                                        <span className="truncate">{product.remarks}</span>
+                                    </div>
+                                )}
+                             </div>
                           </div>
                        </div>
                     </div>
