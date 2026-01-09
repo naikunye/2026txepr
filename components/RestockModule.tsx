@@ -7,7 +7,7 @@ import {
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote
 } from 'lucide-react';
-import { usePersistence } from '../hooks/usePersistence';
+import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
 
 // --- World-Class ERP Data Model ---
@@ -694,6 +694,48 @@ export const RestockModule: React.FC = () => {
     const rawMode = selectedProduct.logistics?.mode || 'sea';
     const currentMode = String(rawMode).toLowerCase().trim();
 
+    // --- Generate PO Handler ---
+    const handleGeneratePO = () => {
+        const cost = eco.capitalRequiredRMB;
+        if (cost <= 0) {
+            alert("采购金额为 0，无法生成采购单。请检查单价或采购数量。");
+            return;
+        }
+
+        if (confirm(`确认生成采购单吗？\n\n产品: ${selectedProduct.productName}\n数量: ${Math.ceil(eco.reorderQty)} 件\n总额: ¥${cost.toLocaleString()}\n\n这也将自动在财务模块创建一笔支出记录。`)) {
+            
+            // 1. Create Transaction Object
+            const newTx = {
+                id: `PO-${Date.now()}`,
+                desc: `采购: ${selectedProduct.productName} (${selectedProduct.skuCode}) - ${Math.ceil(eco.reorderQty)}pcs`,
+                amount: cost,
+                type: 'out',
+                currency: 'CNY',
+                category: '采购成本',
+                date: new Date().toISOString(),
+                status: 'Pending' // Default to Pending for new POs
+            };
+
+            // 2. Read existing Finance Data (Direct localStorage access to bypass hooks for this write-only op)
+            try {
+                const financeRaw = localStorage.getItem('AERO_FINANCE_DATA');
+                const financeData = financeRaw ? JSON.parse(financeRaw) : [];
+                
+                // 3. Append & Save
+                const updatedFinance = [newTx, ...financeData];
+                localStorage.setItem('AERO_FINANCE_DATA', JSON.stringify(updatedFinance));
+                
+                // 4. Notify System (IMPORTANT: Finance Module listens for this)
+                window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: 'AERO_FINANCE_DATA' } }));
+                
+                alert("✅ 采购单已生成！\n\n已同步至财务核算模块 (Finance Module)，状态为 Pending。");
+            } catch (e) {
+                console.error(e);
+                alert("生成失败：财务数据写入错误。");
+            }
+        }
+    };
+
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
          <div className="w-full h-full lg:max-w-[95vw] lg:h-[90vh] bg-[#0A0A0A] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-3xl apple-glass">
@@ -1364,7 +1406,12 @@ export const RestockModule: React.FC = () => {
                                         <span className="uppercase font-bold tracking-wider">建议采购量:</span>
                                         <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">件 (pcs)</span></span>
                                      </div>
-                                     <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
+                                     
+                                     {/* GENERATE PO BUTTON */}
+                                     <button 
+                                        onClick={handleGeneratePO}
+                                        className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10"
+                                     >
                                         生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
                                      </button>
                                 </div>
@@ -1454,7 +1501,12 @@ export const RestockModule: React.FC = () => {
                           <span className="uppercase font-bold tracking-wider">建议采购量:</span>
                           <span className="text-cyber-yellow font-black text-sm">{Math.ceil(eco.reorderQty)} <span className="text-[9px] text-gray-500">件</span></span>
                        </div>
-                       <button className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10">
+                       
+                       {/* SIDEBAR BUTTON */}
+                       <button 
+                          onClick={handleGeneratePO}
+                          className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10"
+                       >
                           生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
                        </button>
                     </div>
