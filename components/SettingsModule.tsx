@@ -121,7 +121,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           const latency = end - start;
           setNetworkLatency(latency);
           addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
-          addLog('> 数据库读写权限: ' + (pb.authStore.isValid ? '已授权 (Admin)' : '受限 (Anonymous)'));
+          addLog('> 数据库权限: ' + (pb.authStore.isValid ? '管理员 (Admin)' : '访客 (Guest)'));
           setShowHttpsTip(false); 
       } catch (err: any) {
           console.error(err);
@@ -178,15 +178,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       addLog('> [已注销] 安全退出系统');
   };
 
-  const handleMakePublic = async () => {
+  const handleEnableCollaboration = async () => {
       if (!pb.authStore.isValid) return;
-      if (!confirm('⚠️ 安全确认\n\n您确定要开启“公开读取权限”吗？\n开启后，任何连接到此服务器的人（无需密码）都可以拉取/查看数据。\n\n(只有管理员可以写入/修改数据的权限保持不变)')) return;
+      if (!confirm('⚠️ 协同模式确认\n\n您确定要开启“全员读写权限”吗？\n开启后，任何连接到此服务器的人（无需登录）都可以查看、修改和删除数据。\n\n这适合内部团队协同，但请注意数据安全。')) return;
       
-      addLog('> 正在配置数据库权限...');
+      addLog('> 正在配置数据库协同权限...');
       try {
           // 1. Get the collection (assuming name is sync_store)
-          // Note: In a real PocketBase, you query the collections list. Here we assume we know the name or fetch it.
-          // Since we might not know the exact ID of the collection structure without querying collections endpoint:
           const collections = await pb.collections.getFullList({ filter: 'name="sync_store"' });
           
           if (collections.length === 0) {
@@ -196,15 +194,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
           const col = collections[0];
           
-          // 2. Update to allow public read (empty string = public)
+          // 2. Update to allow public read AND write (Create/Update/Delete)
           await pb.collections.update(col.id, {
-              listRule: '', // Public
-              viewRule: '', // Public
-              // Keep create/update/delete restricted (null or admin only)
+              listRule: '',   // Public List
+              viewRule: '',   // Public View
+              createRule: '', // Public Create
+              updateRule: '', // Public Update
+              deleteRule: '', // Public Delete
           });
           
-          addLog('> [成功] ✅ 已开启全员只读模式');
-          alert('配置成功！\n\n现在您的其他电脑只需输入服务器地址，点击“拉取”即可同步数据，无需登录管理员账号。');
+          addLog('> [成功] ✅ 已开启全员协同模式 (读/写)');
+          alert('配置成功！\n\n现在团队成员无需登录管理员账号，即可在任何设备上拉取数据、修改并推送到云端。');
 
       } catch (e: any) {
           console.error(e);
@@ -220,11 +220,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         alert("无法连接服务器，请先确保服务器配置正确且显示“在线”。");
         return;
     }
-    if (!pb.authStore.isValid) {
-        alert("权限不足：请先在下方【管理员安全访问】处登录，否则无法写入数据库。");
-        addLog('> [失败] 🚫 拒绝访问: 需要管理员权限');
-        return;
-    }
+    
+    // Removed strict auth check to allow public write mode if enabled
+    
     if (!confirm('⚠️ 覆盖警告\n\n确定要将【本地数据】强制推送到云端吗？\n云端现有的数据将被覆盖，此操作不可撤销。')) return;
 
     setIsSyncing(true);
@@ -263,7 +261,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
         } catch (err: any) {
             console.error(err);
             if (err.status === 403) {
-                 addLog(`> [失败] ${key}: 权限不足 (403 Forbidden)`);
+                 addLog(`> [失败] ${key}: 拒绝访问 (请开启“协同模式”或登录管理员)`);
             } else {
                  addLog(`> [失败] ${key}: ${err.message}`);
             }
@@ -296,7 +294,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             if (err.status === 404) {
                  records = [];
             } else if (err.status === 403) {
-                 throw new Error("访问被拒绝。请在主电脑(管理员)上点击“开启全员只读权限”，或在此电脑登录管理员账号。");
+                 throw new Error("访问被拒绝。请在主电脑(管理员)上开启“全员协同模式”，或在此登录管理员账号。");
             } else {
                  throw err;
             }
@@ -581,14 +579,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                                当前登录: <span className="text-white">{authModel.email}</span>
                            </p>
                            
-                           {/* Unlock Public Read Access Button */}
+                           {/* Unlock Public Read/Write Access Button */}
                            <button 
-                               onClick={handleMakePublic}
+                               onClick={handleEnableCollaboration}
                                className="w-full px-4 py-2.5 bg-yellow-500/10 hover:bg-yellow-500 text-yellow-500 hover:text-black border border-yellow-500/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs mb-2"
                            >
-                               <Unlock size={14} /> 开启全员只读权限
+                               <Unlock size={14} /> 开启全员协同模式 (读写)
                            </button>
-                           <p className="text-[9px] text-gray-500 text-center">允许其他未登录的电脑拉取数据 (Public Read)</p>
+                           <p className="text-[9px] text-gray-500 text-center">允许团队成员免登录修改数据 (Public R/W)</p>
                        </div>
                        
                        <button 
