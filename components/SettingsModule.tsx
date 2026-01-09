@@ -3,7 +3,7 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -178,6 +178,41 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       addLog('> [已注销] 安全退出系统');
   };
 
+  const handleMakePublic = async () => {
+      if (!pb.authStore.isValid) return;
+      if (!confirm('⚠️ 安全确认\n\n您确定要开启“公开读取权限”吗？\n开启后，任何连接到此服务器的人（无需密码）都可以拉取/查看数据。\n\n(只有管理员可以写入/修改数据的权限保持不变)')) return;
+      
+      addLog('> 正在配置数据库权限...');
+      try {
+          // 1. Get the collection (assuming name is sync_store)
+          // Note: In a real PocketBase, you query the collections list. Here we assume we know the name or fetch it.
+          // Since we might not know the exact ID of the collection structure without querying collections endpoint:
+          const collections = await pb.collections.getFullList({ filter: 'name="sync_store"' });
+          
+          if (collections.length === 0) {
+              addLog('> [错误] 未找到 sync_store 数据表。请先执行一次“推送到云端”以创建表。');
+              return;
+          }
+
+          const col = collections[0];
+          
+          // 2. Update to allow public read (empty string = public)
+          await pb.collections.update(col.id, {
+              listRule: '', // Public
+              viewRule: '', // Public
+              // Keep create/update/delete restricted (null or admin only)
+          });
+          
+          addLog('> [成功] ✅ 已开启全员只读模式');
+          alert('配置成功！\n\n现在您的其他电脑只需输入服务器地址，点击“拉取”即可同步数据，无需登录管理员账号。');
+
+      } catch (e: any) {
+          console.error(e);
+          addLog(`> [配置失败] ${e.message}`);
+          alert(`操作失败: ${e.message}`);
+      }
+  };
+
   // --- Sync Handlers ---
 
   const handlePushToCloud = async () => {
@@ -259,10 +294,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
             records = await pb.collection('sync_store').getFullList();
         } catch (err: any) {
             if (err.status === 404) {
-                 // Collection doesn't exist usually returns 404 if auto-creation off, or just empty
                  records = [];
             } else if (err.status === 403) {
-                 throw new Error("权限不足：请先登录管理员账号。");
+                 throw new Error("访问被拒绝。请在主电脑(管理员)上点击“开启全员只读权限”，或在此电脑登录管理员账号。");
             } else {
                  throw err;
             }
@@ -543,10 +577,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                                <Shield size={18} className="fill-cyber-green text-black" /> 
                                已授权 (Authorized)
                            </h3>
-                           <p className="text-xs text-gray-400 font-mono">
+                           <p className="text-xs text-gray-400 font-mono mb-4">
                                当前登录: <span className="text-white">{authModel.email}</span>
                            </p>
+                           
+                           {/* Unlock Public Read Access Button */}
+                           <button 
+                               onClick={handleMakePublic}
+                               className="w-full px-4 py-2.5 bg-yellow-500/10 hover:bg-yellow-500 text-yellow-500 hover:text-black border border-yellow-500/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs mb-2"
+                           >
+                               <Unlock size={14} /> 开启全员只读权限
+                           </button>
+                           <p className="text-[9px] text-gray-500 text-center">允许其他未登录的电脑拉取数据 (Public Read)</p>
                        </div>
+                       
                        <button 
                            onClick={handleLogout}
                            className="w-full mt-4 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
