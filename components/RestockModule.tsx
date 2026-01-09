@@ -8,6 +8,7 @@ import {
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote
 } from 'lucide-react';
 import { usePersistence } from '../hooks/usePersistence';
+import { addToRecycleBin } from '../lib/recycleBin';
 
 // --- World-Class ERP Data Model ---
 interface Variant {
@@ -493,10 +494,6 @@ export const RestockModule: React.FC = () => {
     const boxVol = Number(p.packing?.boxVolumeCbm) || 0;
     const pcsPerBox = Number(p.packing?.pcsPerBox) || 1;
 
-    const totalWeight = boxCount * boxWeight;
-    const totalVolume = boxCount * boxVol;
-    const totalUnitsConfigured = boxCount * pcsPerBox || 1; // From Packing Config
-
     // 3. Inventory & Reorder Logic
     const inventory = p.inventory || { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 0 };
     const supplier = p.supplier || { moq: 0, unitPriceRMB: 0 };
@@ -505,31 +502,42 @@ export const RestockModule: React.FC = () => {
     const needed = Math.max(0, (inventory.safetyDays - daysOfCover) * inventory.dailyVelocity);
     const reorderQty = Math.ceil(Math.max(needed, supplier.moq)); // Use Ceil for integer items
     
-    // 4. Freight Logic (Smart Divisor)
+    // 4. Batch Context (Dynamic Calculation)
+    // If system recommends reorder, base logistics on THAT quantity.
+    // If not (e.g. just viewing product), base on manual box config or at least 1 box.
+    const manualBoxCount = Number(p.packing?.boxCount) || 0;
+    const batchQty = reorderQty > 0 ? reorderQty : (manualBoxCount * pcsPerBox || 1);
+
+    // 5. Dynamic Dimensions based on Batch Context
+    const requiredBoxes = Math.ceil(batchQty / pcsPerBox);
+    const totalWeight = requiredBoxes * boxWeight;
+    const totalVolume = requiredBoxes * boxVol;
+
+    // 6. Freight Logic (Smart Fallback)
     let currentTotalFreightRMB = 0; 
     const rawMode = p.logistics?.mode || 'sea';
     const mode = String(rawMode).toLowerCase().trim(); 
     const rate = Number(p.logistics?.unitRateRMB) || 0;
     const manualTotalFreight = Number(p.logistics?.totalFreightRMB) || 0;
 
-    // Determine the Batch Quantity to allow proper unit cost calculation
-    // Priority: Reorder Qty > Packing Configuration > 1
-    const batchQty = reorderQty > 0 ? reorderQty : (totalUnitsConfigured > 0 ? totalUnitsConfigured : 1);
-
     if (manualTotalFreight > 0) {
-        // If Manual Total is provided, we assume it covers the ENTIRE batch.
-        // Therefore, we divide by the Batch Quantity to get the Unit Cost.
         currentTotalFreightRMB = manualTotalFreight;
     } else {
-        // Auto-calc based on rate * dimensions
+        // Auto-calc based on rate * dimensions derived from BATCH QTY
         if (mode.includes('air')) {
            currentTotalFreightRMB = totalWeight * rate; 
         } else {
-           currentTotalFreightRMB = totalVolume * rate;
+           // Standard Sea/Rail is Volume based.
+           // SMART FALLBACK: If Volume is 0 but Weight exists, assume user wants Weight-based pricing (e.g. Matson fast ship or missing data).
+           if (totalVolume > 0) {
+               currentTotalFreightRMB = totalVolume * rate;
+           } else {
+               currentTotalFreightRMB = totalWeight * rate;
+           }
         }
     }
 
-    const unitFreightRMB = currentTotalFreightRMB / batchQty;
+    const unitFreightRMB = batchQty > 0 ? currentTotalFreightRMB / batchQty : 0;
     const unitFreightUSD = unitFreightRMB / exchangeRate;
     
     const unitDutyUSD = unitProductCostUSD * (p.logistics?.dutyRate || 0);
@@ -555,13 +563,7 @@ export const RestockModule: React.FC = () => {
     
     const capitalRequiredRMB = reorderQty * supplier.unitPriceRMB;
 
-    // For display in the list view:
-    // If manual total is set, show that.
-    // Otherwise, show Unit * Quantity
-    const displayTotalFreightRMB = manualTotalFreight > 0 
-        ? manualTotalFreight 
-        : unitFreightRMB * reorderQty;
-
+    const displayTotalFreightRMB = currentTotalFreightRMB;
     const totalProfitBatchUSD = netProfit * reorderQty;
 
     return {
@@ -572,7 +574,7 @@ export const RestockModule: React.FC = () => {
       totalServiceFees,
       netProfit, margin, roi,
       daysOfCover, reorderQty, capitalRequiredRMB,
-      totalUnits: totalUnitsConfigured, totalWeight, totalVolume,
+      totalUnits: batchQty, totalWeight, totalVolume,
       totalProfitBatchUSD,
       currentTotalFreightRMB: displayTotalFreightRMB // Context-aware display value
     };
