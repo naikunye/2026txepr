@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
-  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe
+  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -24,6 +24,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   
   // Server Config State
   const [serverInput, setServerInput] = useState(pb.baseUrl === DEFAULT_PB_URL || pb.baseUrl.includes('YOUR_TENCENT_IP') ? '' : pb.baseUrl);
+  const [showHttpsTip, setShowHttpsTip] = useState(false);
   
   // Real System Stats
   const [storageUsage, setStorageUsage] = useState(0); // in KB
@@ -64,6 +65,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   };
 
   const runDiagnostics = async () => {
+      setShowHttpsTip(false);
       addLog('> 正在启动全系统诊断...');
       
       // 1. Check Configuration
@@ -78,15 +80,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       const isServerHttp = pb.baseUrl.startsWith('http:');
       
       if (isPageHttps && isServerHttp) {
-          addLog('> [安全阻断] ⛔ 混合内容错误 (Mixed Content)');
-          addLog('> 原因: 当前网页运行在 HTTPS 安全协议下，');
-          addLog('> 无法连接不安全的 HTTP 服务器。浏览器已拦截请求。');
-          addLog('> 解决方案:');
-          addLog('> 1. (推荐) 使用 http://localhost 本地运行前端');
-          addLog('> 2. 或为您的 PocketBase 服务器配置 SSL 证书');
-          setNetworkLatency(null);
-          alert('连接失败：浏览器安全策略阻止 HTTPS 网站连接 HTTP 服务器。\n\n请尝试在本地环境 (http://localhost) 运行此项目，或者为您的云服务器配置 SSL 证书。');
-          return;
+          addLog('> [⚠️ 警告] 检测到协议冲突 (HTTPS -> HTTP)');
+          addLog('> 浏览器可能会因 "Mixed Content" 安全策略拦截请求。');
+          addLog('> 正在尝试强制连接...');
+          setShowHttpsTip(true);
+          // We do NOT return here anymore, we let it try to fail naturally
+          // so users with disabled browser security can still connect.
       }
 
       addLog(`> 正在 Ping: ${pb.baseUrl}...`);
@@ -100,18 +99,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           setNetworkLatency(latency);
           addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
           addLog('> 数据库读写权限: 正常');
+          setShowHttpsTip(false); // Hide tip if successful
           alert('连接成功！云端同步已激活。');
       } catch (err: any) {
           console.error(err);
           addLog('> [错误] ❌ 服务器连接失败');
           if (err.status === 0) {
-              addLog('> 原因: 网络不可达、防火墙拦截或混合内容限制');
-              addLog('> 建议: 1.检查IP是否正确 2.腾讯云防火墙是否放行 8090 端口');
+              // Status 0 usually means Network Error or Blocked by Browser
+              if (isPageHttps && isServerHttp) {
+                  addLog('> [安全阻断] 浏览器拦截了请求。');
+                  addLog('> 根本原因: HTTPS 网页无法连接 HTTP 接口。');
+                  setShowHttpsTip(true);
+              } else {
+                  addLog('> 原因: 网络不可达或防火墙拦截');
+                  addLog('> 建议: 1.检查IP是否正确 2.腾讯云防火墙是否放行 8090 端口');
+              }
           } else {
               addLog(`> 错误代码: ${err.status} ${err.message}`);
           }
           setNetworkLatency(null);
-          alert('连接失败。请检查控制台日志获取详情。');
       }
 
       calculateStorage();
@@ -246,8 +252,39 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           </div>
        </div>
 
+       {/* HTTPS Solution Tip */}
+       {showHttpsTip && (
+           <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2">
+               <div className="p-2 bg-yellow-500/20 rounded-lg h-fit text-yellow-500">
+                   <AlertTriangle size={20} />
+               </div>
+               <div className="flex-1">
+                   <h4 className="text-yellow-500 font-bold text-sm mb-1">连接被浏览器拦截 (Protocol Error)</h4>
+                   <p className="text-gray-400 text-xs mb-3 leading-relaxed">
+                       由于当前网页是 <strong>HTTPS</strong> 安全协议，浏览器禁止其连接不安全的 <strong>HTTP</strong> 服务器 IP。这是浏览器的硬性安全规定，不是代码错误。
+                   </p>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       <div className="bg-black/40 p-3 rounded-lg border border-white/5">
+                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 A: 本地运行 (推荐调试)</div>
+                           <div className="text-xs text-white">请在本地电脑运行此项目：</div>
+                           <code className="block mt-1 text-xs text-cyber-cyan bg-white/5 p-1 rounded">http://localhost:xxxx</code>
+                           <div className="text-[10px] text-gray-500 mt-1">Localhost 不受此限制。</div>
+                       </div>
+                       <div className="bg-black/40 p-3 rounded-lg border border-white/5">
+                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 B: 使用 ngrok (推荐云端)</div>
+                           <div className="text-xs text-white">在服务器运行以下命令获得 HTTPS 地址：</div>
+                           <div className="flex items-center gap-2 mt-1">
+                               <code className="text-xs text-cyber-green bg-white/5 p-1 rounded flex-1">ngrok http 8090</code>
+                           </div>
+                           <div className="text-[10px] text-gray-500 mt-1">将生成的 https://... 地址填入下方即可。</div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       )}
+
        {/* New Server Config Card */}
-       <div className="tech-border p-6 bg-blue-500/5 border-blue-500/20 relative overflow-hidden group">
+       <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${showHttpsTip ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
           <div className="flex flex-col md:flex-row gap-6 items-end">
              <div className="flex-1 w-full">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
@@ -255,8 +292,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                     云服务器配置 (Cloud Server)
                 </h3>
                 <p className="text-xs text-gray-400 mb-4 font-mono">
-                    请输入您腾讯云服务器的公网地址 (例如: http://43.154.xxx.xxx:8090)。
-                    <br/>无需在代码中修改，配置将自动保存在本地。
+                    请输入 PocketBase 服务器地址。
+                    <br/>如果网页是 HTTPS，则服务器地址必须也是 <span className="text-cyber-yellow">HTTPS</span> (或使用 localhost)。
                 </p>
                 <div className="flex gap-4">
                     <div className="relative flex-1 group/input">
@@ -264,7 +301,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                         <input 
                             value={serverInput}
                             onChange={(e) => setServerInput(e.target.value)}
-                            placeholder="http://123.456.78.90:8090"
+                            placeholder="https://your-project.pockethost.io"
                             className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-sm focus:border-cyber-blue outline-none transition-all shadow-inner"
                         />
                     </div>
