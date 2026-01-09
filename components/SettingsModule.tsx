@@ -2,10 +2,10 @@ import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
-  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2
+  Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
-import { pb } from '../lib/pb';
+import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
 
 interface SettingsModuleProps {
   currentTheme: string;
@@ -21,6 +21,9 @@ const themes = [
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS 系统监控初始化...', '> 等待诊断指令...']);
+  
+  // Server Config State
+  const [serverInput, setServerInput] = useState(pb.baseUrl === DEFAULT_PB_URL || pb.baseUrl.includes('YOUR_TENCENT_IP') ? '' : pb.baseUrl);
   
   // Real System Stats
   const [storageUsage, setStorageUsage] = useState(0); // in KB
@@ -41,19 +44,36 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
     setStorageUsage(Number((total / 1024).toFixed(2)));
   };
 
+  const handleSaveServer = async () => {
+      if (!serverInput) return;
+      
+      let url = serverInput.trim();
+      // Auto-fix URL format if user forgets http://
+      if (!url.startsWith('http')) {
+          url = `http://${url}`;
+      }
+      
+      // Update the global configuration
+      updateServerUrl(url);
+      setServerInput(url); // Update input to match normalized url
+      
+      addLog(`> 配置更新: ${url}`);
+      addLog('> 正在尝试建立连接...');
+      
+      await runDiagnostics();
+  };
+
   const runDiagnostics = async () => {
       addLog('> 正在启动全系统诊断...');
       
       // 1. Check Configuration
       if (pb.baseUrl.includes('YOUR_TENCENT_IP')) {
-          addLog('> [致命错误] ⚠️ 云端连接失败');
-          addLog('> 原因: 未配置服务器 IP 地址');
-          addLog('> 修复: 请打开 lib/pb.ts 填入您的公网 IP');
+          addLog('> [配置缺失] ⚠️ 请在上方“云服务器配置”中填入 IP 地址');
           setNetworkLatency(null);
           return;
       }
 
-      addLog('> 正在 Ping 腾讯云节点...');
+      addLog(`> 正在 Ping: ${pb.baseUrl}...`);
       const start = Date.now();
       
       try {
@@ -62,12 +82,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           const end = Date.now();
           const latency = end - start;
           setNetworkLatency(latency);
-          addLog(`> [成功] 连接建立! 延迟: ${latency}ms`);
-          addLog('> 云端数据库读写: 正常');
-      } catch (err) {
-          addLog('> [错误] 服务器无响应 (Timeout)');
-          addLog('> 请检查腾讯云防火墙是否放行 8090 端口');
+          addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
+          addLog('> 数据库读写权限: 正常');
+          alert('连接成功！云端同步已激活。');
+      } catch (err: any) {
+          console.error(err);
+          addLog('> [错误] ❌ 服务器连接失败');
+          if (err.status === 0) {
+              addLog('> 原因: 网络不可达或防火墙拦截');
+              addLog('> 建议: 1.检查IP是否正确 2.腾讯云防火墙是否放行 8090 端口');
+          } else {
+              addLog(`> 错误代码: ${err.status} ${err.message}`);
+          }
           setNetworkLatency(null);
+          alert('连接失败。请检查控制台日志获取详情。');
       }
 
       calculateStorage();
@@ -76,7 +104,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
   useEffect(() => {
     calculateStorage();
-    // Auto run only if configured, otherwise wait for user
+    // Auto run only if configured
     if (!pb.baseUrl.includes('YOUR_TENCENT_IP')) {
         runDiagnostics();
     } else {
@@ -195,9 +223,53 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              <p className="text-gray-500 font-mono text-xs mt-1">核心设置与诊断中心</p>
           </div>
           <div className="flex items-center gap-2">
-             <div className={`flex items-center gap-2 px-3 py-1 bg-black border rounded text-xs font-mono transition-colors ${networkLatency ? 'border-green-500/30 text-green-400' : 'border-white/10 text-gray-400'}`}>
+             <div className={`flex items-center gap-2 px-3 py-1 bg-black border rounded-full text-xs font-mono transition-colors ${networkLatency ? 'border-green-500/30 text-green-400' : 'border-white/10 text-gray-400'}`}>
                 <div className={`w-2 h-2 rounded-full ${networkLatency ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-red-500 animate-pulse'}`}></div>
-                {networkLatency ? `${networkLatency}ms` : '断开'}
+                {networkLatency ? `在线: ${networkLatency}ms` : '离线 (Offline)'}
+             </div>
+          </div>
+       </div>
+
+       {/* New Server Config Card */}
+       <div className="tech-border p-6 bg-blue-500/5 border-blue-500/20 relative overflow-hidden group">
+          <div className="flex flex-col md:flex-row gap-6 items-end">
+             <div className="flex-1 w-full">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
+                    <Cloud size={18} className="text-cyber-blue" /> 
+                    云服务器配置 (Cloud Server)
+                </h3>
+                <p className="text-xs text-gray-400 mb-4 font-mono">
+                    请输入您腾讯云服务器的公网地址 (例如: http://43.154.xxx.xxx:8090)。
+                    <br/>无需在代码中修改，配置将自动保存在本地。
+                </p>
+                <div className="flex gap-4">
+                    <div className="relative flex-1 group/input">
+                        <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within/input:text-cyber-blue transition-colors" />
+                        <input 
+                            value={serverInput}
+                            onChange={(e) => setServerInput(e.target.value)}
+                            placeholder="http://123.456.78.90:8090"
+                            className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-mono text-sm focus:border-cyber-blue outline-none transition-all shadow-inner"
+                        />
+                    </div>
+                    <button 
+                        onClick={handleSaveServer}
+                        className="px-6 py-2 bg-cyber-blue hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                    >
+                        <RefreshCw size={16} /> 保存并连接
+                    </button>
+                </div>
+             </div>
+             
+             {/* Mini Status Graphic */}
+             <div className="hidden md:flex flex-col items-center justify-center px-8 border-l border-white/5 opacity-80">
+                 <div className="relative">
+                     <Server size={32} className={networkLatency ? "text-green-500" : "text-gray-600"} />
+                     {networkLatency && <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping"></div>}
+                 </div>
+                 <span className={`text-[10px] font-bold mt-2 uppercase ${networkLatency ? "text-green-500" : "text-gray-600"}`}>
+                     {networkLatency ? 'Connected' : 'Disconnected'}
+                 </span>
              </div>
           </div>
        </div>
@@ -267,7 +339,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                 </div>
 
                 <button onClick={runDiagnostics} className="w-full py-3 border border-white/20 text-gray-400 hover:text-white hover:border-white transition-all rounded font-bold text-sm flex items-center justify-center gap-2">
-                   <Activity size={16} /> 运行系统诊断
+                   <Activity size={16} /> 重新运行诊断
                 </button>
              </div>
 
@@ -292,7 +364,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              </div>
              <div className="flex-1 bg-black border border-white/10 border-t-0 rounded-b-xl p-4 font-mono text-xs text-green-500 overflow-y-auto custom-scrollbar shadow-inner">
                 {consoleLogs.map((log, i) => (
-                   <div key={i} className="mb-1 opacity-80 hover:opacity-100">{log}</div>
+                   <div key={i} className="mb-1 opacity-80 hover:opacity-100 border-l-2 border-transparent hover:border-green-500 pl-2 transition-all">{log}</div>
                 ))}
                 <div className="animate-pulse">_</div>
              </div>

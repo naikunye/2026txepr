@@ -1,10 +1,26 @@
 import PocketBase from 'pocketbase';
 
-// ⚠️ 请将此处替换为您腾讯云服务器的公网 IP 地址和端口 (PocketBase 默认通常是 8090)
-// 例如: 'http://123.45.67.89:8090'
-export const PB_URL = 'http://YOUR_TENCENT_IP:8090'; 
+// Key for LocalStorage
+export const STORAGE_KEY_PB_URL = 'AERO_PB_URL';
 
-export const pb = new PocketBase(PB_URL);
+// Default placeholder
+export const DEFAULT_PB_URL = 'http://YOUR_TENCENT_IP:8090'; 
 
-// 禁用自动取消请求，防止在快速操作时中断同步
+// 1. Try to get the configured URL from LocalStorage
+const savedUrl = localStorage.getItem(STORAGE_KEY_PB_URL);
+
+// 2. Initialize PocketBase with saved URL or default
+export const pb = new PocketBase(savedUrl || DEFAULT_PB_URL);
+
+// Disable auto-cancellation
 pb.autoCancellation(false);
+
+/**
+ * Helper to update the server URL dynamically from the UI
+ */
+export const updateServerUrl = (url: string) => {
+    // Remove trailing slash if present
+    const cleanUrl = url.replace(/\/$/, '');
+    localStorage.setItem(STORAGE_KEY_PB_URL, cleanUrl);
+    pb.baseUrl = cleanUrl;
+};
