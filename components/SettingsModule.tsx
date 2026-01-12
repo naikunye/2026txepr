@@ -3,7 +3,7 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle, ServerCrash
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -29,7 +29,7 @@ const SYNC_KEYS = [
     'AERO_FILES_DATA'
 ];
 
-type DiagErrorType = 'none' | 'browser_block' | 'server_unreachable' | 'config_missing';
+type DiagErrorType = 'none' | 'browser_block' | 'server_unreachable' | 'config_missing' | 'service_unavailable';
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,13 +125,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           const isPageHttps = window.location.protocol === 'https:';
           const isServerHttp = pb.baseUrl.startsWith('http:');
 
-          addLog('> [连接失败] ❌ 无法连接到服务器');
+          addLog(`> [连接失败] ❌ 服务器返回状态: ${err.status || '无响应'}`);
           
-          if (err.status === 0) {
+          if (err.status === 503 || err.status === 502) {
+              addLog('> [严重错误] 服务不可用 (503 Service Unavailable)');
+              addLog('> 原因: Nginx/网关正常，但后端 PocketBase 进程已挂掉。');
+              setDiagError('service_unavailable');
+          } else if (err.status === 0) {
               // INTELLIGENT DIAGNOSIS
-              // If it fails VERY fast (< 100ms) on mixed content, it's likely the browser blocking it immediately.
-              // If it takes longer (> 200ms), it likely tried to connect but timed out/refused (Server issue).
-              
               if (duration < 200 && isPageHttps && isServerHttp) {
                   addLog('> [安全策略] 浏览器瞬间拦截了请求 (耗时 < 200ms)');
                   setDiagError('browser_block');
@@ -499,7 +500,45 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
            </div>
        )}
 
-       {/* ERROR TYPE 2: Server Unreachable (Timeout / Down) */}
+       {/* ERROR TYPE 2: Service Unavailable (503) */}
+       {diagError === 'service_unavailable' && (
+           <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+               <div className="p-2 bg-orange-500/20 rounded-lg h-fit text-orange-500">
+                   <ServerCrash size={20} />
+               </div>
+               <div className="flex-1">
+                   <h4 className="text-orange-500 font-bold text-sm mb-1 flex items-center gap-2">
+                       服务不可用 (HTTP 503 Service Unavailable)
+                       <span className="text-[10px] bg-orange-500 text-black px-2 py-0.5 rounded font-black uppercase">Server Error</span>
+                   </h4>
+                   <p className="text-gray-300 text-xs mb-3 leading-relaxed">
+                       <strong>好消息：</strong>您的网络是通的，浏览器也未拦截！<br/>
+                       <strong>坏消息：</strong>服务器上的 PocketBase 进程可能已崩溃或暂停，导致网关(Nginx)无法转发请求。
+                   </p>
+                   <div className="bg-black/60 p-4 rounded-lg border border-white/10 font-mono">
+                       <div className="text-[10px] text-gray-500 mb-2 font-bold uppercase">请 SSH 登录腾讯云服务器，执行以下修复指令：</div>
+                       
+                       <div className="space-y-3">
+                           <div>
+                               <div className="text-[10px] text-cyber-cyan mb-1">方案 A: 如果使用 Systemd (推荐)</div>
+                               <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/5">
+                                   <code className="text-xs text-white flex-1 select-all">sudo systemctl restart pocketbase</code>
+                                   <Copy size={12} className="text-gray-500 hover:text-white cursor-pointer"/>
+                               </div>
+                           </div>
+                           <div>
+                               <div className="text-[10px] text-cyber-purple mb-1">方案 B: 如果使用 Docker</div>
+                               <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/5">
+                                   <code className="text-xs text-white flex-1 select-all">docker restart pocketbase</code>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       )}
+
+       {/* ERROR TYPE 3: Server Unreachable (Timeout / Down) */}
        {diagError === 'server_unreachable' && (
            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2">
                <div className="p-2 bg-red-500/20 rounded-lg h-fit text-red-500">
