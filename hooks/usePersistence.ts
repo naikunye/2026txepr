@@ -4,10 +4,11 @@ import { pb } from '../lib/pb';
 export const LOCAL_STORAGE_UPDATE_EVENT = 'aero-storage-update';
 
 /**
- * World-Class Hybrid Persistence Hook
- * 1. Loads instantly from LocalStorage (Optimistic UI)
- * 2. Background syncs with Tencent Cloud (PocketBase)
- * 3. Handles Offline/Network errors gracefully
+ * World-Class Hybrid Persistence Hook (v2.1)
+ * Fixes:
+ * - Immediate Local Save: Prevents data loss if user refreshes immediately after editing.
+ * - Timestamp Protection: Uses isFirstMount to avoid overwriting timestamps on initial load.
+ * - Conflict Resolution: Robust server vs local time comparison.
  */
 export function usePersistence<T>(key: string, initialValue: T, delay: number = 500) {
   // 1. Initialize State from Local Storage (Fastest)
@@ -15,6 +16,11 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
     try {
       const item = localStorage.getItem(key);
       if (item) {
+        // Migration Patch: Ensure TS exists
+        if (!localStorage.getItem(key + '_TS')) {
+            localStorage.setItem(key + '_TS', Date.now().toString());
+        }
+
         const parsed = JSON.parse(item);
         if (Array.isArray(initialValue) && !Array.isArray(parsed)) return initialValue;
         return parsed;
@@ -28,17 +34,13 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
 
   const recordIdRef = useRef<string | null>(null);
   const isRemoteUpdate = useRef(false);
-  const isMounted = useRef(false);
   const isOffline = useRef(false);
+  const isFirstMount = useRef(true); // Prevents initial render from updating timestamp
 
-  // 2. Cloud Sync & Realtime Subscription
+  // 2. Cloud Sync Logic (On Mount)
   useEffect(() => {
-    isMounted.current = true;
-
-    // Detect unconfigured IP
     if (pb.baseUrl.includes('YOUR_TENCENT_IP')) {
         isOffline.current = true;
-        // Suppress warning to avoid spam, just fallback to local
         return;
     }
 
@@ -48,80 +50,101 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
         
         if (record && record.val) {
           recordIdRef.current = record.id;
-          if (JSON.stringify(record.val) !== JSON.stringify(state)) {
-             console.log(`[Cloud] Loaded remote data for ${key}`);
-             isRemoteUpdate.current = true;
-             setState(record.val);
-             localStorage.setItem(key, JSON.stringify(record.val));
+          
+          // --- CONFLICT RESOLUTION ---
+          const serverTime = new Date(record.updated).getTime();
+          const localTimeStr = localStorage.getItem(key + '_TS');
+          
+          const hasLocalData = localStorage.getItem(key) !== null;
+          // If no local TS, default to 0 (Server wins), unless we have data (then we assume it's fresh/unsynced)
+          const localTime = localTimeStr ? parseInt(localTimeStr) : (hasLocalData ? Date.now() : 0);
+
+          // LOGIC: Server wins only if it is significantly NEWER (> 2s) than local.
+          if (serverTime > localTime + 2000) {
+              if (JSON.stringify(record.val) !== JSON.stringify(state)) {
+                 console.log(`[Cloud] Server data is newer (${serverTime} > ${localTime}). Syncing down.`);
+                 isRemoteUpdate.current = true; // Mark as remote update so we don't bounce it back
+                 setState(record.val);
+                 
+                 // Persist the Server Data to Local immediately
+                 localStorage.setItem(key, JSON.stringify(record.val));
+                 localStorage.setItem(key + '_TS', serverTime.toString());
+              }
+          } else {
+              console.log(`[Cloud] Local data is authoritative. Keeping local.`);
           }
         }
       } catch (err: any) {
-        // Handle Errors Gracefully
-        const status = err.status;
-        
-        // 404: Key doesn't exist yet -> Normal
-        // 0: Network Error / Offline -> Normal if server down
-        if (status === 404) {
-            // New key, will create on first write
-        } else if (status === 0 || err.message === 'Something went wrong.' || err.name === 'ClientResponseError 0') {
-            if (!isOffline.current) {
-                console.log(`[Cloud] Offline mode active for ${key} (Server unreachable)`);
-                isOffline.current = true;
-            }
-        } else {
-            console.warn(`[Cloud] Sync warning for ${key}:`, err.message);
+        if (err.status === 0 || err.message === 'Something went wrong.') {
+            isOffline.current = true;
         }
       }
 
-      // Subscribe if online
+      // Realtime Subscription
       if (!isOffline.current) {
           try {
               pb.collection('sync_store').subscribe('*', function (e) {
                 if (e.action === 'update' && e.record.key === key) {
-                   isRemoteUpdate.current = true;
-                   setState(e.record.val);
-                   localStorage.setItem(key, JSON.stringify(e.record.val));
+                   const updateTime = new Date(e.record.updated).getTime();
+                   const currentLocalTime = parseInt(localStorage.getItem(key + '_TS') || '0');
+                   
+                   // Only accept push if strictly newer
+                   if (updateTime > currentLocalTime) {
+                       console.log(`[Realtime] Received update for ${key}`);
+                       isRemoteUpdate.current = true;
+                       setState(e.record.val);
+                       localStorage.setItem(key, JSON.stringify(e.record.val));
+                       localStorage.setItem(key + '_TS', updateTime.toString());
+                   }
                 }
-              }).catch(() => {
-                  isOffline.current = true;
-              });
-          } catch (e) {
-              // Ignore sub errors
-          }
+              }).catch(() => {});
+          } catch (e) {}
       }
     };
 
     initCloud();
 
     return () => {
-      isMounted.current = false;
       try { pb.collection('sync_store').unsubscribe('*'); } catch (e) {}
     };
   }, [key]); 
 
-  // 3. Persist Local Changes to Cloud
+  // 3. Persist Local Changes (Immediate Local + Debounced Cloud)
   useEffect(() => {
+    // Skip saving on the very first render to protect the existing timestamp
+    if (isFirstMount.current) {
+        isFirstMount.current = false;
+        return;
+    }
+
+    // If this change came from the cloud, we already saved it in initCloud/subscribe.
     if (isRemoteUpdate.current) {
         isRemoteUpdate.current = false;
         return;
     }
 
-    const handler = setTimeout(async () => {
-      try {
+    // A. IMMEDIATE LOCAL SAVE
+    // Critical: Save to LS synchronously so refreshing page immediately doesn't lose data.
+    try {
         const valString = JSON.stringify(state);
-        
-        // Always save to LocalStorage
+        const now = Date.now();
         localStorage.setItem(key, valString);
+        localStorage.setItem(key + '_TS', now.toString());
         window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key } }));
+    } catch (e) {
+        console.error("Local Save Failed", e);
+    }
 
-        // Sync to Cloud if online
-        if (isOffline.current) return;
+    // B. DEBOUNCED CLOUD SYNC
+    const handler = setTimeout(async () => {
+      if (isOffline.current) return;
 
+      try {
         if (recordIdRef.current) {
             await pb.collection('sync_store').update(recordIdRef.current, { val: state });
         } else {
+            // Double check existence before creating
             try {
-                // Double check before creating to avoid race conditions
                 const existing = await pb.collection('sync_store').getFirstListItem(`key="${key}"`);
                 recordIdRef.current = existing.id;
                 await pb.collection('sync_store').update(existing.id, { val: state });
@@ -129,18 +152,11 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
                 if (err.status === 404) {
                     const newRecord = await pb.collection('sync_store').create({ key, val: state });
                     recordIdRef.current = newRecord.id;
-                } else {
-                    throw err; 
                 }
             }
         }
       } catch (error: any) {
-         // Silently fail to offline mode
-         if (error.status === 0 || error.message === 'Something went wrong.') {
-             isOffline.current = true;
-         } else {
-             console.warn(`[Cloud] Save failed for "${key}"`, error.message);
-         }
+         if (error.status === 0) isOffline.current = true;
       }
     }, delay);
 
