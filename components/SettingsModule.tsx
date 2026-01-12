@@ -3,7 +3,7 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle, ServerCrash
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle, ServerCrash, Power, ShieldCheck, FileSearch
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -129,7 +129,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           
           if (err.status === 503 || err.status === 502) {
               addLog('> [严重错误] 服务不可用 (503 Service Unavailable)');
-              addLog('> 原因: Nginx/网关正常，但后端 PocketBase 进程已挂掉。');
+              addLog('> 原因: PocketBase 进程已挂掉。');
               setDiagError('service_unavailable');
           } else if (err.status === 0) {
               // INTELLIGENT DIAGNOSIS
@@ -500,77 +500,49 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
            </div>
        )}
 
-       {/* ERROR TYPE 2: Service Unavailable (503) */}
-       {diagError === 'service_unavailable' && (
-           <div className="bg-orange-500/10 border border-orange-500/30 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
-               <div className="p-2 bg-orange-500/20 rounded-lg h-fit text-orange-500">
+       {/* ERROR TYPE 2 & 3: Service Unavailable or Timeout - DEEP REPAIR GUIDE */}
+       {(diagError === 'service_unavailable' || diagError === 'server_unreachable') && (
+           <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2 shadow-[0_0_20px_rgba(220,38,38,0.1)]">
+               <div className="p-2 bg-red-500/20 rounded-lg h-fit text-red-500">
                    <ServerCrash size={20} />
                </div>
                <div className="flex-1">
-                   <h4 className="text-orange-500 font-bold text-sm mb-1 flex items-center gap-2">
-                       服务不可用 (HTTP 503 Service Unavailable)
-                       <span className="text-[10px] bg-orange-500 text-black px-2 py-0.5 rounded font-black uppercase">Server Error</span>
+                   <h4 className="text-red-500 font-bold text-sm mb-1 flex items-center gap-2">
+                       连接失败: 请执行“深度修复” (Deep Repair)
+                       <span className="text-[10px] bg-red-500 text-black px-2 py-0.5 rounded font-black uppercase">ACTION REQUIRED</span>
                    </h4>
-                   <p className="text-gray-300 text-xs mb-3 leading-relaxed">
-                       <strong>好消息：</strong>您的网络是通的，浏览器也未拦截！<br/>
-                       <strong>坏消息：</strong>服务器上的 PocketBase 进程可能已崩溃或暂停，导致网关(Nginx)无法转发请求。
+                   <p className="text-gray-300 text-xs mb-4 leading-relaxed">
+                       <strong>诊断分析：</strong>您的 nohup 命令显示 <code>[1] PID</code> 说明进程已启动，但依然无法连接。这通常是因为 <strong>Ubuntu 防火墙 (UFW)</strong> 拦截了端口，或者程序在后台默默报错退出了。
                    </p>
-                   <div className="bg-black/60 p-4 rounded-lg border border-white/10 font-mono">
-                       <div className="text-[10px] text-gray-500 mb-2 font-bold uppercase">请 SSH 登录腾讯云服务器，执行以下修复指令：</div>
-                       
-                       <div className="space-y-3">
-                           <div>
-                               <div className="text-[10px] text-cyber-cyan mb-1">方案 A: 如果使用 Systemd (推荐)</div>
-                               <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/5">
-                                   <code className="text-xs text-white flex-1 select-all">sudo systemctl restart pocketbase</code>
-                                   <Copy size={12} className="text-gray-500 hover:text-white cursor-pointer"/>
-                               </div>
+                   
+                   <div className="space-y-4">
+                       {/* Step 1: Firewall */}
+                       <div className="bg-black/60 p-3 rounded-lg border border-white/10 font-mono relative group">
+                           <div className="text-[10px] text-cyber-yellow mb-2 font-bold uppercase flex items-center gap-2">
+                               <ShieldCheck size={12}/> 第一步: 开放内部防火墙 (必须执行!)
                            </div>
-                           <div>
-                               <div className="text-[10px] text-cyber-purple mb-1">方案 B: 如果使用 Docker</div>
-                               <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/5">
-                                   <code className="text-xs text-white flex-1 select-all">docker restart pocketbase</code>
-                               </div>
-                           </div>
+                           <div className="text-[9px] text-gray-500 mb-2">腾讯云很多镜像默认开启 UFW，必须手动放行 8090。</div>
+                           <code className="block text-xs text-white bg-white/5 p-2 rounded border border-white/5 select-all">
+                               sudo ufw allow 8090/tcp
+                           </code>
                        </div>
-                   </div>
-               </div>
-           </div>
-       )}
 
-       {/* ERROR TYPE 3: Server Unreachable (Timeout / Down) */}
-       {diagError === 'server_unreachable' && (
-           <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2">
-               <div className="p-2 bg-red-500/20 rounded-lg h-fit text-red-500">
-                   <Wifi size={20} />
-               </div>
-               <div className="flex-1">
-                   <h4 className="text-red-500 font-bold text-sm mb-1">无法连接到服务器 (Server Unreachable)</h4>
-                   <p className="text-gray-400 text-xs mb-3 leading-relaxed">
-                       请求发出了，但服务器没有响应或拒绝连接。鉴于您已配置浏览器允许不安全内容，这极有可能是<strong>服务器端的问题</strong>。
-                   </p>
-                   <div className="space-y-2 bg-black/40 p-4 rounded-lg border border-white/5">
-                       <div className="flex items-start gap-2">
-                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
-                           <div>
-                               <span className="text-xs font-bold text-white block">IP 地址是否变更? (Dynamic IP)</span>
-                               <span className="text-[10px] text-gray-400">腾讯云服务器如果重启，公网 IP 可能会改变。请核对控制台 IP 是否仍为 <span className="text-cyber-cyan font-mono">{pb.baseUrl.split('//')[1]?.split(':')[0]}</span></span>
+                       {/* Step 2: Debug Process */}
+                       <div className="bg-black/60 p-3 rounded-lg border border-white/10 font-mono relative group">
+                           <div className="text-[10px] text-cyber-cyan mb-2 font-bold uppercase flex items-center gap-2">
+                               <FileSearch size={12}/> 第二步: 确认进程存活
                            </div>
-                       </div>
-                       <div className="w-full h-[1px] bg-white/5"></div>
-                       <div className="flex items-start gap-2">
-                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
-                           <div>
-                               <span className="text-xs font-bold text-white block">PocketBase 进程是否存活?</span>
-                               <span className="text-[10px] text-gray-400">请登录服务器终端，输入 `ps aux | grep pocketbase` 检查进程是否在运行。</span>
-                           </div>
-                       </div>
-                       <div className="w-full h-[1px] bg-white/5"></div>
-                       <div className="flex items-start gap-2">
-                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
-                           <div>
-                               <span className="text-xs font-bold text-white block">防火墙 (Security Group)</span>
-                               <span className="text-[10px] text-gray-400">确保腾讯云控制台的安全组规则中，已放行 <span className="text-yellow-500 font-mono">TCP:8090</span> 端口。</span>
+                           <div className="space-y-3">
+                               <div>
+                                   <div className="text-[9px] text-gray-500 mb-1">A. 查看 nohup 日志 (看是否有报错):</div>
+                                   <code className="block text-xs text-white bg-white/5 p-2 rounded border border-white/5 select-all">tail -n 20 pb.log</code>
+                               </div>
+                               <div>
+                                   <div className="text-[9px] text-gray-500 mb-1">B. 杀掉旧进程并<b>前台启动</b> (看到 'Server started' 才算成功):</div>
+                                   <code className="block text-xs text-white bg-white/5 p-2 rounded border border-white/5 select-all">
+                                      fuser -k 8090/tcp; ./pocketbase serve --http="0.0.0.0:8090"
+                                   </code>
+                               </div>
                            </div>
                        </div>
                    </div>
