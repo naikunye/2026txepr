@@ -5,7 +5,7 @@ import {
   Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
-  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote
+  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -47,6 +47,8 @@ interface Product {
     hsCode: string; 
     status: 'Plan' | 'Shipped' | 'Customs' | 'Received' | 'Exception';
     priority: 'urgent' | 'normal' | 'defer';
+    etd?: string; // Estimated Time of Departure
+    eta?: string; // Estimated Time of Arrival
   };
 
   packing: {
@@ -94,7 +96,7 @@ const initialProducts: Product[] = [
         { id: 'v3', suffix: '-BLU', variantName: 'Blue', quantity: 35 },
     ],
     supplier: { name: '义乌市黑岩户外用品', link: '#', moq: 500, unitPriceRMB: 48.5, leadTime: 7, paymentTerms: '已付款' },
-    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', carrier: 'UPS', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, paymentStatus: '待支付', dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal' },
+    logistics: { inboundId: 'LX-20240105-001', trackingNo: '1ZHV2525041299', carrier: 'UPS', mode: 'air', warehouseDest: 'ONT8', unitRateRMB: 38.0, totalFreightRMB: 4750, paymentStatus: '待支付', dutyRate: 0.15, hsCode: '6602.00.00', status: 'Shipped', priority: 'normal', etd: '2024-01-05', eta: '2024-01-12' },
     packing: { pcsPerBox: 20, boxCount: 10, boxWeightKg: 12.5, boxVolumeCbm: 0.08 },
     financials: { 
         sellingPriceUSD: 39.99, 
@@ -120,7 +122,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '待付款' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, paymentStatus: '已支付', dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, paymentStatus: '已支付', dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer', etd: '2024-01-20', eta: '2024-02-15' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -231,6 +233,8 @@ const sanitizeProduct = (p: any): Product => {
       hsCode: fuzzyVal(mixedPool, ['hsCode', 'HS Code', '海关编码'], 'string', ''),
       status: fuzzyVal(mixedPool, ['status', 'Status', '状态', '物流状态'], 'string', 'Plan') as any,
       priority: fuzzyVal(mixedPool, ['priority', 'Priority', '优先级'], 'string', 'normal') as any,
+      etd: fuzzyVal(mixedPool, ['etd', 'ETD', 'departureDate', '发货日期'], 'string', ''),
+      eta: fuzzyVal(mixedPool, ['eta', 'ETA', 'arrivalDate', '到港日期'], 'string', ''),
     },
     packing: {
       pcsPerBox: fuzzyVal(mixedPool, ['pcsPerBox', 'pcs_per_ctn', 'Pcs/Ctn', '装箱数', '每箱数量', 'Packing', 'Qty/Ctn', 'pcs_per_carton', '装箱量'], 'number', 0),
@@ -667,7 +671,7 @@ export const RestockModule: React.FC = () => {
           image: '',
           variants: [],
           supplier: { name: '', link: '', moq: 100, unitPriceRMB: 0, leadTime: 7, paymentTerms: '' },
-          logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, paymentStatus: '待支付', dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal' },
+          logistics: { inboundId: '', trackingNo: '', carrier: 'UPS', mode: 'sea', warehouseDest: '', unitRateRMB: 0, totalFreightRMB: 0, paymentStatus: '待支付', dutyRate: 0, hsCode: '', status: 'Plan', priority: 'normal', etd: '', eta: '' },
           packing: { pcsPerBox: 0, boxCount: 0, boxWeightKg: 0, boxVolumeCbm: 0 },
           financials: { sellingPriceUSD: 0, referralFeeRate: 0.15, transactionFeeRate: 0.03, fixedTransactionFeeUSD: 0.3, affiliateRate: 0, fulfillmentFeeUSD: 0, outboundHandlingFeeUSD: 0, storageFeeUSD: 0, adCostUSD: 0, targetRoas: 0, returnRate: 0.05, miscCostUSD: 0 },
           inventory: { current: 0, incoming: 0, dailyVelocity: 0, safetyDays: 30 },
@@ -1061,7 +1065,7 @@ export const RestockModule: React.FC = () => {
                           <div className="apple-glass p-5">
                              <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-cyber-cyan font-bold text-xs uppercase flex items-center gap-2 tracking-widest">
-                                    <Truck size={14}/> 物流单证
+                                    <Truck size={14}/> 物流单证与时效 (Schedule)
                                 </h3>
                              </div>
                              <div className="grid grid-cols-3 gap-4 mb-2">
@@ -1122,6 +1126,26 @@ export const RestockModule: React.FC = () => {
                                    <div className="text-[9px] text-gray-500 mt-1 text-right">
                                       {(selectedProduct.logistics?.totalFreightRMB || 0) > 0 ? '已覆盖预估计算 (优先)' : '使用单价自动计算'}
                                    </div>
+                                </div>
+                                
+                                {/* New Time Schedule Fields */}
+                                <div>
+                                   <label className="lbl flex items-center gap-1 text-gray-300"><Calendar size={10} /> 预计发货 (ETD)</label>
+                                   <input 
+                                     type="date"
+                                     value={selectedProduct.logistics?.etd || ''} 
+                                     onChange={e => handleUpdate('logistics.etd', e.target.value)} 
+                                     className="input-holo w-full p-2 text-sm font-mono"
+                                   />
+                                </div>
+                                <div>
+                                   <label className="lbl flex items-center gap-1 text-gray-300"><Calendar size={10} /> 预计到达 (ETA)</label>
+                                   <input 
+                                     type="date"
+                                     value={selectedProduct.logistics?.eta || ''} 
+                                     onChange={e => handleUpdate('logistics.eta', e.target.value)} 
+                                     className="input-holo w-full p-2 text-sm font-mono"
+                                   />
                                 </div>
                              </div>
                           </div>
@@ -1550,6 +1574,8 @@ export const RestockModule: React.FC = () => {
             <p className="text-gray-400 font-medium text-xs mt-2 flex items-center gap-2 tracking-wide">
                <span className="w-2 h-2 rounded-full bg-cyber-blue"></span>
                全球供应链实时汇率: USD/RMB = <span className="text-white font-mono font-bold">{exchangeRate}</span>
+               <span className="mx-2 text-white/20">|</span>
+               <span className="text-gray-400">当前视图 SKU: <span className="text-white font-bold">{filteredProducts.length}</span></span>
             </p>
          </div>
          <div className="flex gap-4">
@@ -1791,8 +1817,14 @@ export const RestockModule: React.FC = () => {
                                 )}
                              </div>
 
+                             {/* Line 1.5: ETD / ETA Display (New) */}
+                             <div className="flex items-center gap-3 text-[10px] font-mono text-gray-400 mt-0.5">
+                                <span className="flex items-center gap-1.5"><Calendar size={10} className="text-gray-500"/> ETD: <span className={product.logistics?.etd ? "text-white font-bold" : "text-gray-600"}>{product.logistics?.etd || '-'}</span></span>
+                                <span className="flex items-center gap-1.5"><Calendar size={10} className="text-gray-500"/> ETA: <span className={product.logistics?.eta ? "text-white font-bold" : "text-gray-600"}>{product.logistics?.eta || '-'}</span></span>
+                             </div>
+
                              {/* Line 2: Variants | Remarks - Flow Horizontal */}
-                             <div className="flex flex-wrap items-center gap-3">
+                             <div className="flex flex-wrap items-center gap-3 mt-1">
                                 {/* --- SKU MATRIX MINI VIEW --- */}
                                 {product.variants && product.variants.length > 0 && (
                                     <div className="flex flex-wrap gap-1.5 items-center">
