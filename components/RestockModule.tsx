@@ -295,6 +295,14 @@ export const RestockModule: React.FC = () => {
       )
   );
 
+  // --- Helper for safe numeric display without locking inputs ---
+  const toPercent = (val: number | undefined) => {
+      // Return simple stringified number (multiplied by 100), avoiding fixed string locking
+      // e.g. 0.003 -> 0.3.  0.0033 -> 0.33
+      if (val === undefined || val === null) return '';
+      return parseFloat((val * 100).toFixed(4)); 
+  };
+
   // --- Batch Operations ---
   const toggleSelection = (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
@@ -820,6 +828,7 @@ export const RestockModule: React.FC = () => {
                       <span className="text-[10px] text-gray-400 font-mono uppercase">Rate:</span>
                       <input 
                         type="number" 
+                        step="0.01"
                         value={exchangeRate} 
                         onChange={e => setExchangeRate(parseFloat(e.target.value))}
                         className="w-12 bg-transparent text-white font-bold text-xs outline-none text-right font-mono border-b border-transparent focus:border-cyber-green transition-all"
@@ -860,15 +869,15 @@ export const RestockModule: React.FC = () => {
                                 </div>
                                 <div>
                                    <label className="lbl text-cyber-yellow">采购单价 (RMB)</label>
-                                   <input type="number" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm font-bold text-cyber-yellow" />
+                                   <input type="number" step="0.01" value={selectedProduct.supplier?.unitPriceRMB || 0} onChange={e => handleUpdate('supplier.unitPriceRMB', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm font-bold text-cyber-yellow" />
                                 </div>
                                 <div>
                                    <label className="lbl">备货数量 (MOQ)</label>
-                                   <input type="number" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="1" value={selectedProduct.supplier?.moq || 0} onChange={e => handleUpdate('supplier.moq', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">生产周期 (天)</label>
-                                   <input type="number" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="1" value={selectedProduct.supplier?.leadTime || 0} onChange={e => handleUpdate('supplier.leadTime', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">货款支付状态 (Product Payment)</label>
@@ -951,6 +960,7 @@ export const RestockModule: React.FC = () => {
                                    <label className="lbl text-cyber-purple">数量</label>
                                    <input 
                                       type="number"
+                                      step="1"
                                       value={variantQty}
                                       onChange={e => setVariantQty(e.target.value)}
                                       className="input-holo w-full p-2 text-sm text-center border-cyber-purple/30 focus:border-cyber-purple focus:shadow-[0_0_15px_rgba(192,38,211,0.3)]" 
@@ -1023,19 +1033,19 @@ export const RestockModule: React.FC = () => {
                              <div className="grid grid-cols-4 gap-4">
                                 <div>
                                    <label className="lbl">每箱数量 (件/箱)</label>
-                                   <input type="number" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="1" value={selectedProduct.packing?.pcsPerBox || 0} onChange={e => handleUpdate('packing.pcsPerBox', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">总箱数 (箱)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="1" value={selectedProduct.packing?.boxCount || 0} onChange={e => handleUpdate('packing.boxCount', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">单箱重量 (kg)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="0.01" value={selectedProduct.packing?.boxWeightKg || 0} onChange={e => handleUpdate('packing.boxWeightKg', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                                 <div>
                                    <label className="lbl">单箱体积 (m³)</label>
-                                   <input type="number" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="0.001" value={selectedProduct.packing?.boxVolumeCbm || 0} onChange={e => handleUpdate('packing.boxVolumeCbm', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
                              <div className="mt-4 p-3 bg-black/40 border border-white/10 rounded-xl flex justify-between gap-4 text-[10px] font-mono text-gray-500 shadow-inner">
@@ -1118,6 +1128,7 @@ export const RestockModule: React.FC = () => {
                                    <label className="lbl text-cyber-cyan">头程总运费 (总额 ¥)</label>
                                    <input 
                                      type="number" 
+                                     step="0.01"
                                      value={selectedProduct.logistics?.totalFreightRMB || 0} 
                                      onChange={e => handleUpdate('logistics.totalFreightRMB', parseFloat(e.target.value))} 
                                      className="input-holo w-full p-2 text-sm font-bold text-cyber-cyan border-cyber-cyan/30" 
@@ -1167,6 +1178,7 @@ export const RestockModule: React.FC = () => {
                                    <label className="lbl">头程运费单价 ({currentMode.includes('air') ? '¥/kg' : '¥/m³'})</label>
                                    <input 
                                       type="number" 
+                                      step="0.01"
                                       value={selectedProduct.logistics?.unitRateRMB || 0} 
                                       onChange={e => {
                                           const val = parseFloat(e.target.value);
@@ -1219,13 +1231,13 @@ export const RestockModule: React.FC = () => {
                                 <div>
                                    <label className="lbl">关税税率 (Duty %)</label>
                                    <div className="relative">
-                                      <input type="number" value={((selectedProduct.logistics?.dutyRate || 0) * 100).toFixed(2)} onChange={e => handleUpdate('logistics.dutyRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
+                                      <input type="number" step="0.01" value={toPercent(selectedProduct.logistics?.dutyRate)} onChange={e => handleUpdate('logistics.dutyRate', parseFloat(e.target.value)/100)} className="input-holo w-full p-2 text-sm pr-6" />
                                       <span className="absolute right-2 top-2.5 text-[10px] text-gray-500 font-bold">%</span>
                                    </div>
                                 </div>
                                 <div>
                                    <label className="lbl">杂费预估 (USD/件)</label>
-                                   <input type="number" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
+                                   <input type="number" step="0.01" value={selectedProduct.financials?.miscCostUSD || 0} onChange={e => handleUpdate('financials.miscCostUSD', parseFloat(e.target.value))} className="input-holo w-full p-2 text-sm" />
                                 </div>
                              </div>
                           </div>
@@ -1247,7 +1259,7 @@ export const RestockModule: React.FC = () => {
                                             <label className="lbl text-cyber-cyan flex items-center gap-1"><DollarSign size={10}/> 最终售价 (Selling Price)</label>
                                             <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-3 py-2.5 focus-within:border-cyber-cyan transition-colors">
                                                 <span className="text-gray-400 mr-2 text-lg font-mono">$</span>
-                                                <input type="number" value={selectedProduct.financials?.sellingPriceUSD || 0} onChange={e=>handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono text-xl flex-1 outline-none font-bold"/>
+                                                <input type="number" step="0.01" value={selectedProduct.financials?.sellingPriceUSD || 0} onChange={e=>handleUpdate('financials.sellingPriceUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono text-xl flex-1 outline-none font-bold"/>
                                             </div>
                                         </div>
 
@@ -1256,14 +1268,14 @@ export const RestockModule: React.FC = () => {
                                             <div>
                                                 <label className="lbl text-yellow-500 flex items-center gap-1"><Megaphone size={10}/> 达人佣金 (Affiliate %)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
-                                                    <input type="number" value={((selectedProduct.financials?.affiliateRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="bg-transparent text-yellow-400 font-mono flex-1 outline-none text-right font-bold"/>
+                                                    <input type="number" step="0.01" value={toPercent(selectedProduct.financials?.affiliateRate)} onChange={e=>handleUpdate('financials.affiliateRate', parseFloat(e.target.value)/100)} className="bg-transparent text-yellow-400 font-mono flex-1 outline-none text-right font-bold"/>
                                                     <span className="text-gray-500 text-xs ml-1">%</span>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="lbl flex items-center gap-1"><Globe size={10}/> 平台佣金 (Referral)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
-                                                    <input type="number" value={((selectedProduct.financials?.referralFeeRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={toPercent(selectedProduct.financials?.referralFeeRate)} onChange={e=>handleUpdate('financials.referralFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                     <span className="text-gray-500 text-xs ml-1">%</span>
                                                 </div>
                                             </div>
@@ -1275,21 +1287,21 @@ export const RestockModule: React.FC = () => {
                                                 <label className="lbl flex items-center gap-1 text-blue-400"><Truck size={10}/> 尾程配送费 ($)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
-                                                    <input type="number" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e=>handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={selectedProduct.financials?.fulfillmentFeeUSD || 0} onChange={e=>handleUpdate('financials.fulfillmentFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="lbl flex items-center gap-1"><Package size={10}/> 操作费 (Pick/Pack)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
-                                                    <input type="number" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e=>handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={selectedProduct.financials?.outboundHandlingFeeUSD || 0} onChange={e=>handleUpdate('financials.outboundHandlingFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="lbl flex items-center gap-1"><Warehouse size={10}/> 仓储费 (Storage)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
-                                                    <input type="number" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e=>handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={selectedProduct.financials?.storageFeeUSD || 0} onChange={e=>handleUpdate('financials.storageFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                 </div>
                                             </div>
                                         </div>
@@ -1300,13 +1312,13 @@ export const RestockModule: React.FC = () => {
                                                 <label className="lbl flex items-center gap-1 text-purple-400"><Zap size={10}/> 广告费 (Ad Cost)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
-                                                    <input type="number" value={selectedProduct.financials?.adCostUSD || 0} onChange={e=>handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="bg-transparent text-purple-400 font-bold font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={selectedProduct.financials?.adCostUSD || 0} onChange={e=>handleUpdate('financials.adCostUSD', parseFloat(e.target.value))} className="bg-transparent text-purple-400 font-bold font-mono flex-1 outline-none text-right"/>
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="lbl flex items-center gap-1 text-red-400"><RefreshCcw size={10}/> 退货率 (Return %)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
-                                                    <input type="number" value={((selectedProduct.financials?.returnRate || 0) * 100).toFixed(1)} onChange={e=>handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="bg-transparent text-red-400 font-bold font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={toPercent(selectedProduct.financials?.returnRate)} onChange={e=>handleUpdate('financials.returnRate', parseFloat(e.target.value)/100)} className="bg-transparent text-red-400 font-bold font-mono flex-1 outline-none text-right"/>
                                                     <span className="text-gray-500 text-xs ml-1">%</span>
                                                 </div>
                                             </div>
@@ -1317,7 +1329,7 @@ export const RestockModule: React.FC = () => {
                                             <div>
                                                 <label className="lbl">交易费率 (Tx %)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
-                                                    <input type="number" value={((selectedProduct.financials?.transactionFeeRate || 0) * 100).toFixed(2)} onChange={e=>handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={toPercent(selectedProduct.financials?.transactionFeeRate)} onChange={e=>handleUpdate('financials.transactionFeeRate', parseFloat(e.target.value)/100)} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                     <span className="text-gray-500 text-xs ml-1">%</span>
                                                 </div>
                                             </div>
@@ -1325,7 +1337,7 @@ export const RestockModule: React.FC = () => {
                                                 <label className="lbl">固定费 (Fixed Fee)</label>
                                                 <div className="flex items-center bg-[rgba(255,255,255,0.03)] border border-white/10 rounded-lg px-2 py-2">
                                                     <span className="text-gray-500 text-[10px]">$</span>
-                                                    <input type="number" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e=>handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
+                                                    <input type="number" step="0.01" value={selectedProduct.financials?.fixedTransactionFeeUSD || 0} onChange={e=>handleUpdate('financials.fixedTransactionFeeUSD', parseFloat(e.target.value))} className="bg-transparent text-white font-mono flex-1 outline-none text-right"/>
                                                 </div>
                                             </div>
                                         </div>
