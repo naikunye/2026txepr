@@ -6,7 +6,7 @@ import {
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar,
-  GripVertical // Added GripVertical icon
+  GripVertical 
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -279,7 +279,7 @@ export const RestockModule: React.FC = () => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
-  // Drag and Drop State
+  // Drag and Drop State - LIVE SORTING
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   
   // File Import Ref
@@ -299,20 +299,25 @@ export const RestockModule: React.FC = () => {
       )
   );
 
-  // --- Drag and Drop Handlers ---
+  // --- Drag and Drop Handlers (Live Reordering) ---
   const handleDragStart = (e: React.DragEvent, id: string) => {
       setDraggedProductId(id);
+      // Set the drag effect to move
       e.dataTransfer.effectAllowed = 'move';
-      // Optional: Set a custom drag image or let the browser handle the "ghost"
+      
+      // OPTIONAL: Hide the default "ghost" image to create a cleaner custom drag look
+      // (Requires a 1px transparent gif or canvas, simplifed here by just styling the original)
+      // For now, we rely on the browser ghost but style the source item as "lifted"
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-      e.preventDefault(); // Necessary to allow dropping
+      e.preventDefault(); // Essential to allow dropping
       e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
+  const handleDragEnter = (e: React.DragEvent, targetId: string) => {
       e.preventDefault();
+      // LIVE REORDERING LOGIC
       if (!draggedProductId || draggedProductId === targetId) return;
 
       const sourceIndex = products.findIndex(p => p.id === draggedProductId);
@@ -320,12 +325,15 @@ export const RestockModule: React.FC = () => {
 
       if (sourceIndex === -1 || targetIndex === -1) return;
 
-      // Reorder the master list
+      // Swap immediately in state to create the "live" feel
       const newProducts = [...products];
       const [movedItem] = newProducts.splice(sourceIndex, 1);
       newProducts.splice(targetIndex, 0, movedItem);
 
       setProducts(newProducts);
+  };
+
+  const handleDragEnd = () => {
       setDraggedProductId(null);
   };
 
@@ -1733,10 +1741,11 @@ export const RestockModule: React.FC = () => {
            </div>
         </div>
       ) : (
-        <div className="grid gap-5">
+        <div className="grid gap-5 relative">
            {filteredProducts.map((product) => {
               const eco = calculateEconomics(product);
               const isSelected = selectedIds.includes(product.id);
+              const isBeingDragged = draggedProductId === product.id;
               
               // Normalize mode logic to prevent case sensitivity issues
               const mode = (product.logistics?.mode || 'sea').toLowerCase();
@@ -1759,8 +1768,16 @@ export const RestockModule: React.FC = () => {
                  <div 
                    key={product.id} 
                    onDragOver={handleDragOver}
-                   onDrop={(e) => handleDrop(e, product.id)}
-                   className={`apple-glass p-0 transition-all duration-300 group relative overflow-hidden rounded-2xl ${isSelected ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' : 'hover:border-white/30 hover:bg-white/10'} ${draggedProductId === product.id ? 'opacity-40 border-dashed border-white/50 scale-95' : ''}`}
+                   onDragEnter={(e) => handleDragEnter(e, product.id)}
+                   className={`
+                     apple-glass p-0 group relative overflow-hidden rounded-2xl
+                     transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
+                     ${isSelected 
+                        ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' 
+                        : 'hover:border-white/30 hover:bg-white/10'
+                     }
+                     ${isBeingDragged ? 'opacity-30 scale-[0.98] border-dashed border-white/40 shadow-inner brightness-50 grayscale' : 'opacity-100 scale-100'}
+                   `}
                  >
                     {/* Active Border Indicator */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-white/30'}`}></div>
@@ -1776,11 +1793,12 @@ export const RestockModule: React.FC = () => {
 
                     <div className="p-5 flex gap-6 items-center border-b border-white/5 bg-gradient-to-r from-transparent to-black/20">
                        
-                       {/* DRAG HANDLE */}
+                       {/* DRAG HANDLE - Styling Updated */}
                        <div 
                          draggable
                          onDragStart={(e) => handleDragStart(e, product.id)}
-                         className="text-gray-600 hover:text-white cursor-grab active:cursor-grabbing p-1 -ml-2 hover:bg-white/10 rounded transition-colors"
+                         onDragEnd={handleDragEnd}
+                         className="text-gray-600 hover:text-white cursor-grab active:cursor-grabbing p-2 -ml-2 hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center h-full self-stretch"
                          title="Drag to Reorder"
                        >
                          <GripVertical size={20} />
