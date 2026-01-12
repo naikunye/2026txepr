@@ -5,7 +5,8 @@ import {
   Truck, TrendingUp, DollarSign, Scale, Layers, Warehouse, FileText, Anchor, 
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
-  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar
+  Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar,
+  GripVertical // Added GripVertical icon
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -278,6 +279,9 @@ export const RestockModule: React.FC = () => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   
+  // Drag and Drop State
+  const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
+  
   // File Import Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -294,6 +298,36 @@ export const RestockModule: React.FC = () => {
          (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
       )
   );
+
+  // --- Drag and Drop Handlers ---
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+      setDraggedProductId(id);
+      e.dataTransfer.effectAllowed = 'move';
+      // Optional: Set a custom drag image or let the browser handle the "ghost"
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault(); // Necessary to allow dropping
+      e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      if (!draggedProductId || draggedProductId === targetId) return;
+
+      const sourceIndex = products.findIndex(p => p.id === draggedProductId);
+      const targetIndex = products.findIndex(p => p.id === targetId);
+
+      if (sourceIndex === -1 || targetIndex === -1) return;
+
+      // Reorder the master list
+      const newProducts = [...products];
+      const [movedItem] = newProducts.splice(sourceIndex, 1);
+      newProducts.splice(targetIndex, 0, movedItem);
+
+      setProducts(newProducts);
+      setDraggedProductId(null);
+  };
 
   // --- Helper for safe numeric display without locking inputs ---
   const toPercent = (val: number | undefined) => {
@@ -1724,7 +1758,9 @@ export const RestockModule: React.FC = () => {
               return (
                  <div 
                    key={product.id} 
-                   className={`apple-glass p-0 transition-all duration-300 group relative overflow-hidden rounded-2xl ${isSelected ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' : 'hover:border-white/30 hover:bg-white/10'}`}
+                   onDragOver={handleDragOver}
+                   onDrop={(e) => handleDrop(e, product.id)}
+                   className={`apple-glass p-0 transition-all duration-300 group relative overflow-hidden rounded-2xl ${isSelected ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' : 'hover:border-white/30 hover:bg-white/10'} ${draggedProductId === product.id ? 'opacity-40 border-dashed border-white/50 scale-95' : ''}`}
                  >
                     {/* Active Border Indicator */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-white/30'}`}></div>
@@ -1739,6 +1775,17 @@ export const RestockModule: React.FC = () => {
                     </div>
 
                     <div className="p-5 flex gap-6 items-center border-b border-white/5 bg-gradient-to-r from-transparent to-black/20">
+                       
+                       {/* DRAG HANDLE */}
+                       <div 
+                         draggable
+                         onDragStart={(e) => handleDragStart(e, product.id)}
+                         className="text-gray-600 hover:text-white cursor-grab active:cursor-grabbing p-1 -ml-2 hover:bg-white/10 rounded transition-colors"
+                         title="Drag to Reorder"
+                       >
+                         <GripVertical size={20} />
+                       </div>
+
                        <div className="w-20 h-20 bg-black/60 border border-white/10 rounded-xl flex-shrink-0 overflow-hidden relative group-hover:border-white/30 transition-colors shadow-lg">
                           {product.image ? <img src={product.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> : <Package className="m-auto text-gray-700"/>}
                        </div>
