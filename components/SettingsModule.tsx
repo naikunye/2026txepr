@@ -3,7 +3,7 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -29,13 +29,15 @@ const SYNC_KEYS = [
     'AERO_FILES_DATA'
 ];
 
+type DiagErrorType = 'none' | 'browser_block' | 'server_unreachable' | 'config_missing';
+
 export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, onThemeChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [consoleLogs, setConsoleLogs] = useState<string[]>(['> AERO.OS 系统监控初始化...', '> 等待诊断指令...']);
   
   // Server Config State
   const [serverInput, setServerInput] = useState(pb.baseUrl === DEFAULT_PB_URL || pb.baseUrl.includes('YOUR_TENCENT_IP') ? '' : pb.baseUrl);
-  const [showHttpsTip, setShowHttpsTip] = useState(false);
+  const [diagError, setDiagError] = useState<DiagErrorType>('none');
   const [isSyncing, setIsSyncing] = useState(false);
   
   // Auth State
@@ -90,25 +92,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
   };
 
   const runDiagnostics = async () => {
-      setShowHttpsTip(false);
+      setDiagError('none');
       addLog('> 正在启动全系统诊断...');
       
       // 1. Check Configuration
       if (pb.baseUrl.includes('YOUR_TENCENT_IP')) {
           addLog('> [配置缺失] ⚠️ 请在上方“云服务器配置”中填入 IP 地址');
+          setDiagError('config_missing');
           setNetworkLatency(null);
           return;
-      }
-
-      // 2. Check Mixed Content (HTTPS -> HTTP)
-      const isPageHttps = window.location.protocol === 'https:';
-      const isServerHttp = pb.baseUrl.startsWith('http:');
-      
-      if (isPageHttps && isServerHttp) {
-          addLog('> [⚠️ 警告] 检测到协议冲突 (HTTPS -> HTTP)');
-          addLog('> 浏览器可能会因 "Mixed Content" 安全策略拦截请求。');
-          addLog('> 正在尝试强制连接...');
-          setShowHttpsTip(true);
       }
 
       addLog(`> 正在 Ping: ${pb.baseUrl}...`);
@@ -116,27 +108,40 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
       
       try {
           // Attempt a lightweight fetch to check connectivity
+          // We assume pb.health.check() does a GET request.
           await pb.health.check();
+          
           const end = Date.now();
           const latency = end - start;
           setNetworkLatency(latency);
+          
           addLog(`> [成功] ✅ 云端连接已建立! 延迟: ${latency}ms`);
           addLog('> 数据库权限: ' + (pb.authStore.isValid ? '管理员 (Admin)' : '访客 (Guest)'));
-          setShowHttpsTip(false); 
+          setDiagError('none');
       } catch (err: any) {
           console.error(err);
-          addLog('> [错误] ❌ 服务器连接失败');
+          const end = Date.now();
+          const duration = end - start;
+          const isPageHttps = window.location.protocol === 'https:';
+          const isServerHttp = pb.baseUrl.startsWith('http:');
+
+          addLog('> [连接失败] ❌ 无法连接到服务器');
+          
           if (err.status === 0) {
-              if (isPageHttps && isServerHttp) {
-                  addLog('> [安全阻断] 浏览器拦截了请求。');
-                  addLog('> 根本原因: HTTPS 网页无法连接 HTTP 接口。');
-                  setShowHttpsTip(true);
+              // INTELLIGENT DIAGNOSIS
+              // If it fails VERY fast (< 100ms) on mixed content, it's likely the browser blocking it immediately.
+              // If it takes longer (> 200ms), it likely tried to connect but timed out/refused (Server issue).
+              
+              if (duration < 200 && isPageHttps && isServerHttp) {
+                  addLog('> [安全策略] 浏览器瞬间拦截了请求 (耗时 < 200ms)');
+                  setDiagError('browser_block');
               } else {
-                  addLog('> 原因: 网络不可达或防火墙拦截');
-                  addLog('> 建议: 1.检查IP是否正确 2.腾讯云防火墙是否放行 8090 端口');
+                  addLog(`> [网络超时] 请求耗时 ${duration}ms，服务器无响应`);
+                  setDiagError('server_unreachable');
               }
           } else {
               addLog(`> 错误代码: ${err.status} ${err.message}`);
+              setDiagError('server_unreachable');
           }
           setNetworkLatency(null);
       }
@@ -466,26 +471,67 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           </div>
        </div>
 
-       {/* HTTPS Solution Tip */}
-       {showHttpsTip && (
+       {/* --- INTELLIGENT ERROR ALERTS --- */}
+       
+       {/* ERROR TYPE 1: Browser Blocked (Mixed Content / CORS) */}
+       {diagError === 'browser_block' && (
            <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2">
                <div className="p-2 bg-yellow-500/20 rounded-lg h-fit text-yellow-500">
                    <AlertTriangle size={20} />
                </div>
                <div className="flex-1">
-                   <h4 className="text-yellow-500 font-bold text-sm mb-1">连接被浏览器拦截 (Protocol Error)</h4>
+                   <h4 className="text-yellow-500 font-bold text-sm mb-1">连接被浏览器安全拦截 (Browser Blocked)</h4>
                    <p className="text-gray-400 text-xs mb-3 leading-relaxed">
-                       由于当前网页是 <strong>HTTPS</strong> 安全协议，浏览器禁止其连接不安全的 <strong>HTTP</strong> 服务器 IP。
+                       检测到浏览器瞬间中断了连接。虽然您已设置允许不安全内容，但在某些在线环境(如Replit/Vercel)中，HTTPS 页面对 HTTP IP 的 "Private Network Access" 限制可能极其严格。
                    </p>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                        <div className="bg-black/40 p-3 rounded-lg border border-white/5">
-                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 A: 本地运行 (推荐调试)</div>
-                           <code className="block mt-1 text-xs text-cyber-cyan bg-white/5 p-1 rounded">http://localhost:xxxx</code>
+                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">推荐方案: 使用 Ngrok 转发 (100% 解决)</div>
+                           <p className="text-[10px] text-gray-400 mb-1">将本地 http 8090 转换为 https 链接，彻底绕过浏览器限制。</p>
+                           <code className="block mt-1 text-xs text-cyber-green bg-white/5 p-1 rounded">ngrok http 8090</code>
                        </div>
                        <div className="bg-black/40 p-3 rounded-lg border border-white/5">
-                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">方案 B: 使用 ngrok (推荐云端)</div>
-                           <div className="flex items-center gap-2 mt-1">
-                               <code className="text-xs text-cyber-green bg-white/5 p-1 rounded flex-1">ngrok http 8090</code>
+                           <div className="text-[10px] text-gray-500 font-bold uppercase mb-1">备选方案: 强制本地运行</div>
+                           <p className="text-[10px] text-gray-400">下载源码在本地 localhost 运行，本地环境没有此限制。</p>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       )}
+
+       {/* ERROR TYPE 2: Server Unreachable (Timeout / Down) */}
+       {diagError === 'server_unreachable' && (
+           <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex gap-4 animate-in fade-in slide-in-from-top-2">
+               <div className="p-2 bg-red-500/20 rounded-lg h-fit text-red-500">
+                   <Wifi size={20} />
+               </div>
+               <div className="flex-1">
+                   <h4 className="text-red-500 font-bold text-sm mb-1">无法连接到服务器 (Server Unreachable)</h4>
+                   <p className="text-gray-400 text-xs mb-3 leading-relaxed">
+                       请求发出了，但服务器没有响应或拒绝连接。鉴于您已配置浏览器允许不安全内容，这极有可能是<strong>服务器端的问题</strong>。
+                   </p>
+                   <div className="space-y-2 bg-black/40 p-4 rounded-lg border border-white/5">
+                       <div className="flex items-start gap-2">
+                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
+                           <div>
+                               <span className="text-xs font-bold text-white block">IP 地址是否变更? (Dynamic IP)</span>
+                               <span className="text-[10px] text-gray-400">腾讯云服务器如果重启，公网 IP 可能会改变。请核对控制台 IP 是否仍为 <span className="text-cyber-cyan font-mono">{pb.baseUrl.split('//')[1]?.split(':')[0]}</span></span>
+                           </div>
+                       </div>
+                       <div className="w-full h-[1px] bg-white/5"></div>
+                       <div className="flex items-start gap-2">
+                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
+                           <div>
+                               <span className="text-xs font-bold text-white block">PocketBase 进程是否存活?</span>
+                               <span className="text-[10px] text-gray-400">请登录服务器终端，输入 `ps aux | grep pocketbase` 检查进程是否在运行。</span>
+                           </div>
+                       </div>
+                       <div className="w-full h-[1px] bg-white/5"></div>
+                       <div className="flex items-start gap-2">
+                           <HelpCircle size={14} className="text-gray-500 mt-0.5 shrink-0"/>
+                           <div>
+                               <span className="text-xs font-bold text-white block">防火墙 (Security Group)</span>
+                               <span className="text-[10px] text-gray-400">确保腾讯云控制台的安全组规则中，已放行 <span className="text-yellow-500 font-mono">TCP:8090</span> 端口。</span>
                            </div>
                        </div>
                    </div>
@@ -495,7 +541,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            {/* 1. Server Config Card */}
-           <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${showHttpsTip ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
+           <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${diagError !== 'none' ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
               <div className="flex flex-col gap-6">
                  <div className="flex-1 w-full">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
