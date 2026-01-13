@@ -3,7 +3,8 @@ import {
   Settings, Save, Upload, Download, Server, Palette, 
   Database, Shield, Monitor, Moon, Sun, Cloud, RefreshCw, 
   Terminal, Activity, Lock, Eye, EyeOff, Zap, AlertTriangle, Hexagon, HardDrive, Wifi, Trash2, CheckCircle2, Globe, Copy,
-  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle, ServerCrash, Power, ShieldCheck, FileSearch
+  UploadCloud, DownloadCloud, ArrowRightLeft, LogIn, LogOut, User, Key, Unlock, Info, HelpCircle, ServerCrash, Power, ShieldCheck, FileSearch,
+  Orbit, Gem
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
@@ -13,10 +14,38 @@ interface SettingsModuleProps {
   onThemeChange: (theme: string) => void;
 }
 
+// Updated Top-Tier Themes mapping to index.html data-theme attributes
 const themes = [
-  { id: 'cyber', name: '赛博朋克 (Cyber)', desc: '高对比度 / 霓虹光效', icon: Zap, activeColor: 'text-cyber-cyan', activeBorder: 'border-cyber-cyan', activeBg: 'bg-cyber-cyan/10' },
-  { id: 'obsidian', name: '黑曜石 (Obsidian)', desc: '纯黑极简 / 专注模式', icon: Moon, activeColor: 'text-white', activeBorder: 'border-white', activeBg: 'bg-white/10' },
-  { id: 'aurora', name: '极光白 (Aurora)', desc: '清爽明亮 / 办公风格', icon: Sun, activeColor: 'text-blue-400', activeBorder: 'border-blue-400', activeBg: 'bg-blue-400/10' },
+  { 
+      id: 'cosmos', 
+      name: 'Cosmos (星际深空)', 
+      desc: '默认 / 极深午夜蓝 / 青色流光', 
+      icon: Orbit, 
+      activeColor: 'text-cyan-400', 
+      activeBorder: 'border-cyan-400', 
+      activeBg: 'bg-cyan-900/20',
+      previewGradient: 'from-blue-900 via-black to-black' 
+  },
+  { 
+      id: 'nebula', 
+      name: 'Nebula (赛博幻境)', 
+      desc: '沉浸式 / 深紫色基调 / 霓虹粉', 
+      icon: Zap, 
+      activeColor: 'text-purple-400', 
+      activeBorder: 'border-purple-400', 
+      activeBg: 'bg-purple-900/20',
+      previewGradient: 'from-purple-900 via-black to-black' 
+  },
+  { 
+      id: 'lux', 
+      name: 'Lux (黑金帝国)', 
+      desc: '高管视角 / 纯黑磨砂 / 奢华金', 
+      icon: Gem, 
+      activeColor: 'text-yellow-400', 
+      activeBorder: 'border-yellow-400', 
+      activeBg: 'bg-yellow-900/20',
+      previewGradient: 'from-yellow-900 via-black to-black' 
+  },
 ];
 
 const SYNC_KEYS = [
@@ -552,7 +581,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
 
        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            {/* 1. Server Config Card */}
-           <div className={`tech-border p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${diagError !== 'none' ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
+           <div className={`apple-glass p-6 border-blue-500/20 relative overflow-hidden group transition-colors ${diagError !== 'none' ? 'bg-red-500/5 border-red-500/20' : 'bg-blue-500/5'}`}>
               <div className="flex flex-col gap-6">
                  <div className="flex-1 w-full">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
@@ -584,7 +613,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
            </div>
 
            {/* 2. Admin Auth Card (NEW) */}
-           <div className={`tech-border p-6 border-cyber-green/20 relative overflow-hidden group transition-colors ${authModel ? 'bg-cyber-green/5' : 'bg-white/5'}`}>
+           <div className={`apple-glass p-6 border-cyber-green/20 relative overflow-hidden group transition-colors ${authModel ? 'bg-cyber-green/5' : 'bg-white/5'}`}>
                {!authModel ? (
                    <div>
                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-2">
@@ -658,7 +687,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
        </div>
 
        {/* 3. Cloud Sync Card */}
-       <div className="tech-border p-6 bg-purple-500/5 border-purple-500/20 relative overflow-hidden">
+       <div className="apple-glass p-6 bg-purple-500/5 border-purple-500/20 relative overflow-hidden">
            <div className="flex justify-between items-start mb-4 relative z-10">
                <div>
                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -708,7 +737,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
           <div className="space-y-6">
              
              {/* Storage Card */}
-             <div className="tech-border p-6 bg-white/5 relative overflow-hidden">
+             <div className="apple-glass p-6 bg-white/5 relative overflow-hidden">
                 <div className="flex justify-between items-start mb-4">
                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><Database size={18} className="text-cyber-cyan"/> 数据存储 (Storage)</h3>
                    <span className="text-xs font-mono text-gray-500 uppercase">本地数据库 (IndexedDB)</span>
@@ -731,8 +760,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              </div>
 
              {/* Theme/System Card - Updated for Theme Selection */}
-             <div className="tech-border p-6 bg-white/5">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6"><Palette size={18} className="text-cyber-purple"/> 界面与视觉</h3>
+             <div className="apple-glass p-6 bg-white/5">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-6"><Palette size={18} className="text-cyber-purple"/> 界面主题 (Premium Themes)</h3>
                 
                 <div className="space-y-3 mb-6">
                     {themes.map((t) => {
@@ -747,18 +776,21 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
                                     : 'bg-black/40 border-white/5 hover:bg-white/5 hover:border-white/20'
                                 }`}
                             >
+                                {/* Gradient Background for Preview */}
+                                <div className={`absolute inset-0 bg-gradient-to-r ${t.previewGradient} opacity-20 group-hover:opacity-40 transition-opacity`}></div>
+
                                 <div className="flex items-center gap-4 relative z-10">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${isActive ? `${t.activeBorder} ${t.activeBg} ${t.activeColor}` : 'border-white/10 bg-black/50 text-gray-500'}`}>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${isActive ? `${t.activeBorder} bg-black text-white` : 'border-white/10 bg-black/50 text-gray-500'}`}>
                                         <t.icon size={20} />
                                     </div>
                                     <div className="text-left">
                                         <div className={`text-sm font-bold ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{t.name}</div>
-                                        <div className="text-[10px] text-gray-500">{t.desc}</div>
+                                        <div className="text-[10px] text-gray-500 font-mono mt-0.5">{t.desc}</div>
                                     </div>
                                 </div>
                                 {isActive && (
-                                    <div className="relative z-10 text-cyber-cyan animate-in fade-in zoom-in duration-300">
-                                        <CheckCircle2 size={18} className={t.activeColor} />
+                                    <div className={`relative z-10 animate-in fade-in zoom-in duration-300 ${t.activeColor}`}>
+                                        <CheckCircle2 size={18} />
                                     </div>
                                 )}
                             </button>
@@ -772,7 +804,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({ currentTheme, on
              </div>
 
              {/* Danger Zone */}
-             <div className="tech-border p-6 bg-red-900/10 border-red-500/30">
+             <div className="apple-glass p-6 bg-red-900/10 border-red-500/30">
                 <h3 className="text-lg font-bold text-red-500 flex items-center gap-2 mb-4"><Shield size={18}/> 危险区域</h3>
                 <p className="text-xs text-red-400/70 mb-4">
                    重置系统将清除所有本地缓存的 ERP 数据，包括财务、物流和库存记录。操作不可逆。
