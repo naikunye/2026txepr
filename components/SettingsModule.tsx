@@ -46,6 +46,16 @@ const themes = [
       activeBg: 'bg-yellow-900/20',
       previewGradient: 'from-yellow-900 via-black to-black' 
   },
+  { 
+      id: 'polaris', 
+      name: 'Polaris (极地白昼)', 
+      desc: '生产力 / 纯白磨砂 / 护眼模式', 
+      icon: Sun, 
+      activeColor: 'text-blue-600', 
+      activeBorder: 'border-blue-600', 
+      activeBg: 'bg-blue-100',
+      previewGradient: 'from-gray-100 via-white to-white' 
+  },
 ];
 
 const SYNC_KEYS = [

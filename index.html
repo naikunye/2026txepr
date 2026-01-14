@@ -13,10 +13,10 @@
           extend: {
             colors: {
               cyber: {
-                bg: 'var(--bg-main)', // Dynamic
-                panel: 'var(--bg-panel)', // Dynamic
-                border: 'var(--border-color)', // Dynamic
-                text: 'var(--text-main)', // Dynamic
+                bg: 'var(--bg-main)', 
+                panel: 'var(--bg-panel)', 
+                border: 'var(--border-color)', 
+                text: 'var(--text-main)', 
                 dim: 'var(--text-dim)',
                 
                 // Dynamic Accents mapping to CSS vars
@@ -24,12 +24,12 @@
                 cyan: 'var(--accent-secondary)',
                 purple: 'var(--accent-tertiary)',
                 
-                // Fallbacks for specific utility usage
-                green: '#30D158',
-                orange: '#FF9F0A',
-                pink: '#FF375F',
-                red: '#FF453A',
-                yellow: '#FFD60A',
+                // Mapped Colors (Changes based on theme)
+                green: 'var(--color-green)',
+                orange: 'var(--color-orange)',
+                pink: 'var(--color-pink)',
+                red: 'var(--color-red)',
+                yellow: 'var(--color-yellow)',
               }
             },
             fontFamily: {
@@ -37,7 +37,7 @@
               mono: ['"JetBrains Mono"', 'monospace'],
             },
             boxShadow: {
-              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+              'glass': 'var(--shadow-glass)',
               'glow-blue': '0 0 30px var(--glow-primary)',
               'glow-cyan': '0 0 30px var(--glow-secondary)',
               'neon': '0 0 10px var(--accent-primary), 0 0 20px var(--accent-primary)',
@@ -63,69 +63,63 @@
     </script>
     <style>
       :root {
-        /* Base Defaults (Cosmos) */
+        /* --- Base Defaults (Cosmos / Dark Mode) --- */
         --bg-main: #050505;
         --bg-panel: rgba(20, 20, 25, 0.6);
         --border-color: rgba(255, 255, 255, 0.08);
         --text-main: #F5F5F7;
         --text-dim: #86868B;
+        
         --accent-primary: #0A84FF;
         --accent-secondary: #40C8E0;
         --accent-tertiary: #5E5CE6;
+        
+        /* Functional Colors (Dark Mode Neon) */
+        --color-green: #30D158;
+        --color-orange: #FF9F0A;
+        --color-pink: #FF375F;
+        --color-red: #FF453A;
+        --color-yellow: #FFD60A;
+
         --glow-primary: rgba(10, 132, 255, 0.3);
         --glow-secondary: rgba(64, 200, 224, 0.25);
-        --backdrop-blur: blur(40px);
+        --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        
         --gradient-mesh: radial-gradient(at 0% 0%, rgba(10, 132, 255, 0.15) 0px, transparent 50%),
                          radial-gradient(at 100% 100%, rgba(94, 92, 230, 0.15) 0px, transparent 50%);
       }
 
-      /* THEME: COSMOS (Deep Blue/Cyan - Professional) */
-      [data-theme='cosmos'] {
-        --bg-main: #020408;
-        --bg-panel: rgba(13, 22, 35, 0.65);
-        --border-color: rgba(64, 200, 224, 0.15);
-        --accent-primary: #00F0FF;   /* Cyan */
-        --accent-secondary: #0A84FF; /* Blue */
-        --accent-tertiary: #5E5CE6;  /* Indigo */
-        --glow-primary: rgba(0, 240, 255, 0.2);
-        --glow-secondary: rgba(10, 132, 255, 0.2);
+      /* --- THEME: POLARIS (Clean White / High Contrast) --- */
+      [data-theme='polaris'] {
+        --bg-main: #F3F4F6; /* Gray-100 base */
+        --bg-panel: rgba(255, 255, 255, 0.85); /* Highly opaque white */
+        --border-color: #E5E7EB; /* Gray-200 */
+        --text-main: #111827; /* Gray-900 */
+        --text-dim: #6B7280;  /* Gray-500 */
+        
+        /* Accents: Darker, deeper colors for white background readability */
+        --accent-primary: #2563EB;   /* Blue-600 */
+        --accent-secondary: #0891B2; /* Cyan-600 */
+        --accent-tertiary: #4F46E5;  /* Indigo-600 */
+        
+        /* Functional Colors: Adjusted for Light Mode */
+        --color-green: #16A34A; /* Green-600 (Darker) */
+        --color-orange: #EA580C; /* Orange-600 */
+        --color-pink: #DB2777; /* Pink-600 */
+        --color-red: #DC2626; /* Red-600 */
+        --color-yellow: #D97706; /* Amber-600 (Readable on white) */
+
+        --glow-primary: rgba(37, 99, 235, 0.1);
+        --glow-secondary: rgba(8, 145, 178, 0.1);
+        --shadow-glass: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        
         --gradient-mesh: 
-            radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.1) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(10, 132, 255, 0.1) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(94, 92, 230, 0.1) 0px, transparent 60%);
+            radial-gradient(at 0% 0%, rgba(255, 255, 255, 1) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(240, 249, 255, 1) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(230, 240, 255, 1) 0px, transparent 60%);
       }
 
-      /* THEME: NEBULA (Purple/Pink - Cyberpunk) */
-      [data-theme='nebula'] {
-        --bg-main: #05010a;
-        --bg-panel: rgba(25, 10, 35, 0.65);
-        --border-color: rgba(191, 90, 242, 0.2);
-        --accent-primary: #BF5AF2;   /* Purple */
-        --accent-secondary: #FF375F; /* Pink */
-        --accent-tertiary: #AC8E68;  /* Goldish */
-        --glow-primary: rgba(191, 90, 242, 0.3);
-        --glow-secondary: rgba(255, 55, 95, 0.2);
-        --gradient-mesh: 
-            radial-gradient(at 0% 0%, rgba(191, 90, 242, 0.15) 0px, transparent 50%),
-            radial-gradient(at 90% 10%, rgba(255, 55, 95, 0.1) 0px, transparent 50%),
-            radial-gradient(at 50% 90%, rgba(94, 92, 230, 0.15) 0px, transparent 50%);
-      }
-
-      /* THEME: LUX (Black/Gold - Executive) */
-      [data-theme='lux'] {
-        --bg-main: #000000;
-        --bg-panel: rgba(20, 20, 20, 0.8);
-        --border-color: rgba(255, 214, 10, 0.15);
-        --accent-primary: #FFD60A;   /* Gold */
-        --accent-secondary: #FF9F0A; /* Orange */
-        --accent-tertiary: #FFFFFF;  /* White */
-        --glow-primary: rgba(255, 214, 10, 0.15);
-        --glow-secondary: rgba(255, 159, 10, 0.1);
-        --gradient-mesh: 
-            radial-gradient(at 50% -20%, rgba(255, 214, 10, 0.08) 0px, transparent 40%),
-            radial-gradient(at 100% 100%, rgba(50, 50, 50, 0.2) 0px, transparent 50%);
-      }
-
+      /* Base Body Styles */
       body {
         background-color: var(--bg-main);
         background-image: var(--gradient-mesh);
@@ -136,32 +130,34 @@
         font-family: "Inter", sans-serif;
         -webkit-font-smoothing: antialiased;
         overflow: hidden;
-        transition: background-color 0.5s ease, background-image 0.5s ease;
+        transition: background-color 0.5s ease, background-image 0.5s ease, color 0.3s ease;
       }
 
-      /* Advanced Glassmorphism */
+      /* --- COMPONENT STYLES --- */
+
+      /* 1. Glass Card */
       .apple-glass {
         background: var(--bg-panel);
         backdrop-filter: saturate(180%) blur(30px);
         -webkit-backdrop-filter: saturate(180%) blur(30px);
         border: 1px solid var(--border-color);
-        box-shadow: 
-            0 4px 6px -1px rgba(0, 0, 0, 0.2), 
-            0 2px 4px -1px rgba(0, 0, 0, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: var(--shadow-glass);
         border-radius: 24px;
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       }
       
       .apple-glass:hover {
         border-color: var(--accent-primary);
-        box-shadow: 
-            0 20px 40px -10px rgba(0,0,0,0.5),
-            0 0 15px var(--glow-primary);
         transform: translateY(-2px);
       }
+      
+      /* Light mode hover effect is subtler */
+      [data-theme='polaris'] .apple-glass:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border-color: #cbd5e1; /* Slate-300 */
+      }
 
-      /* Refined Inputs */
+      /* 2. Inputs */
       .input-holo {
         background: rgba(0, 0, 0, 0.2) !important;
         border: 1px solid var(--border-color) !important;
@@ -170,33 +166,143 @@
         transition: all 0.3s ease;
         font-family: 'JetBrains Mono', monospace;
       }
+
+      [data-theme='polaris'] .input-holo {
+        background: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        color: #1E293B !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+      }
+
       .input-holo:focus {
         background: rgba(0, 0, 0, 0.4) !important;
         border-color: var(--accent-primary) !important;
         box-shadow: 0 0 0 1px var(--accent-primary), 0 0 20px var(--glow-primary);
         outline: none;
       }
+      
+      [data-theme='polaris'] .input-holo:focus {
+        background: #FFFFFF !important;
+        border-color: var(--accent-primary) !important;
+        box-shadow: 0 0 0 2px var(--glow-primary) !important;
+      }
 
+      /* 3. Dropdowns */
       select option {
         background-color: #1c1c1e;
         color: #F5F5F7;
       }
+      [data-theme='polaris'] select option {
+        background-color: #FFFFFF;
+        color: #111827;
+      }
 
-      /* Scrollbar */
+      /* 4. Scrollbar */
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
       ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
 
-      /* Utilities */
+      [data-theme='polaris'] ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); }
+      [data-theme='polaris'] ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.4); }
+
+      /* 5. Utilities */
       .text-glow { text-shadow: 0 0 10px var(--glow-primary); }
-      .text-glow-blue { text-shadow: 0 0 15px rgba(10, 132, 255, 0.6); }
-      .text-glow-green { text-shadow: 0 0 15px rgba(48, 209, 88, 0.6); }
-      .text-glow-red { text-shadow: 0 0 15px rgba(255, 69, 58, 0.6); }
-      
       .bg-noise {
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
       }
+
+      /* ==========================================================================
+         POLARIS (LIGHT MODE) DEEP OVERRIDES
+         These rules force hardcoded dark-mode Tailwind classes to flip in Light Mode.
+         ========================================================================== */
+      
+      /* A. Backgrounds */
+      [data-theme='polaris'] .bg-black,
+      [data-theme='polaris'] .bg-gray-900,
+      [data-theme='polaris'] .bg-\[\#0c0c0c\],
+      [data-theme='polaris'] .bg-\[\#0A0A0A\],
+      [data-theme='polaris'] .bg-\[\#0F0F0F\],
+      [data-theme='polaris'] .bg-\[\#121212\],
+      [data-theme='polaris'] .bg-\[\#1c1c1e\],
+      [data-theme='polaris'] .bg-\[\#151515\],
+      [data-theme='polaris'] .bg-\[\#080808\] {
+          background-color: #FFFFFF !important;
+          border-color: #E2E8F0 !important;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02) !important;
+      }
+
+      /* Semi-transparent blacks become semi-transparent whites/grays */
+      [data-theme='polaris'] .bg-black\/20 { background-color: rgba(241, 245, 249, 0.5) !important; }
+      [data-theme='polaris'] .bg-black\/30 { background-color: #F1F5F9 !important; }
+      [data-theme='polaris'] .bg-black\/40 { background-color: #F8FAFC !important; border: 1px solid #E2E8F0 !important; }
+      [data-theme='polaris'] .bg-black\/50 { background-color: #E2E8F0 !important; }
+      [data-theme='polaris'] .bg-black\/60 { background-color: #CBD5E1 !important; }
+      [data-theme='polaris'] .bg-black\/80 { background-color: #F8FAFC !important; } /* Modals/Overlays usually */
+      [data-theme='polaris'] .bg-black\/90 { background-color: rgba(255,255,255,0.95) !important; } /* Modals */
+
+      /* White opacities become dark grays for hover states */
+      [data-theme='polaris'] .bg-white\/5 { background-color: rgba(0,0,0,0.03) !important; }
+      [data-theme='polaris'] .bg-white\/10 { background-color: rgba(0,0,0,0.06) !important; }
+      [data-theme='polaris'] .bg-white\/20 { background-color: rgba(0,0,0,0.1) !important; }
+
+      /* B. Borders */
+      [data-theme='polaris'] .border-white\/5,
+      [data-theme='polaris'] .border-white\/10,
+      [data-theme='polaris'] .border-white\/20 {
+          border-color: #E2E8F0 !important;
+      }
+
+      /* C. Text Colors - The Big Flip */
+      [data-theme='polaris'] .text-white { color: #111827 !important; } /* White -> Dark Slate */
+      [data-theme='polaris'] .text-white\/20 { color: #CBD5E1 !important; }
+      
+      [data-theme='polaris'] .text-gray-300,
+      [data-theme='polaris'] .text-gray-400 { color: #4B5563 !important; } /* Light Gray -> Medium Gray */
+      
+      [data-theme='polaris'] .text-gray-500 { color: #6B7280 !important; } /* Stays Med Gray */
+      [data-theme='polaris'] .text-gray-600 { color: #9CA3AF !important; }
+
+      /* D. Brand/Cyber Colors - Map to Readable Darker Versions */
+      [data-theme='polaris'] .text-cyber-cyan { color: var(--accent-secondary) !important; }
+      [data-theme='polaris'] .text-cyber-blue { color: var(--accent-primary) !important; }
+      [data-theme='polaris'] .text-cyber-purple { color: var(--accent-tertiary) !important; }
+      [data-theme='polaris'] .text-cyber-yellow { color: var(--color-yellow) !important; }
+      [data-theme='polaris'] .text-cyber-green { color: var(--color-green) !important; }
+      [data-theme='polaris'] .text-cyber-pink { color: var(--color-pink) !important; }
+      [data-theme='polaris'] .text-cyber-red { color: var(--color-red) !important; }
+
+      /* E. Specific Fixes for Bad Contrast */
+      [data-theme='polaris'] .border-cyber-cyan\/30 { border-color: rgba(8, 145, 178, 0.3) !important; }
+      [data-theme='polaris'] .bg-cyber-cyan\/10 { background-color: rgba(8, 145, 178, 0.1) !important; }
+      
+      /* Disable Text Glow in Light Mode */
+      [data-theme='polaris'] .text-glow,
+      [data-theme='polaris'] .text-glow-blue,
+      [data-theme='polaris'] .text-glow-green,
+      [data-theme='polaris'] .text-glow-red {
+          text-shadow: none !important;
+      }
+
+      /* Specific Component Fixes */
+      /* Sidebar */
+      [data-theme='polaris'] aside { 
+          background-color: rgba(255,255,255,0.8) !important; 
+          border-right: 1px solid #E2E8F0;
+          box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+      }
+      
+      /* Command Palette / Modals */
+      [data-theme='polaris'] .fixed.inset-0.bg-black\/40 { background-color: rgba(255,255,255,0.6) !important; }
+      [data-theme='polaris'] .fixed.inset-0.bg-black\/60 { background-color: rgba(0,0,0,0.2) !important; }
+      
+      /* Table Headers */
+      [data-theme='polaris'] thead.bg-black\/40 { background-color: #F1F5F9 !important; color: #475569 !important; }
+      
+      /* Scrollbars in light mode */
+      [data-theme='polaris'] .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; }
+      [data-theme='polaris'] .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
     </style>
   <script type="importmap">
 {
@@ -214,9 +320,9 @@
 </script>
 </head>
   <body>
-    <!-- Dynamic Ambient Orbs using CSS vars -->
-    <div class="fixed top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow" style="background-color: var(--glow-primary); opacity: 0.2"></div>
-    <div class="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none animate-float" style="background-color: var(--glow-secondary); opacity: 0.15"></div>
+    <!-- Ambient Orbs: Adjusted opacity for light mode via CSS vars -->
+    <div class="fixed top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow" style="background-color: var(--glow-primary); opacity: 0.15"></div>
+    <div class="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none animate-float" style="background-color: var(--glow-secondary); opacity: 0.12"></div>
     
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
