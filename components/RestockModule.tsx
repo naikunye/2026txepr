@@ -812,13 +812,14 @@ export const RestockModule: React.FC = () => {
 
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
-         <div className="w-full h-full lg:max-w-[95vw] lg:h-[90vh] bg-[#0A0A0A] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-3xl apple-glass">
+         {/* Replaced 'apple-glass' with solid bg-[#0A0A0A] to prevent blur artifacts */}
+         <div className="w-full h-full lg:max-w-[95vw] lg:h-[90vh] bg-[#0A0A0A] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-3xl">
             
             {/* Ambient Noise Overlay */}
             <div className="absolute inset-0 bg-noise pointer-events-none opacity-20"></div>
 
             {/* 1. Header Toolbar (Compacted) */}
-            <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-white/5 gap-4 shrink-0 relative z-10">
+            <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-[#141414] gap-4 shrink-0 relative z-10">
                <div className="flex items-center gap-4 w-full lg:w-auto">
                   <div 
                     className="group relative w-14 h-14 bg-black/50 border border-white/10 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan/50 transition-all shrink-0 shadow-lg"
@@ -920,7 +921,7 @@ export const RestockModule: React.FC = () => {
                      {activeTab === 'supply' && (
                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                           {/* Section 1: Supplier */}
-                          <div className="apple-glass p-5">
+                          <div className="bg-[#141414] border border-white/10 rounded-2xl p-5">
                              <h3 className="text-cyber-yellow font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
                                 <Layers size={14} className="text-cyber-yellow"/> 供应商信息
                              </h3>
@@ -994,7 +995,7 @@ export const RestockModule: React.FC = () => {
                           </div>
                           
                           {/* Section 2: Variant Generator */}
-                          <div className="apple-glass p-5 border-cyber-purple/20 bg-cyber-purple/5">
+                          <div className="bg-[#141414] border border-cyber-purple/20 rounded-2xl p-5">
                              <h3 className="text-cyber-purple font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
                                 <Grid size={14} className="text-cyber-purple"/> 多规格矩阵 (SKU MATRIX)
                              </h3>
@@ -1088,7 +1089,7 @@ export const RestockModule: React.FC = () => {
                           </div>
 
                           {/* Section 3: Packing */}
-                          <div className="apple-glass p-5">
+                          <div className="bg-[#141414] border border-white/10 rounded-2xl p-5">
                              <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
                                 <Box size={14}/> 装箱规格 (PACKING)
                              </h3>
@@ -1118,7 +1119,7 @@ export const RestockModule: React.FC = () => {
                           </div>
 
                           {/* Section 4: Remarks (New) */}
-                          <div className="apple-glass p-5 mt-4">
+                          <div className="bg-[#141414] border border-white/10 rounded-2xl p-5 mt-4">
                              <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
                                 <FileText size={14}/> 备注信息 (REMARKS)
                              </h3>
@@ -1134,7 +1135,7 @@ export const RestockModule: React.FC = () => {
 
                      {activeTab === 'logistics' && (
                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <div className="apple-glass p-5">
+                          <div className="bg-[#141414] border border-white/10 rounded-2xl p-5">
                              <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-cyber-cyan font-bold text-xs uppercase flex items-center gap-2 tracking-widest">
                                     <Truck size={14}/> 物流单证与时效 (Schedule)
@@ -1223,7 +1224,7 @@ export const RestockModule: React.FC = () => {
                              </div>
                           </div>
 
-                          <div className="apple-glass p-5">
+                          <div className="bg-[#141414] border border-white/10 rounded-2xl p-5">
                              <h3 className="text-gray-400 font-bold text-xs uppercase mb-4 flex items-center gap-2 tracking-widest">
                                 <Plane size={14}/> 运输与清关成本
                              </h3>
@@ -1310,7 +1311,7 @@ export const RestockModule: React.FC = () => {
                         <div className="flex flex-col lg:flex-row h-full animate-in fade-in slide-in-from-bottom-4 duration-500 gap-6">
                             {/* LEFT: Inputs */}
                             <div className="flex-1 space-y-4">
-                                <div className="apple-glass p-5 border-l-4 border-l-cyber-cyan">
+                                <div className="bg-[#141414] border border-white/10 rounded-2xl p-5 border-l-4 border-l-cyber-cyan">
                                     <h3 className="text-cyber-cyan font-bold text-lg mb-6 flex items-center gap-2">
                                         <Calculator className="text-cyber-cyan" size={20}/> TikTok 利润模型 (Unit Econ)
                                     </h3>
@@ -1807,11 +1808,11 @@ export const RestockModule: React.FC = () => {
                    onDragOver={handleDragOver}
                    onDragEnter={(e) => handleDragEnter(e, product.id)}
                    className={`
-                     apple-glass p-0 group relative overflow-hidden rounded-2xl
+                     p-0 group relative overflow-hidden rounded-2xl border
                      transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
                      ${isSelected 
-                        ? 'border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.2)] bg-cyber-cyan/5' 
-                        : 'hover:border-white/30 hover:bg-white/10'
+                        ? 'bg-[#0f172a] border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.1)]' 
+                        : 'bg-[#080808] border-white/10 hover:bg-[#161616] hover:border-white/20'
                      }
                      ${isBeingDragged ? 'opacity-30 scale-[0.98] border-dashed border-white/40 shadow-inner brightness-50 grayscale' : 'opacity-100 scale-100'}
                    `}
