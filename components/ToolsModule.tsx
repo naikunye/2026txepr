@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Calculator, Scale, Ruler, Box, ArrowRightLeft, 
-  RefreshCcw, Package, Truck, Divide, X, Plus, Minus, Equal, Delete, 
-  Container, Ship, History, Trash2, ArrowDown, Settings2, Weight, Info,
-  Globe, Sun, Moon, Clock, Type, Scissors, AlignLeft, FileType
+  Scale, Ruler, Box, ArrowRightLeft, 
+  RefreshCcw, Truck, Container, Ship, Info,
+  Globe, Sun, Moon, Copy, CheckCircle2
 } from 'lucide-react';
 
 // --- Shared UI Components ---
@@ -46,6 +45,22 @@ const UnitConverter = () => {
     { id: 'area', label: '体积', icon: Box },
   ];
 
+  // Quick Swap Presets
+  const shortcuts: Record<string, Array<{label: string, from: string, to: string}>> = {
+      weight: [
+          { label: 'KG ⇄ LB', from: 'kg', to: 'lb' },
+          { label: 'G ⇄ OZ', from: 'g', to: 'oz' }
+      ],
+      length: [
+          { label: 'CM ⇄ IN', from: 'cm', to: 'inch' },
+          { label: 'M ⇄ FT', from: 'm', to: 'ft' }
+      ],
+      area: [
+          { label: 'CBM ⇄ CUFT', from: 'cbm', to: 'cuft' },
+          { label: 'M² ⇄ SQ.FT', from: 'sq_m', to: 'sq_ft' }
+      ]
+  };
+
   useEffect(() => {
     const keys = Object.keys(rates[category]);
     setFromUnit(keys[0]);
@@ -61,10 +76,15 @@ const UnitConverter = () => {
       setToUnit(temp);
   };
 
+  const applyShortcut = (from: string, to: string) => {
+      setFromUnit(from);
+      setToUnit(to);
+  };
+
   return (
     <ToolCard title="万能换算 (CONVERTER)" icon={RefreshCcw} color="cyber-purple">
         {/* Tabs */}
-        <div className="grid grid-cols-3 gap-2 mb-8 bg-black/40 p-1 rounded-xl border border-white/10">
+        <div className="grid grid-cols-3 gap-2 mb-6 bg-black/40 p-1 rounded-xl border border-white/10">
             {categories.map(cat => (
                 <button
                     key={cat.id}
@@ -76,57 +96,63 @@ const UnitConverter = () => {
             ))}
         </div>
 
-        <div className="flex flex-col gap-6">
-            {/* From */}
-            <div className="relative group">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">输入 (Input)</label>
-                <div className="flex items-center bg-black/40 border border-white/10 rounded-2xl p-1 transition-all focus-within:border-cyber-purple focus-within:shadow-[0_0_15px_rgba(192,38,211,0.2)]">
+        {/* Shortcuts */}
+        <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+            {shortcuts[category].map((s, i) => (
+                <button
+                    key={i}
+                    onClick={() => applyShortcut(s.from, s.to)}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-cyber-purple hover:text-white transition-all whitespace-nowrap"
+                >
+                    {s.label}
+                </button>
+            ))}
+        </div>
+
+        <div className="flex flex-col gap-4 relative">
+            {/* Swap Button (Absolute Centered) */}
+            <button 
+                onClick={handleSwap}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#1c1c1e] border-2 border-white/10 text-gray-400 flex items-center justify-center hover:text-cyber-purple hover:border-cyber-purple hover:scale-110 transition-all shadow-xl"
+            >
+                <ArrowRightLeft size={16} className="rotate-90"/>
+            </button>
+
+            {/* Input Card */}
+            <div className="bg-black/40 border border-white/10 rounded-2xl p-4 transition-all focus-within:border-cyber-purple/50 focus-within:bg-black/60 relative group">
+                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1 block group-focus-within:text-cyber-purple transition-colors">输入 (Input)</label>
+                <div className="flex items-baseline justify-between">
                     <input 
                         type="number" 
                         value={val}
                         onChange={e => setVal(e.target.value)}
-                        className="bg-transparent w-full p-3 text-2xl font-mono font-black text-white outline-none placeholder-gray-700"
+                        className="bg-transparent w-full text-3xl font-mono font-black text-white outline-none placeholder-gray-700"
                         placeholder="0"
                     />
-                    <div className="pr-2 border-l border-white/10 pl-2">
-                        <select 
-                            value={fromUnit}
-                            onChange={e => setFromUnit(e.target.value)}
-                            className="bg-white/5 text-cyber-purple font-bold text-xs py-1.5 px-3 rounded-lg outline-none cursor-pointer hover:bg-white/10 appearance-none text-center min-w-[60px]"
-                        >
-                            {Object.keys(rates[category]).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
-                        </select>
-                    </div>
+                    <select 
+                        value={fromUnit}
+                        onChange={e => setFromUnit(e.target.value)}
+                        className="bg-transparent text-gray-400 font-bold text-sm outline-none cursor-pointer hover:text-white appearance-none text-right uppercase tracking-wider"
+                    >
+                        {Object.keys(rates[category]).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
+                    </select>
                 </div>
             </div>
 
-            {/* Swap Button */}
-            <div className="relative h-4 flex items-center justify-center">
-                <div className="absolute w-full h-[1px] bg-white/10"></div>
-                <button 
-                    onClick={handleSwap}
-                    className="relative z-10 w-8 h-8 rounded-full bg-[#1c1c1e] border border-white/20 text-gray-400 flex items-center justify-center hover:text-white hover:border-cyber-purple transition-all hover:rotate-180 duration-500"
-                >
-                    <ArrowRightLeft size={14} className="rotate-90"/>
-                </button>
-            </div>
-
-            {/* To */}
-            <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">结果 (Result)</label>
-                <div className="flex items-center bg-cyber-purple/5 border border-cyber-purple/20 rounded-2xl p-1">
-                    <div className="w-full p-3 text-2xl font-mono font-black text-cyber-purple truncate tracking-tight">
+            {/* Result Card */}
+            <div className="bg-cyber-purple/10 border border-cyber-purple/20 rounded-2xl p-4 relative">
+                <label className="text-[9px] font-bold text-cyber-purple/70 uppercase tracking-widest mb-1 block">结果 (Result)</label>
+                <div className="flex items-baseline justify-between">
+                    <div className="w-full text-3xl font-mono font-black text-cyber-purple truncate tracking-tight text-glow-purple">
                         {result === 0 ? '0' : Number.isInteger(result) ? result : result.toFixed(4)}
                     </div>
-                    <div className="pr-2 border-l border-cyber-purple/20 pl-2">
-                        <select 
-                            value={toUnit}
-                            onChange={e => setToUnit(e.target.value)}
-                            className="bg-cyber-purple/10 text-cyber-purple font-bold text-xs py-1.5 px-3 rounded-lg outline-none cursor-pointer hover:bg-cyber-purple/20 appearance-none text-center min-w-[60px]"
-                        >
-                            {Object.keys(rates[category]).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
-                        </select>
-                    </div>
+                    <select 
+                        value={toUnit}
+                        onChange={e => setToUnit(e.target.value)}
+                        className="bg-transparent text-cyber-purple font-bold text-sm outline-none cursor-pointer appearance-none text-right uppercase tracking-wider"
+                    >
+                        {Object.keys(rates[category]).map(u => <option key={u} value={u}>{u.toUpperCase()}</option>)}
+                    </select>
                 </div>
             </div>
         </div>
@@ -143,6 +169,7 @@ const LogisticsMaster = () => {
   const [weight, setWeight] = useState(''); // Single box weight
   const [unit, setUnit] = useState<'cm' | 'in'>('cm');
   const [dimDivisor, setDimDivisor] = useState<5000 | 6000>(6000);
+  const [copied, setCopied] = useState(false);
 
   // Container Specs (Usable Volume)
   const containers = {
@@ -185,6 +212,14 @@ const LogisticsMaster = () => {
       if (!res) return 0;
       const capacity = containers[type].vol;
       return Math.min(100, (res.totalCbm / capacity) * 100);
+  };
+
+  const handleCopyResult = () => {
+      if (!res) return;
+      const text = `装箱数据:\n体积: ${res.totalCbm.toFixed(3)}m³\n计费重: ${res.chargeableWeight.toFixed(1)}kg\n总箱数: ${ctns}`;
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -231,7 +266,8 @@ const LogisticsMaster = () => {
                 </div>
 
                 {/* Quick Result Mini */}
-                <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex justify-between items-center">
+                <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex justify-between items-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-cyber-yellow/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                     <div>
                         <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">总体积 (Total Volume)</div>
                         <div className="text-2xl font-black text-cyber-yellow font-mono">{res ? res.totalCbm.toFixed(3) : '0.000'} <span className="text-xs text-gray-500">m³</span></div>
@@ -245,6 +281,16 @@ const LogisticsMaster = () => {
                             <div className="text-[9px] text-red-500 font-bold mt-1">抛货 (Volumetric)</div>
                         )}
                     </div>
+                    
+                    {res && (
+                        <button 
+                            onClick={handleCopyResult}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-cyber-yellow hover:text-black font-bold shadow-lg"
+                        >
+                            {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
+                            {copied ? '已复制' : '复制结果'}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -300,117 +346,6 @@ const LogisticsMaster = () => {
                         </div>
                     </div>
                 )}
-            </div>
-        </div>
-    </ToolCard>
-  );
-};
-
-// --- 3. Audit Calculator (Tape History) ---
-const AuditCalculator = () => {
-  const [display, setDisplay] = useState('0');
-  const [history, setHistory] = useState<string[]>([]);
-  const [expression, setExpression] = useState('');
-  
-  // Safe evaluation
-  const safeEval = (exp: string) => {
-      try {
-          // Only allow numbers and operators
-          if (/[^0-9+\-*/().]/.test(exp)) return 'Error';
-          // eslint-disable-next-line no-new-func
-          return new Function('return ' + exp)();
-      } catch {
-          return 'Error';
-      }
-  };
-
-  const handleInput = (val: string) => {
-      if (val === 'AC') {
-          setDisplay('0');
-          setExpression('');
-      } else if (val === 'DEL') {
-          setDisplay(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
-          setExpression(prev => prev.slice(0, -1));
-      } else if (val === '=') {
-          const res = safeEval(expression);
-          const final = String(res);
-          // Add to tape
-          if (final !== 'Error') {
-              setHistory(prev => [`${expression} = ${final}`, ...prev].slice(0, 50));
-          }
-          setDisplay(final);
-          setExpression(final);
-      } else if (['+', '-', '*', '/'].includes(val)) {
-          setExpression(prev => prev + val);
-          setDisplay('0'); // Reset display for next number but keep expression
-      } else {
-          // Number
-          if (display === '0' || ['+', '-', '*', '/'].includes(expression.slice(-1))) {
-              setDisplay(val);
-          } else {
-              setDisplay(prev => prev + val);
-          }
-          setExpression(prev => prev + val);
-      }
-  };
-
-  const clearHistory = () => setHistory([]);
-
-  const btnClass = "h-12 rounded-xl font-bold text-lg flex items-center justify-center transition-all active:scale-95 border border-white/5 shadow-lg select-none";
-  const numClass = `${btnClass} bg-[#151515] hover:bg-[#202020] text-white`;
-  const opClass = `${btnClass} bg-cyber-cyan/10 hover:bg-cyber-cyan/20 text-cyber-cyan border-cyber-cyan/20`;
-  const actionClass = `${btnClass} bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20`;
-
-  return (
-    <ToolCard title="审计计算 (AUDIT CALC)" icon={Calculator} color="cyber-cyan">
-        <div className="flex flex-col h-full">
-            
-            {/* History Tape */}
-            <div className="flex-1 bg-[#0a0a0a] border border-white/10 rounded-t-xl mb-0 p-4 overflow-y-auto custom-scrollbar relative">
-                <div className="absolute top-2 right-2 z-10">
-                    <button onClick={clearHistory} className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
-                </div>
-                <div className="flex flex-col-reverse justify-end min-h-full gap-2">
-                    {history.length === 0 && <div className="text-gray-700 text-xs font-mono text-center mt-auto opacity-50">// TAPE READY //</div>}
-                    {history.map((h, i) => (
-                        <div key={i} className="text-right font-mono text-xs border-b border-white/5 pb-1 mb-1 last:border-0">
-                            <div className="text-gray-500">{h.split('=')[0]}</div>
-                            <div className="text-cyber-cyan font-bold text-sm">= {h.split('=')[1]}</div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Display */}
-            <div className="bg-black border-x border-b border-white/10 p-4 mb-4 rounded-b-xl text-right">
-                <div className="text-gray-500 text-[10px] font-mono h-4">{expression || '0'}</div>
-                <div className="text-4xl font-black text-white font-mono tracking-wider truncate">{display}</div>
-            </div>
-
-            {/* Keyboard */}
-            <div className="grid grid-cols-4 gap-2">
-                <button onClick={() => handleInput('AC')} className={actionClass}>AC</button>
-                <button onClick={() => handleInput('DEL')} className={actionClass}><Delete size={18}/></button>
-                <button onClick={() => handleInput('/')} className={opClass}><Divide size={18}/></button>
-                <button onClick={() => handleInput('*')} className={opClass}><X size={18}/></button>
-
-                <button onClick={() => handleInput('7')} className={numClass}>7</button>
-                <button onClick={() => handleInput('8')} className={numClass}>8</button>
-                <button onClick={() => handleInput('9')} className={numClass}>9</button>
-                <button onClick={() => handleInput('-')} className={opClass}><Minus size={18}/></button>
-
-                <button onClick={() => handleInput('4')} className={numClass}>4</button>
-                <button onClick={() => handleInput('5')} className={numClass}>5</button>
-                <button onClick={() => handleInput('6')} className={numClass}>6</button>
-                <button onClick={() => handleInput('+')} className={opClass}><Plus size={18}/></button>
-
-                <button onClick={() => handleInput('1')} className={numClass}>1</button>
-                <button onClick={() => handleInput('2')} className={numClass}>2</button>
-                <button onClick={() => handleInput('3')} className={numClass}>3</button>
-                <button onClick={() => handleInput('=')} className={`${btnClass} row-span-2 bg-cyber-cyan text-black hover:bg-white hover:shadow-[0_0_20px_rgba(64,200,224,0.5)]`}><Equal size={24}/></button>
-
-                <button onClick={() => handleInput('0')} className={`${numClass} col-span-2`}>0</button>
-                <button onClick={() => handleInput('.')} className={numClass}>.</button>
             </div>
         </div>
     </ToolCard>
@@ -501,77 +436,6 @@ const WorldClock = () => {
     );
 };
 
-// --- 5. Text Refinery (Amazon Keyword Cleaner) ---
-const TextRefinery = () => {
-    const [text, setText] = useState('');
-    
-    // Stats
-    const charCount = text.length;
-    const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
-    // Amazon Bytes Calc (UTF-8)
-    const byteCount = new Blob([text]).size; 
-
-    const handleAction = (action: string) => {
-        let newText = text;
-        switch(action) {
-            case 'upper': newText = text.toUpperCase(); break;
-            case 'lower': newText = text.toLowerCase(); break;
-            case 'title': 
-                newText = text.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '); 
-                break;
-            case 'dedup':
-                const words = text.split(/\s+/);
-                newText = [...new Set(words)].join(' ');
-                break;
-            case 'clean':
-                newText = text.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim();
-                break;
-        }
-        setText(newText);
-    };
-
-    return (
-        <ToolCard title="文本清洗站 (REFINERY)" icon={Type} color="cyber-blue">
-            <div className="flex flex-col h-full gap-4">
-                {/* Stats Bar */}
-                <div className="grid grid-cols-3 gap-2">
-                    <div className={`p-2 rounded-lg border bg-black/40 text-center ${byteCount > 250 ? 'border-red-500/50 text-red-500' : 'border-white/10 text-gray-400'}`}>
-                        <div className="text-[9px] font-bold uppercase mb-1">Bytes (Amz)</div>
-                        <div className={`text-lg font-black font-mono ${byteCount > 250 ? 'text-red-500' : 'text-white'}`}>{byteCount}<span className="text-[10px] opacity-50">/250</span></div>
-                    </div>
-                    <div className="p-2 rounded-lg border border-white/10 bg-black/40 text-center">
-                        <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Characters</div>
-                        <div className="text-lg font-black text-white font-mono">{charCount}</div>
-                    </div>
-                    <div className="p-2 rounded-lg border border-white/10 bg-black/40 text-center">
-                        <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Words</div>
-                        <div className="text-lg font-black text-white font-mono">{wordCount}</div>
-                    </div>
-                </div>
-
-                <textarea 
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    className="flex-1 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white font-mono outline-none resize-none focus:border-cyber-blue transition-colors"
-                    placeholder="在此粘贴 Listing 标题或关键词..."
-                />
-
-                <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => handleAction('title')} className="btn-tool"><Type size={12}/> Title Case</button>
-                    <button onClick={() => handleAction('upper')} className="btn-tool"><ArrowDown size={12} className="rotate-180"/> UPPER</button>
-                    <button onClick={() => handleAction('dedup')} className="btn-tool"><Scissors size={12}/> 去重 (Dedup)</button>
-                    <button onClick={() => handleAction('clean')} className="btn-tool"><Delete size={12}/> 去符号 (Clean)</button>
-                </div>
-            </div>
-            <style>{`
-                .btn-tool {
-                    @apply flex items-center justify-center gap-2 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all uppercase tracking-wider;
-                }
-            `}</style>
-        </ToolCard>
-    );
-};
-
 // --- Main Module Layout ---
 export const ToolsModule: React.FC = () => {
   return (
@@ -591,29 +455,17 @@ export const ToolsModule: React.FC = () => {
         {/* Grid Content */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar -mr-2 pr-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-12 h-auto">
-                {/* Row 1 */}
-                {/* 1. Logistics Master (Wide) */}
+                {/* 1. Logistics Master (Wide: 2 Cols) */}
                 <LogisticsMaster />
 
-                {/* 2. Quantum Converter */}
+                {/* 2. Quantum Converter (1 Col) */}
                 <div className="h-[500px]">
                     <UnitConverter />
                 </div>
 
-                {/* 3. Audit Calculator */}
+                {/* 3. World Clock (1 Col) */}
                 <div className="h-[500px]">
-                    <AuditCalculator />
-                </div>
-
-                {/* Row 2 (New Tools) */}
-                {/* 4. World Clock */}
-                <div className="h-[400px] col-span-1 md:col-span-2">
                     <WorldClock />
-                </div>
-
-                {/* 5. Text Refinery */}
-                <div className="h-[400px] col-span-1 md:col-span-2">
-                    <TextRefinery />
                 </div>
             </div>
         </div>

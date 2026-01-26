@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar,
-  GripVertical 
+  GripVertical, CheckCircle2, Loader2
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -290,6 +290,16 @@ export const RestockModule: React.FC = () => {
   const [variantSuffix, setVariantSuffix] = useState('');
   const [variantName, setVariantName] = useState('');
   const [variantQty, setVariantQty] = useState('');
+
+  // Interaction States
+  const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+  const [isGeneratingPO, setIsGeneratingPO] = useState(false);
+
+  // Helper to show temporary toast
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+      setToast({ msg, type });
+      setTimeout(() => setToast(null), 3000);
+  };
 
   // --- Filtered Products Logic (Calculated before render) ---
   const safeProducts = Array.isArray(products) ? products : [];
@@ -664,9 +674,7 @@ export const RestockModule: React.FC = () => {
 
   const handleSave = () => {
     if (!selectedProduct) return;
-    // Real-time sync is already handling state updates.
-    // This is just for user confirmation.
-    alert("SKU 信息已保存！(Changes Saved)");
+    showToast("SKU 信息已自动保存", "success");
   };
 
   const handleSkuSplit = (targetProduct?: Product) => {
@@ -681,8 +689,9 @@ export const RestockModule: React.FC = () => {
       variants: [] 
     };
     setProducts([newSku, ...products]);
-    setSelectedProduct(newSku);
-    alert(`SKU 裂变成功！已生成新变体: ${newSku.skuCode}`);
+    if (!targetProduct) setSelectedProduct(newSku);
+    
+    showToast(`SKU 裂变成功! 新编号: ${newSku.skuCode}`, "success");
   };
 
   const handleAddVariant = () => {
@@ -759,12 +768,14 @@ export const RestockModule: React.FC = () => {
     const handleGeneratePO = () => {
         const cost = eco.capitalRequiredRMB;
         if (cost <= 0) {
-            alert("采购金额为 0，无法生成采购单。请检查单价或采购数量。");
+            showToast("采购金额为 0，无法生成。", "error");
             return;
         }
 
-        if (confirm(`确认生成采购单吗？\n\n产品: ${selectedProduct.productName}\n数量: ${Math.ceil(eco.reorderQty)} 件\n总额: ¥${cost.toLocaleString()}\n\n这也将自动在财务模块创建一笔支出记录。`)) {
-            
+        setIsGeneratingPO(true);
+
+        // Simulate API call
+        setTimeout(() => {
             // 1. Create Transaction Object
             const newTx = {
                 id: `PO-${Date.now()}`,
@@ -789,12 +800,14 @@ export const RestockModule: React.FC = () => {
                 // 4. Notify System (IMPORTANT: Finance Module listens for this)
                 window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_UPDATE_EVENT, { detail: { key: 'AERO_FINANCE_DATA' } }));
                 
-                alert("✅ 采购单已生成！\n\n已同步至财务核算模块 (Finance Module)，状态为 Pending。");
+                showToast("✅ 采购单已生成并同步至财务模块!", "success");
             } catch (e) {
                 console.error(e);
-                alert("生成失败：财务数据写入错误。");
+                showToast("生成失败：财务数据写入错误。", "error");
+            } finally {
+                setIsGeneratingPO(false);
             }
-        }
+        }, 1500);
     };
 
     const content = (
@@ -1495,9 +1508,16 @@ export const RestockModule: React.FC = () => {
                                      {/* GENERATE PO BUTTON */}
                                      <button 
                                         onClick={handleGeneratePO}
-                                        className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10"
+                                        disabled={isGeneratingPO}
+                                        className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                      >
-                                        生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
+                                        {isGeneratingPO ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" /> 正在生成...
+                                            </>
+                                        ) : (
+                                            `生成采购单 (¥${eco.capitalRequiredRMB.toLocaleString()})`
+                                        )}
                                      </button>
                                 </div>
                             </div>
@@ -1590,8 +1610,10 @@ export const RestockModule: React.FC = () => {
                        {/* SIDEBAR BUTTON */}
                        <button 
                           onClick={handleGeneratePO}
-                          className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10"
+                          disabled={isGeneratingPO}
+                          className="w-full py-3 bg-cyber-yellow text-black font-black text-xs hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all uppercase tracking-widest shadow-[0_0_15px_rgba(252,238,10,0.4)] rounded-lg relative z-10 flex items-center justify-center gap-2 disabled:opacity-70"
                        >
+                          {isGeneratingPO ? <Loader2 size={14} className="animate-spin" /> : null}
                           生成采购单 (¥{eco.capitalRequiredRMB.toLocaleString()})
                        </button>
                     </div>
@@ -1625,6 +1647,14 @@ export const RestockModule: React.FC = () => {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+
+      {/* --- TOAST CONTAINER --- */}
+      {toast && createPortal(
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-4 fade-in duration-300 flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border ${toast.type === 'success' ? 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green' : 'bg-red-500/10 border-red-500/30 text-red-500'}`}>
+              {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+              <span className="font-bold text-sm">{toast.msg}</span>
+          </div>
+      , document.body)}
 
       {renderDetailModal()}
 
@@ -1879,7 +1909,7 @@ export const RestockModule: React.FC = () => {
                                       onClick={(e) => {
                                           e.stopPropagation();
                                           navigator.clipboard.writeText(product.logistics.inboundId);
-                                          alert(`已复制入库单号: ${product.logistics.inboundId}`);
+                                          showToast(`已复制入库单号: ${product.logistics.inboundId}`, "success");
                                       }}
                                       className="flex items-center gap-2 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 text-blue-300 text-[11px] shrink-0 cursor-pointer hover:bg-blue-500/30 hover:text-white transition-all"
                                       title="点击复制入库单号"

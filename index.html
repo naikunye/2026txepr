@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -43,14 +44,14 @@
               'neon': '0 0 10px var(--accent-primary), 0 0 20px var(--accent-primary)',
             },
             animation: {
-              'float': 'float 6s ease-in-out infinite',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 10s ease-in-out infinite',
+              'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'mesh': 'mesh 20s infinite ease-in-out',
             },
             keyframes: {
               float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-10px)' },
+                '0%, 100%': { transform: 'translateY(0) scale(1)' },
+                '50%': { transform: 'translateY(-20px) scale(1.05)' },
               },
               mesh: {
                 '0%, 100%': { backgroundPosition: '0% 50%' },
@@ -80,89 +81,100 @@
         --color-red: #FF453A;
         --color-yellow: #FFD60A;
 
-        --glow-primary: rgba(10, 132, 255, 0.3);
-        --glow-secondary: rgba(64, 200, 224, 0.25);
+        --glow-primary: rgba(10, 132, 255, 0.4);
+        --glow-secondary: rgba(64, 200, 224, 0.3);
         --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         
-        --gradient-mesh: radial-gradient(at 0% 0%, rgba(10, 132, 255, 0.15) 0px, transparent 50%),
-                         radial-gradient(at 100% 100%, rgba(94, 92, 230, 0.15) 0px, transparent 50%);
+        /* High Quality Gradient - Smoother transitions */
+        --gradient-mesh: radial-gradient(circle at 15% 15%, rgba(10, 132, 255, 0.08) 0%, transparent 40%),
+                         radial-gradient(circle at 85% 85%, rgba(94, 92, 230, 0.08) 0%, transparent 40%);
       }
 
       /* --- POLARIS THEME (Enterprise Light Mode) --- */
-      /* Designed for high legibility, clean lines, and professional palette */
       [data-theme='polaris'] {
-        --bg-main: #F8FAFC; /* Slate-50: Very cool light gray */
-        --bg-panel: #FFFFFF; /* Pure White */
-        --border-color: #E2E8F0; /* Slate-200 */
-        --text-main: #0F172A; /* Slate-900 */
-        --text-dim: #64748B;  /* Slate-500 */
+        --bg-main: #F8FAFC; 
+        --bg-panel: rgba(255, 255, 255, 0.8);
+        --border-color: #E2E8F0;
+        --text-main: #0F172A; 
+        --text-dim: #64748B;
         
-        /* Accents: Saturated but Professional */
-        --accent-primary: #2563EB;   /* Blue-600 */
-        --accent-secondary: #0891B2; /* Cyan-600 */
-        --accent-tertiary: #7C3AED;  /* Violet-600 */
+        --accent-primary: #2563EB;
+        --accent-secondary: #0891B2;
+        --accent-tertiary: #7C3AED;
         
-        /* Functional Colors: Adjusted for white background (Darker) */
-        --color-green: #059669; /* Emerald-600 */
-        --color-orange: #D97706; /* Amber-600 */
-        --color-pink: #DB2777; /* Pink-600 */
-        --color-red: #DC2626; /* Red-600 */
-        --color-yellow: #CA8A04; /* Yellow-600 */
+        --color-green: #059669;
+        --color-orange: #D97706;
+        --color-pink: #DB2777;
+        --color-red: #DC2626;
+        --color-yellow: #CA8A04;
 
-        --glow-primary: rgba(37, 99, 235, 0.0); /* Remove glow in light mode */
-        --glow-secondary: rgba(8, 145, 178, 0.0);
+        --glow-primary: rgba(37, 99, 235, 0.1); 
+        --glow-secondary: rgba(8, 145, 178, 0.1);
         
-        /* Shadow: Subtle lift, not deep glass */
-        --shadow-glass: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+        --shadow-glass: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
         
-        /* Subtle Gradient Background */
-        --gradient-mesh: linear-gradient(180deg, #F1F5F9 0%, #F8FAFC 100%);
+        --gradient-mesh: radial-gradient(circle at 50% 0%, #F1F5F9 0%, transparent 70%);
       }
 
       body {
         background-color: var(--bg-main);
         background-image: var(--gradient-mesh);
         background-attachment: fixed;
-        background-size: cover;
+        background-size: 100% 100%;
         color: var(--text-main);
         font-family: "Inter", sans-serif;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
         overflow: hidden;
-        transition: all 0.3s ease;
+        transition: background-color 0.5s ease;
+        position: relative;
+      }
+
+      /* NOISE TEXTURE OVERLAY */
+      body::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+        /* Subtle noise texture to prevent color banding */
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+        opacity: 0.5;
+        mix-blend-mode: overlay;
       }
 
       /* --- COMPONENT STYLES --- */
 
-      /* 1. Glass Card -> Solid Card in Light Mode */
       .apple-glass {
         background: var(--bg-panel);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-glass);
-        border-radius: 20px;
-        transition: all 0.2s ease-out;
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       }
       
       [data-theme='polaris'] .apple-glass {
-        background: #FFFFFF !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
+        background: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(20px) !important;
         border: 1px solid #E2E8F0 !important;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
       }
 
       [data-theme='polaris'] .apple-glass:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.05) !important;
         border-color: #CBD5E1 !important;
       }
 
-      /* 2. Inputs */
+      /* Inputs */
       .input-holo {
         background: rgba(0, 0, 0, 0.2) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         color: var(--text-main) !important;
         transition: all 0.2s ease;
         font-family: 'JetBrains Mono', monospace;
@@ -172,7 +184,7 @@
         background: #FFFFFF !important;
         border: 1px solid #CBD5E1 !important;
         color: #1E293B !important;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
       }
 
       .input-holo:focus {
@@ -186,8 +198,11 @@
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
       }
 
-      /* 3. Text & Glows */
-      .text-glow { text-shadow: 0 0 10px var(--glow-primary); }
+      /* Text Glows - Refined */
+      .text-glow { text-shadow: 0 0 20px var(--glow-primary); }
+      .text-glow-blue { text-shadow: 0 0 20px rgba(10, 132, 255, 0.5); }
+      .text-glow-green { text-shadow: 0 0 20px rgba(48, 209, 88, 0.5); }
+      .text-glow-red { text-shadow: 0 0 20px rgba(255, 69, 58, 0.5); }
       
       [data-theme='polaris'] .text-glow,
       [data-theme='polaris'] .text-glow-blue,
@@ -196,132 +211,71 @@
           text-shadow: none !important;
       }
 
-      /* --- DEEP OVERRIDES FOR LIGHT MODE --- */
+      /* Scrollbars */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
       
-      /* A. Layout & Containers */
+      [data-theme='polaris'] ::-webkit-scrollbar-thumb { background: #CBD5E1; }
+      [data-theme='polaris'] ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+      /* --- DEEP OVERRIDES FOR LIGHT MODE (POLARIS) --- */
+      
       [data-theme='polaris'] .bg-black,
+      [data-theme='polaris'] .bg-black\/20,
+      [data-theme='polaris'] .bg-black\/30,
       [data-theme='polaris'] .bg-black\/40,
       [data-theme='polaris'] .bg-black\/50,
       [data-theme='polaris'] .bg-black\/60,
+      [data-theme='polaris'] .bg-black\/80,
+      [data-theme='polaris'] .bg-black\/90,
       [data-theme='polaris'] .bg-\[\#0c0c0c\],
       [data-theme='polaris'] .bg-\[\#0A0A0A\],
       [data-theme='polaris'] .bg-\[\#0F0F0F\],
       [data-theme='polaris'] .bg-\[\#121212\],
+      [data-theme='polaris'] .bg-\[\#151515\],
+      [data-theme='polaris'] .bg-\[\#18181a\],
       [data-theme='polaris'] .bg-\[\#1c1c1e\] {
           background-color: #FFFFFF !important;
           border-color: #E2E8F0 !important;
           color: #0F172A !important;
       }
       
-      /* Specific override for Sidebar */
       [data-theme='polaris'] aside {
-          background-color: #FFFFFF !important;
+          background-color: rgba(255, 255, 255, 0.9) !important;
           border-right: 1px solid #E2E8F0 !important;
-          box-shadow: 4px 0 20px rgba(0,0,0,0.02) !important;
-      }
-      [data-theme='polaris'] aside button.bg-white\/10 {
-          background-color: #EFF6FF !important; /* Blue-50 */
-          color: #1E40AF !important; /* Blue-800 */
-          border: 1px solid #DBEAFE !important;
-      }
-      [data-theme='polaris'] aside button.text-gray-400 {
-          color: #64748B !important; /* Slate-500 */
-      }
-      [data-theme='polaris'] aside button:hover {
-          background-color: #F1F5F9 !important;
-          color: #0F172A !important;
       }
 
-      /* B. Text Contrast */
+      /* Text Contrast Fixes */
       [data-theme='polaris'] .text-white { color: #0F172A !important; }
       [data-theme='polaris'] .text-white\/20 { color: #CBD5E1 !important; }
       [data-theme='polaris'] .text-gray-300,
-      [data-theme='polaris'] .text-gray-400 { color: #475569 !important; } /* Slate-600 */
-      [data-theme='polaris'] .text-gray-500 { color: #64748B !important; } /* Slate-500 */
+      [data-theme='polaris'] .text-gray-400 { color: #475569 !important; } 
+      [data-theme='polaris'] .text-gray-500 { color: #64748B !important; } 
       
-      /* C. Badges & Chips (Pastel Style) */
-      /* Pattern: bg-COLOR/10 -> bg-COLOR-50, text-COLOR -> text-COLOR-700 */
-      
+      /* Badges & Chips */
       [data-theme='polaris'] .bg-white\/5,
       [data-theme='polaris'] .bg-white\/10 { background-color: #F1F5F9 !important; border-color: #E2E8F0 !important; }
 
-      /* Green */
-      [data-theme='polaris'] .bg-green-500\/10, [data-theme='polaris'] .bg-cyber-green\/10, [data-theme='polaris'] .bg-cyber-green\/20 {
-          background-color: #ECFDF5 !important;
-          color: #047857 !important;
-          border-color: #A7F3D0 !important;
-      }
-      [data-theme='polaris'] .text-cyber-green, [data-theme='polaris'] .text-green-400, [data-theme='polaris'] .text-green-500 {
-          color: #059669 !important;
-      }
+      [data-theme='polaris'] .bg-cyber-cyan\/10 { background-color: #ECFEFF !important; color: #0891B2 !important; border-color: #CFFAFE !important; }
+      [data-theme='polaris'] .text-cyber-cyan { color: #0891B2 !important; }
 
-      /* Blue/Cyan */
-      [data-theme='polaris'] .bg-blue-500\/10, [data-theme='polaris'] .bg-cyber-blue\/10, [data-theme='polaris'] .bg-cyber-cyan\/10 {
-          background-color: #EFF6FF !important;
-          color: #1D4ED8 !important;
-          border-color: #BFDBFE !important;
-      }
-      [data-theme='polaris'] .text-cyber-blue, [data-theme='polaris'] .text-blue-400, [data-theme='polaris'] .text-cyber-cyan {
-          color: #2563EB !important;
-      }
+      [data-theme='polaris'] .bg-cyber-purple\/10 { background-color: #F5F3FF !important; color: #7C3AED !important; border-color: #DDD6FE !important; }
+      [data-theme='polaris'] .text-cyber-purple { color: #7C3AED !important; }
 
-      /* Red */
-      [data-theme='polaris'] .bg-red-500\/5, [data-theme='polaris'] .bg-red-500\/10, [data-theme='polaris'] .bg-red-500\/20, [data-theme='polaris'] .bg-cyber-red\/10 {
-          background-color: #FEF2F2 !important; /* Rose-50 */
-          color: #B91C1C !important;
-          border-color: #FECACA !important;
-      }
-      [data-theme='polaris'] .text-red-500, [data-theme='polaris'] .text-red-400, [data-theme='polaris'] .text-cyber-red {
-          color: #DC2626 !important;
-      }
-      /* Red Borders */
-      [data-theme='polaris'] .border-red-500, [data-theme='polaris'] .border-red-500\/20, [data-theme='polaris'] .border-red-500\/40, [data-theme='polaris'] .border-red-500\/50 {
-          border-color: #FECACA !important;
-      }
+      [data-theme='polaris'] .bg-cyber-yellow\/10 { background-color: #FFFBEB !important; color: #D97706 !important; border-color: #FDE68A !important; }
+      [data-theme='polaris'] .text-cyber-yellow { color: #D97706 !important; }
 
-      /* Yellow/Amber */
-      [data-theme='polaris'] .bg-yellow-500\/10, [data-theme='polaris'] .bg-cyber-yellow\/10 {
-          background-color: #FFFBEB !important;
-          color: #B45309 !important;
-          border-color: #FDE68A !important;
-      }
-      [data-theme='polaris'] .text-yellow-500, [data-theme='polaris'] .text-yellow-400, [data-theme='polaris'] .text-cyber-yellow {
-          color: #D97706 !important;
-      }
+      [data-theme='polaris'] .bg-cyber-green\/10 { background-color: #ECFDF5 !important; color: #059669 !important; border-color: #A7F3D0 !important; }
+      [data-theme='polaris'] .text-cyber-green { color: #059669 !important; }
 
-      /* Purple */
-      [data-theme='polaris'] .bg-purple-500\/10, [data-theme='polaris'] .bg-cyber-purple\/10 {
-          background-color: #F5F3FF !important;
-          color: #6D28D9 !important;
-          border-color: #DDD6FE !important;
-      }
-      [data-theme='polaris'] .text-purple-400, [data-theme='polaris'] .text-cyber-purple {
-          color: #7C3AED !important;
-      }
+      [data-theme='polaris'] .bg-cyber-red\/10 { background-color: #FEF2F2 !important; color: #DC2626 !important; border-color: #FECACA !important; }
+      [data-theme='polaris'] .text-cyber-red { color: #DC2626 !important; }
 
-      /* D. Modals & Popovers */
-      [data-theme='polaris'] .fixed.inset-0.bg-black\/40 { background-color: rgba(255,255,255,0.5) !important; backdrop-filter: blur(4px) !important; }
-      [data-theme='polaris'] .fixed.inset-0.bg-black\/60 { background-color: rgba(100,116,139,0.4) !important; backdrop-filter: blur(4px) !important; }
-      
-      /* E. Tables */
-      [data-theme='polaris'] thead { background-color: #F8FAFC !important; border-bottom: 1px solid #E2E8F0 !important; }
-      [data-theme='polaris'] th { color: #475569 !important; }
-      [data-theme='polaris'] tr:hover { background-color: #F1F5F9 !important; }
-      
-      /* F. Scrollbars */
-      [data-theme='polaris'] ::-webkit-scrollbar-thumb { background: #CBD5E1; }
-      [data-theme='polaris'] ::-webkit-scrollbar-track { background: transparent; }
-
-      /* G. Charts Backgrounds */
-      [data-theme='polaris'] .recharts-tooltip-wrapper .bg-black\/90, 
-      [data-theme='polaris'] .recharts-tooltip-wrapper .bg-black {
-          background-color: #FFFFFF !important;
-          border: 1px solid #E2E8F0 !important;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
-          color: #0F172A !important;
-      }
-      
-      [data-theme='polaris'] .bg-noise { display: none; }
+      /* Modals */
+      [data-theme='polaris'] .fixed.inset-0.bg-black\/90 { background-color: rgba(255,255,255,0.95) !important; }
+      [data-theme='polaris'] .bg-noise { opacity: 0.05 !important; }
 
     </style>
   <script type="importmap">
@@ -340,9 +294,21 @@
 </script>
 </head>
   <body>
-    <!-- Orbs hidden in Polaris mode via CSS var opacity -->
-    <div class="fixed top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow" style="background-color: var(--glow-primary); opacity: 0.15"></div>
-    <div class="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none animate-float" style="background-color: var(--glow-secondary); opacity: 0.12"></div>
+    <!-- 
+      Refined Ambient Orbs:
+      - Use radial-gradient instead of CSS blur filter for smoother rendering on 4K/Retina displays.
+      - Removed 'blur-[150px]' class which causes banding artifacts.
+      - Added grain overlay in CSS (body::after) to dither the gradients.
+    -->
+    <div 
+      class="fixed top-[-10%] left-[10%] w-[800px] h-[800px] rounded-full pointer-events-none animate-pulse-slow" 
+      style="background: radial-gradient(circle, var(--glow-primary) 0%, transparent 65%); opacity: 0.6; z-index: -2;"
+    ></div>
+    
+    <div 
+      class="fixed bottom-[-10%] right-[0%] w-[700px] h-[700px] rounded-full pointer-events-none animate-float" 
+      style="background: radial-gradient(circle, var(--glow-secondary) 0%, transparent 65%); opacity: 0.5; z-index: -2;"
+    ></div>
     
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
