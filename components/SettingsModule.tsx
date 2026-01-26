@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { 
   Settings, Save, Upload, Download, Server, Palette, 
@@ -7,7 +8,7 @@ import {
   Orbit, Gem
 } from 'lucide-react';
 import { LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
-import { pb, updateServerUrl, DEFAULT_PB_URL } from '../lib/pb';
+import { pb, updateServerUrl, DEFAULT_PB_URL, SYNC_KEYS } from '../lib/pb';
 
 interface SettingsModuleProps {
   currentTheme: string;
@@ -56,16 +57,6 @@ const themes = [
       activeBg: 'bg-blue-100',
       previewGradient: 'from-gray-100 via-white to-white' 
   },
-];
-
-const SYNC_KEYS = [
-    'AERO_LOGISTICS_DATA',
-    'AERO_FINANCE_DATA',
-    'AERO_RESTOCK_DATA',
-    'AERO_TASKS_DATA',
-    'AERO_INFLUENCER_DATA',
-    'AERO_THEME',
-    'AERO_FILES_DATA'
 ];
 
 type DiagErrorType = 'none' | 'browser_block' | 'server_unreachable' | 'config_missing' | 'service_unavailable';

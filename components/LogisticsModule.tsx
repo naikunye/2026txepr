@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Truck, Ship, Plane, Search, Plus, MapPin, Calendar, ExternalLink, 
@@ -111,7 +112,7 @@ const ShipmentCard: React.FC<ShipmentCardProps> = ({ data, isSelected, onSelect 
             group relative p-5 rounded-3xl border transition-all duration-300 cursor-pointer overflow-hidden
             ${isSelected 
                 ? `bg-white/10 border-white/20 shadow-2xl scale-[1.02]` 
-                : `bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10`
+                : `bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10 hover:scale-[1.02] hover:shadow-2xl`
             }
          `}
       >

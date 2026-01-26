@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutGrid, 
@@ -7,7 +8,8 @@ import {
   Layers, 
   ListTodo, 
   Settings, 
-  Command
+  Command,
+  Calculator
 } from 'lucide-react';
 import { NavItem } from '../types';
 
@@ -24,6 +26,7 @@ const navItems: NavItem[] = [
   // Logistics removed as per request
   { id: 'replenish', label: '智能备货', icon: Layers },
   { id: 'tasks', label: '任务协同', icon: ListTodo },
+  { id: 'tools', label: '跨境工具', icon: Calculator },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate }) => {

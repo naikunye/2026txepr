@@ -1,16 +1,20 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { pb } from '../lib/pb';
 
 export const LOCAL_STORAGE_UPDATE_EVENT = 'aero-storage-update';
+export const SYNC_START_EVENT = 'AERO_SYNC_START';
+export const SYNC_SUCCESS_EVENT = 'AERO_SYNC_SUCCESS';
+export const SYNC_ERROR_EVENT = 'AERO_SYNC_ERROR';
 
 /**
- * World-Class Hybrid Persistence Hook (v2.1)
- * Fixes:
- * - Immediate Local Save: Prevents data loss if user refreshes immediately after editing.
- * - Timestamp Protection: Uses isFirstMount to avoid overwriting timestamps on initial load.
- * - Conflict Resolution: Robust server vs local time comparison.
+ * World-Class Hybrid Persistence Hook (v2.2 - Realtime Sync Edition)
+ * Features:
+ * - Immediate Local Save: Prevents data loss on refresh.
+ * - Realtime Cloud Push: Pushes to cloud immediately after debounce.
+ * - Global Event Broadcasting: Notifies App.tsx to show sync status.
  */
-export function usePersistence<T>(key: string, initialValue: T, delay: number = 500) {
+export function usePersistence<T>(key: string, initialValue: T, delay: number = 1000) {
   // 1. Initialize State from Local Storage (Fastest)
   const [state, setState] = useState<T>(() => {
     try {
@@ -35,9 +39,9 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
   const recordIdRef = useRef<string | null>(null);
   const isRemoteUpdate = useRef(false);
   const isOffline = useRef(false);
-  const isFirstMount = useRef(true); // Prevents initial render from updating timestamp
+  const isFirstMount = useRef(true); 
 
-  // 2. Cloud Sync Logic (On Mount)
+  // 2. Cloud Sync Logic (On Mount) - Pull Phase
   useEffect(() => {
     if (pb.baseUrl.includes('YOUR_TENCENT_IP')) {
         isOffline.current = true;
@@ -56,22 +60,19 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
           const localTimeStr = localStorage.getItem(key + '_TS');
           
           const hasLocalData = localStorage.getItem(key) !== null;
-          // If no local TS, default to 0 (Server wins), unless we have data (then we assume it's fresh/unsynced)
           const localTime = localTimeStr ? parseInt(localTimeStr) : (hasLocalData ? Date.now() : 0);
 
-          // LOGIC: Server wins only if it is significantly NEWER (> 2s) than local.
+          // Server wins only if significantly NEWER (> 2s)
           if (serverTime > localTime + 2000) {
               if (JSON.stringify(record.val) !== JSON.stringify(state)) {
                  console.log(`[Cloud] Server data is newer (${serverTime} > ${localTime}). Syncing down.`);
-                 isRemoteUpdate.current = true; // Mark as remote update so we don't bounce it back
+                 isRemoteUpdate.current = true; 
                  setState(record.val);
                  
-                 // Persist the Server Data to Local immediately
+                 // Persist
                  localStorage.setItem(key, JSON.stringify(record.val));
                  localStorage.setItem(key + '_TS', serverTime.toString());
               }
-          } else {
-              console.log(`[Cloud] Local data is authoritative. Keeping local.`);
           }
         }
       } catch (err: any) {
@@ -80,7 +81,7 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
         }
       }
 
-      // Realtime Subscription
+      // Realtime Subscription (Pull changes from other users)
       if (!isOffline.current) {
           try {
               pb.collection('sync_store').subscribe('*', function (e) {
@@ -90,7 +91,6 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
                    
                    // Only accept push if strictly newer
                    if (updateTime > currentLocalTime) {
-                       console.log(`[Realtime] Received update for ${key}`);
                        isRemoteUpdate.current = true;
                        setState(e.record.val);
                        localStorage.setItem(key, JSON.stringify(e.record.val));
@@ -109,22 +109,19 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
     };
   }, [key]); 
 
-  // 3. Persist Local Changes (Immediate Local + Debounced Cloud)
+  // 3. Persist Local Changes (Immediate Local + Realtime Cloud Push)
   useEffect(() => {
-    // Skip saving on the very first render to protect the existing timestamp
     if (isFirstMount.current) {
         isFirstMount.current = false;
         return;
     }
 
-    // If this change came from the cloud, we already saved it in initCloud/subscribe.
     if (isRemoteUpdate.current) {
         isRemoteUpdate.current = false;
         return;
     }
 
     // A. IMMEDIATE LOCAL SAVE
-    // Critical: Save to LS synchronously so refreshing page immediately doesn't lose data.
     try {
         const valString = JSON.stringify(state);
         const now = Date.now();
@@ -135,9 +132,12 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
         console.error("Local Save Failed", e);
     }
 
-    // B. DEBOUNCED CLOUD SYNC
+    // B. REALTIME CLOUD PUSH (Debounced)
     const handler = setTimeout(async () => {
       if (isOffline.current) return;
+
+      // Broadcast Start Event
+      window.dispatchEvent(new CustomEvent(SYNC_START_EVENT));
 
       try {
         if (recordIdRef.current) {
@@ -155,8 +155,12 @@ export function usePersistence<T>(key: string, initialValue: T, delay: number = 
                 }
             }
         }
+        // Broadcast Success Event
+        window.dispatchEvent(new CustomEvent(SYNC_SUCCESS_EVENT));
       } catch (error: any) {
          if (error.status === 0) isOffline.current = true;
+         // Broadcast Error Event
+         window.dispatchEvent(new CustomEvent(SYNC_ERROR_EVENT));
       }
     }, delay);
 

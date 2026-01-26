@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -7,13 +8,19 @@ import { InfluencerModule } from './components/InfluencerModule';
 import { RestockModule } from './components/RestockModule';
 import { TaskModule } from './components/TaskModule';
 import { SettingsModule } from './components/SettingsModule'; 
+import { ToolsModule } from './components/ToolsModule';
 import { ModulePlaceholder } from './components/ModulePlaceholder';
-import { Sparkles, Command, CreditCard, Users } from 'lucide-react';
+import { Sparkles, Command, CreditCard, Users, RefreshCw, CheckCircle2, CloudLightning } from 'lucide-react';
+import { pb, SYNC_KEYS } from './lib/pb';
+import { SYNC_START_EVENT, SYNC_SUCCESS_EVENT, SYNC_ERROR_EVENT } from './hooks/usePersistence';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState('cyber');
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  
+  // Real-time Sync Status State
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('AERO_THEME');
@@ -24,6 +31,42 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('AERO_THEME', theme);
   }, [theme]);
+
+  // --- Real-Time Sync Listeners ---
+  useEffect(() => {
+    let successTimer: any;
+
+    const handleSyncStart = () => {
+        setSyncStatus('syncing');
+        if (successTimer) clearTimeout(successTimer);
+    };
+
+    const handleSyncSuccess = () => {
+        setSyncStatus('success');
+        // Show success state for 2 seconds, then go back to idle
+        successTimer = setTimeout(() => {
+            setSyncStatus('idle');
+        }, 2000);
+    };
+
+    const handleSyncError = () => {
+        setSyncStatus('error');
+        successTimer = setTimeout(() => {
+            setSyncStatus('idle');
+        }, 3000);
+    };
+
+    window.addEventListener(SYNC_START_EVENT, handleSyncStart);
+    window.addEventListener(SYNC_SUCCESS_EVENT, handleSyncSuccess);
+    window.addEventListener(SYNC_ERROR_EVENT, handleSyncError);
+
+    return () => {
+        window.removeEventListener(SYNC_START_EVENT, handleSyncStart);
+        window.removeEventListener(SYNC_SUCCESS_EVENT, handleSyncSuccess);
+        window.removeEventListener(SYNC_ERROR_EVENT, handleSyncError);
+        if (successTimer) clearTimeout(successTimer);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,6 +88,7 @@ export default function App() {
       case 'replenish': return <RestockModule />;
       case 'tasks': return <TaskModule />;
       case 'finance': return <FinanceModule />;
+      case 'tools': return <ToolsModule />;
       case 'settings': return <SettingsModule currentTheme={theme} onThemeChange={setTheme} />;
       default: return <ModulePlaceholder title={activeTab} />;
     }
@@ -98,6 +142,23 @@ export default function App() {
            {renderContent()}
         </div>
         
+        {/* Real-Time Sync Indicator Toast */}
+        {syncStatus !== 'idle' && (
+            <div className={`fixed top-6 right-6 z-[60] backdrop-blur-xl border px-4 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-2xl animate-in slide-in-from-top-4 fade-in duration-300 ${
+                syncStatus === 'syncing' ? 'bg-black/80 border-cyber-blue/30 text-cyber-blue' :
+                syncStatus === 'success' ? 'bg-green-900/80 border-green-500/30 text-green-400' :
+                'bg-red-900/80 border-red-500/30 text-red-400'
+            }`}>
+                {syncStatus === 'syncing' && <RefreshCw size={12} className="animate-spin" />}
+                {syncStatus === 'success' && <CheckCircle2 size={14} />}
+                {syncStatus === 'error' && <CloudLightning size={14} />}
+                
+                {syncStatus === 'syncing' && "正在实时同步..."}
+                {syncStatus === 'success' && "已同步到云端"}
+                {syncStatus === 'error' && "同步失败 (离线)"}
+            </div>
+        )}
+
         {/* Floating Action Button (Round) */}
         <div className="fixed bottom-8 right-8 z-50">
           <button 

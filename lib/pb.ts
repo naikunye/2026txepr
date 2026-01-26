@@ -1,3 +1,4 @@
+
 import PocketBase from 'pocketbase';
 
 // Key for LocalStorage
@@ -14,6 +15,19 @@ export const pb = new PocketBase(savedUrl || DEFAULT_PB_URL);
 
 // Disable auto-cancellation
 pb.autoCancellation(false);
+
+/**
+ * Global keys that need to be synced to the cloud.
+ */
+export const SYNC_KEYS = [
+    'AERO_LOGISTICS_DATA',
+    'AERO_FINANCE_DATA',
+    'AERO_RESTOCK_DATA',
+    'AERO_TASKS_DATA',
+    'AERO_INFLUENCER_DATA',
+    'AERO_THEME',
+    'AERO_FILES_DATA'
+];
 
 /**
  * Helper to update the server URL dynamically from the UI
