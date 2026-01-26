@@ -1976,6 +1976,42 @@ export const RestockModule: React.FC = () => {
                                        <span>{product.logistics.inboundId}</span>
                                     </div>
                                 )}
+
+                                {/* NEW: Vessel Name Display */}
+                                {product.logistics?.vesselName && (
+                                    <div 
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          const vName = product.logistics?.vesselName;
+                                          if (vName) {
+                                               // Simple copy logic for the list view
+                                               const doFallbackCopy = (text: string) => {
+                                                  const textArea = document.createElement("textarea");
+                                                  textArea.value = text;
+                                                  textArea.style.top = "0";
+                                                  textArea.style.left = "0";
+                                                  textArea.style.position = "fixed";
+                                                  document.body.appendChild(textArea);
+                                                  textArea.focus();
+                                                  textArea.select();
+                                                  try { document.execCommand('copy'); showToast("船名已复制", "success"); } catch (err) {}
+                                                  document.body.removeChild(textArea);
+                                              };
+                                              if (navigator.clipboard && window.isSecureContext) {
+                                                  navigator.clipboard.writeText(vName).then(() => showToast("船名已复制", "success")).catch(() => doFallbackCopy(vName));
+                                              } else {
+                                                  doFallbackCopy(vName);
+                                              }
+                                          }
+                                      }}
+                                      className="flex items-center gap-2 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 text-indigo-300 text-[11px] shrink-0 cursor-pointer hover:bg-indigo-500/30 hover:text-white transition-all"
+                                      title="船名/航次 (点击复制)"
+                                    >
+                                       <Ship size={12}/> 
+                                       <span className="truncate max-w-[150px]">{product.logistics.vesselName}</span>
+                                    </div>
+                                )}
+
                                 {product.logistics?.trackingNo && (
                                     <div 
                                       onClick={(e) => handleTrackingClick(e, product.logistics?.trackingNo, product.logistics?.carrier)}
