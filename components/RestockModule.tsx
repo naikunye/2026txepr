@@ -1184,12 +1184,42 @@ export const RestockModule: React.FC = () => {
                                          placeholder="输入船名..." 
                                        />
                                        <button 
-                                          onClick={() => {
-                                              if(selectedProduct.logistics?.vesselName) {
-                                                   navigator.clipboard.writeText(selectedProduct.logistics.vesselName);
-                                                   showToast("船名已复制，正在打开维运网...", "success");
+                                          onClick={(e) => {
+                                              e.stopPropagation();
+                                              const vName = selectedProduct.logistics?.vesselName;
+                                              
+                                              if (vName) {
+                                                  // Fallback function definition
+                                                  const doFallbackCopy = (text: string) => {
+                                                      const textArea = document.createElement("textarea");
+                                                      textArea.value = text;
+                                                      textArea.style.top = "0";
+                                                      textArea.style.left = "0";
+                                                      textArea.style.position = "fixed";
+                                                      document.body.appendChild(textArea);
+                                                      textArea.focus();
+                                                      textArea.select();
+                                                      try {
+                                                          document.execCommand('copy');
+                                                          showToast("船名已复制", "success");
+                                                      } catch (err) {
+                                                          console.error(err);
+                                                      }
+                                                      document.body.removeChild(textArea);
+                                                  };
+
+                                                  if (navigator.clipboard && window.isSecureContext) {
+                                                      navigator.clipboard.writeText(vName)
+                                                          .then(() => showToast("船名已复制", "success"))
+                                                          .catch(() => doFallbackCopy(vName));
+                                                  } else {
+                                                      doFallbackCopy(vName);
+                                                  }
                                               }
-                                              window.open('https://www.weiyun001.com/shipLocate', '_blank');
+                                              
+                                              setTimeout(() => {
+                                                  window.open('https://www.weiyun001.com/shipLocate', '_blank');
+                                              }, 200);
                                           }}
                                           className="px-3 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 rounded-lg transition-all flex items-center justify-center"
                                           title="维运网船舶定位 (复制并跳转)"
@@ -1835,13 +1865,14 @@ export const RestockModule: React.FC = () => {
                    onDragEnter={(e) => handleDragEnter(e, product.id)}
                    className={`
                      p-0 group relative overflow-hidden rounded-2xl border
-                     transition-all duration-200 ease-out
+                     transition-colors duration-200
                      ${isSelected 
                         ? 'bg-[#0f172a] border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.1)]' 
-                        : 'bg-[#080808] border-white/10 hover:bg-[#1A1A1A] hover:border-white/20'
+                        : 'bg-[#080808] border-white/10 hover:bg-[#161616] hover:border-white/20'
                      }
                      ${isBeingDragged ? 'opacity-30 scale-[0.98] border-dashed border-white/40 shadow-inner brightness-50 grayscale' : 'opacity-100 scale-100'}
                    `}
+                   style={{ backdropFilter: 'none', WebkitBackdropFilter: 'none' }}
                  >
                     {/* Active Border Indicator - SOLID COLOR, NO BLUR */}
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-gray-700'}`}></div>
@@ -1855,7 +1886,7 @@ export const RestockModule: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="p-5 flex gap-6 items-center border-b border-white/5 bg-gradient-to-r from-transparent to-black/20">
+                    <div className="p-5 flex gap-6 items-center border-b border-white/5">
                        
                        {/* DRAG HANDLE - Styling Updated */}
                        <div 
