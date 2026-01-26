@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
@@ -292,12 +293,18 @@ export const RestockModule: React.FC = () => {
 
   // --- Filtered Products Logic (Calculated before render) ---
   const safeProducts = Array.isArray(products) ? products : [];
-  const filteredProducts = safeProducts.filter(p => 
-      p && (
-         (p.skuCode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-         (p.logistics?.inboundId || '').toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  );
+  const filteredProducts = safeProducts.filter(p => {
+      if (!p) return false;
+      const term = searchTerm.toLowerCase().trim();
+      if (!term) return true;
+
+      return (
+         (p.skuCode || '').toLowerCase().includes(term) || 
+         (p.productName || '').toLowerCase().includes(term) ||
+         (p.logistics?.inboundId || '').toLowerCase().includes(term) ||
+         (p.logistics?.trackingNo || '').toLowerCase().includes(term)
+      );
+  });
 
   // --- Drag and Drop Handlers (Live Reordering) ---
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -1658,7 +1665,7 @@ export const RestockModule: React.FC = () => {
                     <input 
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="检索 SKU / 追踪号..." 
+                        placeholder="检索 SKU / 追踪号 / 名称..." 
                         className="bg-white/5 border border-white/10 pl-12 pr-6 py-2.5 text-sm text-white focus:border-cyber-cyan focus:shadow-[0_0_15px_rgba(64,200,224,0.2)] outline-none font-medium w-80 rounded-xl transition-all"
                     />
                 </div>
@@ -1710,7 +1717,7 @@ export const RestockModule: React.FC = () => {
            </h3>
            <p className="text-gray-500 font-medium text-sm mb-10 text-center max-w-md leading-relaxed">
              {searchTerm 
-               ? `系统全域搜索未匹配到包含 "${searchTerm}" 的 SKU 或单号。` 
+               ? `系统全域搜索未匹配到包含 "${searchTerm}" 的 SKU、名称或单号。` 
                : "当前产品库为空。您可以从外部导入 JSON 数据，或新建产品档案。"}
            </p>
 

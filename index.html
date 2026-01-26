@@ -19,12 +19,12 @@
                 text: 'var(--text-main)', 
                 dim: 'var(--text-dim)',
                 
-                // Dynamic Accents mapping to CSS vars
+                // Dynamic Accents
                 blue: 'var(--accent-primary)', 
                 cyan: 'var(--accent-secondary)',
                 purple: 'var(--accent-tertiary)',
                 
-                // Mapped Colors (Changes based on theme)
+                // Functional Colors
                 green: 'var(--color-green)',
                 orange: 'var(--color-orange)',
                 pink: 'var(--color-pink)',
@@ -63,7 +63,7 @@
     </script>
     <style>
       :root {
-        /* --- Base Defaults (Cosmos / Dark Mode) --- */
+        /* --- Dark Mode Defaults (Cosmos) --- */
         --bg-main: #050505;
         --bg-panel: rgba(20, 20, 25, 0.6);
         --border-color: rgba(255, 255, 255, 0.08);
@@ -74,7 +74,6 @@
         --accent-secondary: #40C8E0;
         --accent-tertiary: #5E5CE6;
         
-        /* Functional Colors (Dark Mode Neon) */
         --color-green: #30D158;
         --color-orange: #FF9F0A;
         --color-pink: #FF375F;
@@ -89,219 +88,240 @@
                          radial-gradient(at 100% 100%, rgba(94, 92, 230, 0.15) 0px, transparent 50%);
       }
 
-      /* --- THEME: POLARIS (Clean White / High Contrast) --- */
+      /* --- POLARIS THEME (Enterprise Light Mode) --- */
+      /* Designed for high legibility, clean lines, and professional palette */
       [data-theme='polaris'] {
-        --bg-main: #F3F4F6; /* Gray-100 base */
-        --bg-panel: rgba(255, 255, 255, 0.85); /* Highly opaque white */
-        --border-color: #E5E7EB; /* Gray-200 */
-        --text-main: #111827; /* Gray-900 */
-        --text-dim: #6B7280;  /* Gray-500 */
+        --bg-main: #F8FAFC; /* Slate-50: Very cool light gray */
+        --bg-panel: #FFFFFF; /* Pure White */
+        --border-color: #E2E8F0; /* Slate-200 */
+        --text-main: #0F172A; /* Slate-900 */
+        --text-dim: #64748B;  /* Slate-500 */
         
-        /* Accents: Darker, deeper colors for white background readability */
+        /* Accents: Saturated but Professional */
         --accent-primary: #2563EB;   /* Blue-600 */
         --accent-secondary: #0891B2; /* Cyan-600 */
-        --accent-tertiary: #4F46E5;  /* Indigo-600 */
+        --accent-tertiary: #7C3AED;  /* Violet-600 */
         
-        /* Functional Colors: Adjusted for Light Mode */
-        --color-green: #16A34A; /* Green-600 (Darker) */
-        --color-orange: #EA580C; /* Orange-600 */
+        /* Functional Colors: Adjusted for white background (Darker) */
+        --color-green: #059669; /* Emerald-600 */
+        --color-orange: #D97706; /* Amber-600 */
         --color-pink: #DB2777; /* Pink-600 */
         --color-red: #DC2626; /* Red-600 */
-        --color-yellow: #D97706; /* Amber-600 (Readable on white) */
+        --color-yellow: #CA8A04; /* Yellow-600 */
 
-        --glow-primary: rgba(37, 99, 235, 0.1);
-        --glow-secondary: rgba(8, 145, 178, 0.1);
-        --shadow-glass: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        --glow-primary: rgba(37, 99, 235, 0.0); /* Remove glow in light mode */
+        --glow-secondary: rgba(8, 145, 178, 0.0);
         
-        --gradient-mesh: 
-            radial-gradient(at 0% 0%, rgba(255, 255, 255, 1) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(240, 249, 255, 1) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(230, 240, 255, 1) 0px, transparent 60%);
+        /* Shadow: Subtle lift, not deep glass */
+        --shadow-glass: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+        
+        /* Subtle Gradient Background */
+        --gradient-mesh: linear-gradient(180deg, #F1F5F9 0%, #F8FAFC 100%);
       }
 
-      /* Base Body Styles */
       body {
         background-color: var(--bg-main);
         background-image: var(--gradient-mesh);
         background-attachment: fixed;
-        background-size: 150% 150%;
-        animation: mesh 20s ease infinite;
+        background-size: cover;
         color: var(--text-main);
         font-family: "Inter", sans-serif;
         -webkit-font-smoothing: antialiased;
         overflow: hidden;
-        transition: background-color 0.5s ease, background-image 0.5s ease, color 0.3s ease;
+        transition: all 0.3s ease;
       }
 
       /* --- COMPONENT STYLES --- */
 
-      /* 1. Glass Card */
+      /* 1. Glass Card -> Solid Card in Light Mode */
       .apple-glass {
         background: var(--bg-panel);
-        backdrop-filter: saturate(180%) blur(30px);
-        -webkit-backdrop-filter: saturate(180%) blur(30px);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-glass);
-        border-radius: 24px;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border-radius: 20px;
+        transition: all 0.2s ease-out;
       }
       
-      .apple-glass:hover {
-        border-color: var(--accent-primary);
-        transform: translateY(-2px);
+      [data-theme='polaris'] .apple-glass {
+        background: #FFFFFF !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: 1px solid #E2E8F0 !important;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
       }
-      
-      /* Light mode hover effect is subtler */
+
       [data-theme='polaris'] .apple-glass:hover {
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-        border-color: #cbd5e1; /* Slate-300 */
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        border-color: #CBD5E1 !important;
       }
 
       /* 2. Inputs */
       .input-holo {
         background: rgba(0, 0, 0, 0.2) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         color: var(--text-main) !important;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         font-family: 'JetBrains Mono', monospace;
       }
 
       [data-theme='polaris'] .input-holo {
         background: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
+        border: 1px solid #CBD5E1 !important;
         color: #1E293B !important;
         box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
       }
 
       .input-holo:focus {
-        background: rgba(0, 0, 0, 0.4) !important;
         border-color: var(--accent-primary) !important;
-        box-shadow: 0 0 0 1px var(--accent-primary), 0 0 20px var(--glow-primary);
         outline: none;
+        box-shadow: 0 0 0 2px var(--glow-primary);
       }
       
       [data-theme='polaris'] .input-holo:focus {
-        background: #FFFFFF !important;
         border-color: var(--accent-primary) !important;
-        box-shadow: 0 0 0 2px var(--glow-primary) !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
       }
 
-      /* 3. Dropdowns */
-      select option {
-        background-color: #1c1c1e;
-        color: #F5F5F7;
-      }
-      [data-theme='polaris'] select option {
-        background-color: #FFFFFF;
-        color: #111827;
-      }
-
-      /* 4. Scrollbar */
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-      ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
-
-      [data-theme='polaris'] ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); }
-      [data-theme='polaris'] ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.4); }
-
-      /* 5. Utilities */
+      /* 3. Text & Glows */
       .text-glow { text-shadow: 0 0 10px var(--glow-primary); }
-      .bg-noise {
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-      }
-
-      /* ==========================================================================
-         POLARIS (LIGHT MODE) DEEP OVERRIDES
-         These rules force hardcoded dark-mode Tailwind classes to flip in Light Mode.
-         ========================================================================== */
       
-      /* A. Backgrounds */
-      [data-theme='polaris'] .bg-black,
-      [data-theme='polaris'] .bg-gray-900,
-      [data-theme='polaris'] .bg-\[\#0c0c0c\],
-      [data-theme='polaris'] .bg-\[\#0A0A0A\],
-      [data-theme='polaris'] .bg-\[\#0F0F0F\],
-      [data-theme='polaris'] .bg-\[\#121212\],
-      [data-theme='polaris'] .bg-\[\#1c1c1e\],
-      [data-theme='polaris'] .bg-\[\#151515\],
-      [data-theme='polaris'] .bg-\[\#080808\] {
-          background-color: #FFFFFF !important;
-          border-color: #E2E8F0 !important;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02) !important;
-      }
-
-      /* Semi-transparent blacks become semi-transparent whites/grays */
-      [data-theme='polaris'] .bg-black\/20 { background-color: rgba(241, 245, 249, 0.5) !important; }
-      [data-theme='polaris'] .bg-black\/30 { background-color: #F1F5F9 !important; }
-      [data-theme='polaris'] .bg-black\/40 { background-color: #F8FAFC !important; border: 1px solid #E2E8F0 !important; }
-      [data-theme='polaris'] .bg-black\/50 { background-color: #E2E8F0 !important; }
-      [data-theme='polaris'] .bg-black\/60 { background-color: #CBD5E1 !important; }
-      [data-theme='polaris'] .bg-black\/80 { background-color: #F8FAFC !important; } /* Modals/Overlays usually */
-      [data-theme='polaris'] .bg-black\/90 { background-color: rgba(255,255,255,0.95) !important; } /* Modals */
-
-      /* White opacities become dark grays for hover states */
-      [data-theme='polaris'] .bg-white\/5 { background-color: rgba(0,0,0,0.03) !important; }
-      [data-theme='polaris'] .bg-white\/10 { background-color: rgba(0,0,0,0.06) !important; }
-      [data-theme='polaris'] .bg-white\/20 { background-color: rgba(0,0,0,0.1) !important; }
-
-      /* B. Borders */
-      [data-theme='polaris'] .border-white\/5,
-      [data-theme='polaris'] .border-white\/10,
-      [data-theme='polaris'] .border-white\/20 {
-          border-color: #E2E8F0 !important;
-      }
-
-      /* C. Text Colors - The Big Flip */
-      [data-theme='polaris'] .text-white { color: #111827 !important; } /* White -> Dark Slate */
-      [data-theme='polaris'] .text-white\/20 { color: #CBD5E1 !important; }
-      
-      [data-theme='polaris'] .text-gray-300,
-      [data-theme='polaris'] .text-gray-400 { color: #4B5563 !important; } /* Light Gray -> Medium Gray */
-      
-      [data-theme='polaris'] .text-gray-500 { color: #6B7280 !important; } /* Stays Med Gray */
-      [data-theme='polaris'] .text-gray-600 { color: #9CA3AF !important; }
-
-      /* D. Brand/Cyber Colors - Map to Readable Darker Versions */
-      [data-theme='polaris'] .text-cyber-cyan { color: var(--accent-secondary) !important; }
-      [data-theme='polaris'] .text-cyber-blue { color: var(--accent-primary) !important; }
-      [data-theme='polaris'] .text-cyber-purple { color: var(--accent-tertiary) !important; }
-      [data-theme='polaris'] .text-cyber-yellow { color: var(--color-yellow) !important; }
-      [data-theme='polaris'] .text-cyber-green { color: var(--color-green) !important; }
-      [data-theme='polaris'] .text-cyber-pink { color: var(--color-pink) !important; }
-      [data-theme='polaris'] .text-cyber-red { color: var(--color-red) !important; }
-
-      /* E. Specific Fixes for Bad Contrast */
-      [data-theme='polaris'] .border-cyber-cyan\/30 { border-color: rgba(8, 145, 178, 0.3) !important; }
-      [data-theme='polaris'] .bg-cyber-cyan\/10 { background-color: rgba(8, 145, 178, 0.1) !important; }
-      
-      /* Disable Text Glow in Light Mode */
       [data-theme='polaris'] .text-glow,
       [data-theme='polaris'] .text-glow-blue,
-      [data-theme='polaris'] .text-glow-green,
+      [data-theme='polaris'] .text-glow-green, 
       [data-theme='polaris'] .text-glow-red {
           text-shadow: none !important;
       }
 
-      /* Specific Component Fixes */
-      /* Sidebar */
-      [data-theme='polaris'] aside { 
-          background-color: rgba(255,255,255,0.8) !important; 
-          border-right: 1px solid #E2E8F0;
-          box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+      /* --- DEEP OVERRIDES FOR LIGHT MODE --- */
+      
+      /* A. Layout & Containers */
+      [data-theme='polaris'] .bg-black,
+      [data-theme='polaris'] .bg-black\/40,
+      [data-theme='polaris'] .bg-black\/50,
+      [data-theme='polaris'] .bg-black\/60,
+      [data-theme='polaris'] .bg-\[\#0c0c0c\],
+      [data-theme='polaris'] .bg-\[\#0A0A0A\],
+      [data-theme='polaris'] .bg-\[\#0F0F0F\],
+      [data-theme='polaris'] .bg-\[\#121212\],
+      [data-theme='polaris'] .bg-\[\#1c1c1e\] {
+          background-color: #FFFFFF !important;
+          border-color: #E2E8F0 !important;
+          color: #0F172A !important;
       }
       
-      /* Command Palette / Modals */
-      [data-theme='polaris'] .fixed.inset-0.bg-black\/40 { background-color: rgba(255,255,255,0.6) !important; }
-      [data-theme='polaris'] .fixed.inset-0.bg-black\/60 { background-color: rgba(0,0,0,0.2) !important; }
+      /* Specific override for Sidebar */
+      [data-theme='polaris'] aside {
+          background-color: #FFFFFF !important;
+          border-right: 1px solid #E2E8F0 !important;
+          box-shadow: 4px 0 20px rgba(0,0,0,0.02) !important;
+      }
+      [data-theme='polaris'] aside button.bg-white\/10 {
+          background-color: #EFF6FF !important; /* Blue-50 */
+          color: #1E40AF !important; /* Blue-800 */
+          border: 1px solid #DBEAFE !important;
+      }
+      [data-theme='polaris'] aside button.text-gray-400 {
+          color: #64748B !important; /* Slate-500 */
+      }
+      [data-theme='polaris'] aside button:hover {
+          background-color: #F1F5F9 !important;
+          color: #0F172A !important;
+      }
+
+      /* B. Text Contrast */
+      [data-theme='polaris'] .text-white { color: #0F172A !important; }
+      [data-theme='polaris'] .text-white\/20 { color: #CBD5E1 !important; }
+      [data-theme='polaris'] .text-gray-300,
+      [data-theme='polaris'] .text-gray-400 { color: #475569 !important; } /* Slate-600 */
+      [data-theme='polaris'] .text-gray-500 { color: #64748B !important; } /* Slate-500 */
       
-      /* Table Headers */
-      [data-theme='polaris'] thead.bg-black\/40 { background-color: #F1F5F9 !important; color: #475569 !important; }
+      /* C. Badges & Chips (Pastel Style) */
+      /* Pattern: bg-COLOR/10 -> bg-COLOR-50, text-COLOR -> text-COLOR-700 */
       
-      /* Scrollbars in light mode */
-      [data-theme='polaris'] .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; }
-      [data-theme='polaris'] .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      [data-theme='polaris'] .bg-white\/5,
+      [data-theme='polaris'] .bg-white\/10 { background-color: #F1F5F9 !important; border-color: #E2E8F0 !important; }
+
+      /* Green */
+      [data-theme='polaris'] .bg-green-500\/10, [data-theme='polaris'] .bg-cyber-green\/10, [data-theme='polaris'] .bg-cyber-green\/20 {
+          background-color: #ECFDF5 !important;
+          color: #047857 !important;
+          border-color: #A7F3D0 !important;
+      }
+      [data-theme='polaris'] .text-cyber-green, [data-theme='polaris'] .text-green-400, [data-theme='polaris'] .text-green-500 {
+          color: #059669 !important;
+      }
+
+      /* Blue/Cyan */
+      [data-theme='polaris'] .bg-blue-500\/10, [data-theme='polaris'] .bg-cyber-blue\/10, [data-theme='polaris'] .bg-cyber-cyan\/10 {
+          background-color: #EFF6FF !important;
+          color: #1D4ED8 !important;
+          border-color: #BFDBFE !important;
+      }
+      [data-theme='polaris'] .text-cyber-blue, [data-theme='polaris'] .text-blue-400, [data-theme='polaris'] .text-cyber-cyan {
+          color: #2563EB !important;
+      }
+
+      /* Red */
+      [data-theme='polaris'] .bg-red-500\/5, [data-theme='polaris'] .bg-red-500\/10, [data-theme='polaris'] .bg-red-500\/20, [data-theme='polaris'] .bg-cyber-red\/10 {
+          background-color: #FEF2F2 !important; /* Rose-50 */
+          color: #B91C1C !important;
+          border-color: #FECACA !important;
+      }
+      [data-theme='polaris'] .text-red-500, [data-theme='polaris'] .text-red-400, [data-theme='polaris'] .text-cyber-red {
+          color: #DC2626 !important;
+      }
+      /* Red Borders */
+      [data-theme='polaris'] .border-red-500, [data-theme='polaris'] .border-red-500\/20, [data-theme='polaris'] .border-red-500\/40, [data-theme='polaris'] .border-red-500\/50 {
+          border-color: #FECACA !important;
+      }
+
+      /* Yellow/Amber */
+      [data-theme='polaris'] .bg-yellow-500\/10, [data-theme='polaris'] .bg-cyber-yellow\/10 {
+          background-color: #FFFBEB !important;
+          color: #B45309 !important;
+          border-color: #FDE68A !important;
+      }
+      [data-theme='polaris'] .text-yellow-500, [data-theme='polaris'] .text-yellow-400, [data-theme='polaris'] .text-cyber-yellow {
+          color: #D97706 !important;
+      }
+
+      /* Purple */
+      [data-theme='polaris'] .bg-purple-500\/10, [data-theme='polaris'] .bg-cyber-purple\/10 {
+          background-color: #F5F3FF !important;
+          color: #6D28D9 !important;
+          border-color: #DDD6FE !important;
+      }
+      [data-theme='polaris'] .text-purple-400, [data-theme='polaris'] .text-cyber-purple {
+          color: #7C3AED !important;
+      }
+
+      /* D. Modals & Popovers */
+      [data-theme='polaris'] .fixed.inset-0.bg-black\/40 { background-color: rgba(255,255,255,0.5) !important; backdrop-filter: blur(4px) !important; }
+      [data-theme='polaris'] .fixed.inset-0.bg-black\/60 { background-color: rgba(100,116,139,0.4) !important; backdrop-filter: blur(4px) !important; }
+      
+      /* E. Tables */
+      [data-theme='polaris'] thead { background-color: #F8FAFC !important; border-bottom: 1px solid #E2E8F0 !important; }
+      [data-theme='polaris'] th { color: #475569 !important; }
+      [data-theme='polaris'] tr:hover { background-color: #F1F5F9 !important; }
+      
+      /* F. Scrollbars */
+      [data-theme='polaris'] ::-webkit-scrollbar-thumb { background: #CBD5E1; }
+      [data-theme='polaris'] ::-webkit-scrollbar-track { background: transparent; }
+
+      /* G. Charts Backgrounds */
+      [data-theme='polaris'] .recharts-tooltip-wrapper .bg-black\/90, 
+      [data-theme='polaris'] .recharts-tooltip-wrapper .bg-black {
+          background-color: #FFFFFF !important;
+          border: 1px solid #E2E8F0 !important;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+          color: #0F172A !important;
+      }
+      
+      [data-theme='polaris'] .bg-noise { display: none; }
 
     </style>
   <script type="importmap">
@@ -320,7 +340,7 @@
 </script>
 </head>
   <body>
-    <!-- Ambient Orbs: Adjusted opacity for light mode via CSS vars -->
+    <!-- Orbs hidden in Polaris mode via CSS var opacity -->
     <div class="fixed top-[-20%] left-[20%] w-[600px] h-[600px] rounded-full blur-[150px] pointer-events-none animate-pulse-slow" style="background-color: var(--glow-primary); opacity: 0.15"></div>
     <div class="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[150px] pointer-events-none animate-float" style="background-color: var(--glow-secondary); opacity: 0.12"></div>
     

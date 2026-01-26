@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Search, Plus, Calendar, Trash2, CheckCircle2, ListTodo, 
@@ -85,16 +86,28 @@ export const TaskModule: React.FC = () => {
           low: 'text-blue-400 bg-blue-500/10 border-blue-500/20'
       };
 
+      const isHighPriority = task.priority === 'high' && task.status !== 'done';
+
       return (
-          <div className="group relative p-4 rounded-xl bg-[#121212] border border-white/5 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer shadow-lg hover:shadow-2xl overflow-hidden">
+          <div className={`
+              group relative p-4 rounded-xl border transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl overflow-hidden
+              ${isHighPriority 
+                  ? 'bg-red-500/5 border-red-500/50 shadow-[0_4px_20px_rgba(239,68,68,0.15)] hover:border-red-500 hover:bg-red-500/10' 
+                  : 'bg-[#121212] border-white/5 hover:border-white/20 hover:bg-white/5'
+              }
+          `}>
               {/* Left Highlight Bar */}
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${task.status === 'done' ? 'bg-cyber-green' : task.priority === 'high' ? 'bg-red-500' : 'bg-transparent group-hover:bg-cyber-cyan'} transition-colors`}></div>
+              <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${
+                  task.status === 'done' ? 'bg-cyber-green' : 
+                  task.priority === 'high' ? 'bg-red-500 shadow-[0_0_10px_#EF4444]' : 
+                  'bg-transparent group-hover:bg-cyber-cyan'
+              }`}></div>
 
               <div className="flex justify-between items-start mb-3 pl-2">
                   <div className="flex gap-2">
                       <span 
                         onClick={(e) => { e.stopPropagation(); updatePriority(task.id); }}
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider cursor-pointer hover:opacity-80 ${priorityColors[task.priority]}`}
+                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider cursor-pointer hover:opacity-80 transition-opacity ${priorityColors[task.priority]}`}
                       >
                           {task.priority}
                       </span>
@@ -114,7 +127,10 @@ export const TaskModule: React.FC = () => {
                   </div>
               </div>
 
-              <h4 className={`text-sm font-bold text-white mb-4 pl-2 leading-relaxed ${task.status === 'done' ? 'line-through text-gray-500' : ''}`}>
+              <h4 className={`text-sm font-bold mb-4 pl-2 leading-relaxed transition-colors ${
+                  task.status === 'done' ? 'line-through text-gray-500' : 
+                  isHighPriority ? 'text-white drop-shadow-[0_0_5px_rgba(239,68,68,0.3)]' : 'text-white'
+              }`}>
                   {task.title}
               </h4>
 
@@ -128,7 +144,7 @@ export const TaskModule: React.FC = () => {
                       {task.comments > 0 && (
                           <span className="flex items-center gap-1"><MoreHorizontal size={10} /> {task.comments}</span>
                       )}
-                      <span className={`flex items-center gap-1 ${task.status !== 'done' && task.priority === 'high' ? 'text-red-400 animate-pulse' : ''}`}>
+                      <span className={`flex items-center gap-1 ${task.status !== 'done' && task.priority === 'high' ? 'text-red-400 font-bold animate-pulse' : ''}`}>
                           <Clock size={10} /> {task.dueDate}
                       </span>
                   </div>
