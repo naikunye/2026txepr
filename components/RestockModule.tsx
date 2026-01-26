@@ -811,13 +811,10 @@ export const RestockModule: React.FC = () => {
     };
 
     const content = (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl animate-in fade-in duration-300 p-0 lg:p-6">
-         {/* Replaced 'apple-glass' with solid bg-[#0A0A0A] to prevent blur artifacts */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 animate-in fade-in duration-300 p-0 lg:p-6">
+         {/* Detail Modal Container - Solid Background */}
          <div className="w-full h-full lg:max-w-[95vw] lg:h-[90vh] bg-[#0A0A0A] border border-white/10 flex flex-col shadow-2xl relative overflow-hidden lg:rounded-3xl">
             
-            {/* Ambient Noise Overlay */}
-            <div className="absolute inset-0 bg-noise pointer-events-none opacity-20"></div>
-
             {/* 1. Header Toolbar (Compacted) */}
             <div className="h-auto border-b border-white/10 flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 bg-[#141414] gap-4 shrink-0 relative z-10">
                <div className="flex items-center gap-4 w-full lg:w-auto">
@@ -833,7 +830,7 @@ export const RestockModule: React.FC = () => {
                      ) : (
                        <ImageIcon size={20} className="text-gray-600 group-hover:text-cyber-cyan transition-colors" />
                      )}
-                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <UploadCloud size={16} className="text-white" />
                      </div>
                   </div>
@@ -886,7 +883,7 @@ export const RestockModule: React.FC = () => {
 
                    <div className="h-6 w-[1px] bg-white/10 mx-2 hidden lg:block"></div>
 
-                   <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg whitespace-nowrap backdrop-blur-md">
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-white/10 rounded-lg whitespace-nowrap">
                       <DollarSign size={12} className="text-cyber-green"/>
                       <span className="text-[10px] text-gray-400 font-mono uppercase">Rate:</span>
                       <input 
@@ -911,7 +908,7 @@ export const RestockModule: React.FC = () => {
             <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-12 bg-transparent relative z-10">
                {/* LEFT PANEL */}
                <div className={`col-span-12 ${showSidebar ? 'lg:col-span-8' : 'lg:col-span-12'} flex flex-col border-r border-white/5 bg-transparent lg:h-full min-h-0 transition-all duration-300`}>
-                  <div className="flex border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0 z-20 lg:static overflow-x-auto no-scrollbar">
+                  <div className="flex border-b border-white/10 bg-black/20 sticky top-0 z-20 lg:static overflow-x-auto no-scrollbar">
                      <TabButton id="supply" label="供应链 (SUPPLY)" icon={Layers} />
                      <TabButton id="logistics" label="物流 (LOGISTICS)" icon={Truck} />
                      <TabButton id="finance" label="TikTok 售价 (PRICING)" icon={DollarSign} />
@@ -1040,10 +1037,10 @@ export const RestockModule: React.FC = () => {
 
                              {/* Variants Table */}
                              {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
-                                <div className="border border-white/10 rounded-xl overflow-hidden bg-black/40 backdrop-blur-sm">
+                                <div className="border border-white/10 rounded-xl overflow-hidden bg-black/40">
                                    <div className="max-h-48 overflow-y-auto custom-scrollbar">
                                       <table className="w-full text-xs text-left">
-                                         <thead className="bg-white/5 text-gray-400 font-mono text-[10px] uppercase sticky top-0 backdrop-blur-md z-10">
+                                         <thead className="bg-white/5 text-gray-400 font-mono text-[10px] uppercase sticky top-0 z-10">
                                             <tr>
                                                <th className="p-3 font-bold tracking-wider">完整 SKU</th>
                                                <th className="p-3 font-bold tracking-wider">变体名称</th>
@@ -1530,7 +1527,7 @@ export const RestockModule: React.FC = () => {
                {/* RIGHT PANEL: LIVE ANALYTICS (SIDEBAR) */}
                {/* Hidden when in Finance Tab to prevent layout breakage and redundancy */}
                {showSidebar && (
-                 <div className="hidden lg:flex col-span-12 lg:col-span-4 bg-black/40 p-5 flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto backdrop-blur-xl relative">
+                 <div className="hidden lg:flex col-span-12 lg:col-span-4 bg-black/40 p-5 flex-col border-l border-white/10 shadow-2xl lg:h-full lg:overflow-y-auto relative">
                     {/* Subtle Background Mesh for Analytics */}
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 pointer-events-none"></div>
                     
@@ -1659,8 +1656,8 @@ export const RestockModule: React.FC = () => {
 
       {renderDetailModal()}
 
-      {/* Main Table Header & Tools - UPDATED: Transparent & Blur */}
-      <div className="sticky top-0 z-30 bg-transparent backdrop-blur-2xl border-b border-white/10 pb-6 pt-6 -mx-8 px-8 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-end gap-6 transition-all">
+      {/* Main Table Header & Tools - UPDATED: Less blur, cleaner background */}
+      <div className="sticky top-0 z-30 bg-[#050505]/95 backdrop-blur-sm border-b border-white/10 pb-6 pt-6 -mx-8 px-8 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-end gap-6 transition-all">
          <div>
             <h1 className="text-4xl font-black text-white tracking-tight text-glow">智能备货中心</h1>
             <p className="text-gray-400 font-medium text-xs mt-2 flex items-center gap-2 tracking-wide">
@@ -1697,14 +1694,14 @@ export const RestockModule: React.FC = () => {
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         placeholder="检索 SKU / 追踪号 / 名称..." 
-                        className="bg-white/5 border border-white/10 pl-12 pr-6 py-2.5 text-sm text-white focus:border-cyber-cyan focus:shadow-[0_0_15px_rgba(64,200,224,0.2)] outline-none font-medium w-80 rounded-xl transition-all"
+                        className="bg-[#121212] border border-white/10 pl-12 pr-6 py-2.5 text-sm text-white focus:border-cyber-cyan focus:shadow-[0_0_15px_rgba(64,200,224,0.2)] outline-none font-medium w-80 rounded-xl transition-all"
                     />
                 </div>
             )}
 
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".json" />
 
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-xl backdrop-blur-md">
+            <div className="flex items-center gap-1 bg-[#121212] border border-white/10 p-1 rounded-xl">
                 <button
                     onClick={toggleSelectAll}
                     title="全选 / 取消全选"
@@ -1809,16 +1806,16 @@ export const RestockModule: React.FC = () => {
                    onDragEnter={(e) => handleDragEnter(e, product.id)}
                    className={`
                      p-0 group relative overflow-hidden rounded-2xl border
-                     transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]
+                     transition-all duration-200 ease-out
                      ${isSelected 
                         ? 'bg-[#0f172a] border-cyber-cyan shadow-[0_0_20px_rgba(64,200,224,0.1)]' 
-                        : 'bg-[#080808] border-white/10 hover:bg-[#161616] hover:border-white/20'
+                        : 'bg-[#080808] border-white/10 hover:bg-[#1A1A1A] hover:border-white/20'
                      }
                      ${isBeingDragged ? 'opacity-30 scale-[0.98] border-dashed border-white/40 shadow-inner brightness-50 grayscale' : 'opacity-100 scale-100'}
                    `}
                  >
-                    {/* Active Border Indicator */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-white/30'}`}></div>
+                    {/* Active Border Indicator - SOLID COLOR, NO BLUR */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-colors duration-300 ${isSelected ? 'bg-cyber-cyan shadow-[0_0_10px_#40C8E0]' : 'bg-transparent group-hover:bg-gray-700'}`}></div>
                     
                     <div 
                       className="absolute top-5 right-5 z-20"
@@ -2020,7 +2017,7 @@ export const RestockModule: React.FC = () => {
                        </div>
                     </div>
                     
-                    <div className="px-5 py-2.5 bg-black/40 border-t border-white/5 flex flex-wrap justify-between items-center backdrop-blur-md gap-y-2">
+                    <div className="px-5 py-2.5 bg-black/40 border-t border-white/5 flex flex-wrap justify-between items-center gap-y-2">
                         <div className="flex items-center gap-6">
                             <div className="text-[10px] text-gray-500 font-mono font-medium flex items-center gap-2 min-w-[80px]">
                                <Clock size={12} /> 生产: <span className="text-white">{product.supplier?.leadTime || 0} 天</span>
