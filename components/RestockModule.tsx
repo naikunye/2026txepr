@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar,
-  GripVertical, CheckCircle2, Loader2
+  GripVertical, CheckCircle2, Loader2, MapPin
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -42,6 +42,7 @@ interface Product {
     carrier: 'UPS' | 'FedEx' | 'DHL' | 'USPS' | 'Other'; // Added Carrier
     mode: 'air' | 'sea' | 'rail';
     warehouseDest: string; 
+    vesselName?: string; // NEW: Vessel Name for sea shipments
     unitRateRMB: number; // Estimated Unit Rate
     totalFreightRMB?: number; // Manual Total Override
     paymentStatus: string; // Added: Freight Payment Status
@@ -124,7 +125,7 @@ const initialProducts: Product[] = [
     image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&auto=format&fit=crop&q=60',
     variants: [],
     supplier: { name: '东莞电子严选', link: '#', moq: 1000, unitPriceRMB: 115.0, leadTime: 14, paymentTerms: '待付款' },
-    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', unitRateRMB: 850, totalFreightRMB: 0, paymentStatus: '已支付', dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer', etd: '2024-01-20', eta: '2024-02-15' },
+    logistics: { inboundId: 'LX-20240108-009', trackingNo: '775499210022', carrier: 'FedEx', mode: 'sea', warehouseDest: 'LGB3', vesselName: 'COSCO SHIPPING PISCES', unitRateRMB: 850, totalFreightRMB: 0, paymentStatus: '已支付', dutyRate: 0.25, hsCode: '8471.60.00', status: 'Plan', priority: 'defer', etd: '2024-01-20', eta: '2024-02-15' },
     packing: { pcsPerBox: 10, boxCount: 50, boxWeightKg: 15.0, boxVolumeCbm: 0.12 },
     financials: { 
         sellingPriceUSD: 69.99, 
@@ -228,6 +229,7 @@ const sanitizeProduct = (p: any): Product => {
       carrier: fuzzyVal(mixedPool, ['carrier', 'courier', 'logistics_provider', '承运商', '物流商'], 'string', 'UPS') as any,
       mode: fuzzyVal(mixedPool, ['mode', 'transportMode', 'Method', '运输方式', '物流渠道'], 'string', 'sea') as any,
       warehouseDest: fuzzyVal(mixedPool, ['warehouseDest', 'warehouse', 'destination', 'Dest', '仓库', '目的仓', 'FBA仓'], 'string', ''),
+      vesselName: fuzzyVal(mixedPool, ['vesselName', 'vessel', 'ship', 'boat', '船名', '船号', '船次'], 'string', ''),
       unitRateRMB: fuzzyVal(mixedPool, ['unitRateRMB', 'freight', 'shippingRate', 'Freight Cost', 'Shipping Fee', '头程', '运费单价', '物流费'], 'number', 0),
       totalFreightRMB: fuzzyVal(mixedPool, ['totalFreightRMB', 'Total Freight', '总运费', '头程总额'], 'number', 0),
       paymentStatus: fuzzyVal(mixedPool, ['paymentStatus', 'freightPayment', '运费支付', '头程付款'], 'string', ''),
@@ -1170,6 +1172,33 @@ export const RestockModule: React.FC = () => {
                                        />
                                    </div>
                                 </div>
+                                
+                                {/* New Vessel Name & Locator */}
+                                <div>
+                                   <label className="lbl flex items-center gap-1 text-blue-400"><Ship size={10} /> 船名/航次 (Vessel)</label>
+                                   <div className="flex gap-1">
+                                       <input 
+                                         value={selectedProduct.logistics?.vesselName || ''} 
+                                         onChange={e => handleUpdate('logistics.vesselName', e.target.value)} 
+                                         className="input-holo flex-1 p-2 text-sm font-mono text-blue-300 placeholder-white/20"
+                                         placeholder="输入船名..." 
+                                       />
+                                       <button 
+                                          onClick={() => {
+                                              if(selectedProduct.logistics?.vesselName) {
+                                                   navigator.clipboard.writeText(selectedProduct.logistics.vesselName);
+                                                   showToast("船名已复制，正在打开维运网...", "success");
+                                              }
+                                              window.open('https://www.weiyun001.com/shipLocate', '_blank');
+                                          }}
+                                          className="px-3 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-600/30 rounded-lg transition-all flex items-center justify-center"
+                                          title="维运网船舶定位 (复制并跳转)"
+                                       >
+                                          <MapPin size={14} />
+                                       </button>
+                                   </div>
+                                </div>
+
                                 <div>
                                    <label className="lbl">目的仓库 (Warehouse)</label>
                                    <input value={selectedProduct.logistics?.warehouseDest || ''} onChange={e => handleUpdate('logistics.warehouseDest', e.target.value)} className="input-holo w-full p-2 text-sm" placeholder="ONT8" />
