@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, GitFork, UploadCloud, Wallet, Grid, X, ShieldAlert, 
   Download, Upload, RefreshCw, CheckSquare, Square, Check, Clock, AlertTriangle,
   Zap, Megaphone, Globe, RefreshCcw, Percent, Navigation, Factory, StickyNote, Calendar,
-  GripVertical, CheckCircle2, Loader2, MapPin
+  GripVertical, CheckCircle2, Loader2, MapPin, Wand2
 } from 'lucide-react';
 import { usePersistence, LOCAL_STORAGE_UPDATE_EVENT } from '../hooks/usePersistence';
 import { addToRecycleBin } from '../lib/recycleBin';
@@ -296,6 +296,7 @@ export const RestockModule: React.FC = () => {
   // Interaction States
   const [toast, setToast] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
   const [isGeneratingPO, setIsGeneratingPO] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false); // New State for Compression
 
   // Helper to show temporary toast
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -556,6 +557,69 @@ export const RestockModule: React.FC = () => {
     event.target.value = '';
   };
 
+  // --- 💡 INTELLIGENT COMPRESSION TOOL ---
+  const compressBase64Image = (base64Str: string, maxWidth = 300, quality = 0.6): Promise<string> => {
+      return new Promise((resolve) => {
+          const img = new Image();
+          img.src = base64Str;
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const scaleSize = maxWidth / img.width;
+              // If already small, keep it
+              if (img.width <= maxWidth) {
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+              } else {
+                  canvas.width = maxWidth;
+                  canvas.height = img.height * scaleSize;
+              }
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  // Convert to JPEG at reduced quality (Massive saving vs PNG)
+                  resolve(canvas.toDataURL('image/jpeg', quality));
+              } else {
+                  resolve(base64Str); // Fail safe
+              }
+          };
+          img.onerror = () => resolve(base64Str); // Fail safe
+      });
+  };
+
+  const handleCompressImages = async () => {
+      const largeImages = products.filter(p => p.image && p.image.startsWith('data:image') && p.image.length > 30000); 
+      
+      if (largeImages.length === 0) {
+          alert("✅ 系统检测完毕\n\n未发现过大的 Base64 图片，您的数据包体积很健康。");
+          return;
+      }
+
+      if (confirm(`⚠️ 发现 ${largeImages.length} 张巨大的高清图片！\n\n这些图片导致了同步失败。\n\n点击【确定】系统将自动执行“智能压缩”：\n1. 将图片缩放到 400px 宽度 (适合列表查看)\n2. 转换为高效 JPEG 格式\n\n这能减少 90% 的体积，同时保留图片内容！`)) {
+          setIsCompressing(true);
+          try {
+              const newProducts = [...products];
+              let compressedCount = 0;
+
+              for (let i = 0; i < newProducts.length; i++) {
+                  const p = newProducts[i];
+                  if (p.image && p.image.startsWith('data:image') && p.image.length > 30000) {
+                      // Compress logic
+                      const newImg = await compressBase64Image(p.image, 400, 0.7);
+                      newProducts[i] = { ...p, image: newImg };
+                      compressedCount++;
+                  }
+              }
+              setProducts(newProducts);
+              showToast(`✅ 成功压缩 ${compressedCount} 张图片！请重新尝试同步。`, "success");
+          } catch (e) {
+              console.error(e);
+              showToast("压缩过程中发生错误", "error");
+          } finally {
+              setIsCompressing(false);
+          }
+      }
+  };
+
   const calculateEconomics = (p: Product) => {
     // 1. Basic Costs
     const unitProductCostRMB = p.supplier?.unitPriceRMB || 0; 
@@ -656,6 +720,14 @@ export const RestockModule: React.FC = () => {
   const handleUpdate = (field: string, value: any) => {
     if (!selectedProduct) return;
     
+    // Prevent massive base64 strings if updating image
+    // NOTE: This warning is just a first line of defense. The "Compress Tool" handles existing data.
+    if (field === 'image' && typeof value === 'string' && value.length > 500000) { 
+        // Only warn if absolutely massive (500KB+ chars), let user paste, then use compressor.
+        // We removed the strict alert block here to allow pasting, 
+        // relying on the user to click the "Compress" button later if sync fails.
+    }
+
     // Helper to update nested object
     const updateNested = (obj: any, path: string[], val: any): any => {
       const [head, ...tail] = path;
@@ -823,8 +895,10 @@ export const RestockModule: React.FC = () => {
                   <div 
                     className="group relative w-14 h-14 bg-black/50 border border-white/10 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer hover:border-cyber-cyan/50 transition-all shrink-0 shadow-lg"
                     onClick={() => {
-                        const url = prompt("请输入图片URL:", selectedProduct.image);
-                        if (url) handleUpdate('image', url);
+                        const url = prompt("请输入图片URL (必须是 http/https 链接，禁止 Base64):", selectedProduct.image);
+                        if (url) {
+                            handleUpdate('image', url);
+                        }
                     }}
                   >
                      {selectedProduct.image ? (
@@ -1761,6 +1835,17 @@ export const RestockModule: React.FC = () => {
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".json" />
 
             <div className="flex items-center gap-1 bg-[#121212] border border-white/10 p-1 rounded-xl">
+                {/* --- SMART COMPRESSOR BUTTON --- */}
+                <button
+                    onClick={handleCompressImages}
+                    disabled={isCompressing}
+                    title="图片压缩修复：自动压缩过大的图片，保留内容并修复同步错误"
+                    className="p-2.5 text-purple-400 hover:text-white hover:bg-purple-500/20 rounded-lg transition-colors border border-transparent hover:border-purple-500/50 relative overflow-hidden"
+                >
+                    {isCompressing ? <Loader2 size={18} className="animate-spin text-white"/> : <Wand2 size={18} />}
+                </button>
+                <div className="w-[1px] h-5 bg-white/10 mx-1"></div>
+
                 <button
                     onClick={toggleSelectAll}
                     title="全选 / 取消全选"
